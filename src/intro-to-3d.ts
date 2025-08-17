@@ -4,7 +4,7 @@ import { COLOR_BLUE, COLOR_GREEN, COLOR_RED, COLOR_WHITE, create3dInterleavedVao
 import { createProgram, createStaticIndexBuffer, createStaticVertexBuffer, getContext, showError } from "./gl-utils";
 import { glMatrix, mat4, quat, vec3 } from 'gl-matrix';
 
-showError("Hello World!")
+import './index.css'
 
 class Shape {
     private matWorld = mat4.create();

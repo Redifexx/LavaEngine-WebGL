@@ -1,0 +1,64 @@
+:root {
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+
+    color-scheme: light dark;
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #182129;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+html{
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+}
+
+body {
+    margin: 25px;
+    padding: 25px;
+    background-color: #2a2a2a;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+}
+
+#demo-canvas {
+    width: 70vw;
+    height: 70vh;
+
+    /*
+    * WebGL trick: pick an offensive canvas background color to test
+    *  opacity/clearing bugs
+    */
+    background-color: #6652da;
+
+    border: 3px solid rgb(255, 111, 0);
+
+    /* Help to illustrate the rasterizer's job: when artificially lowering resolution, show pixelated image */
+    image-rendering: crisp-edges;
+}
+
+/** CSS to make a nice little error box output for debugging (nice if you can't use devtools, e.g. mobile)  */
+#error-box {
+    color: #fd8080;
+    font-weight: 500;
+    font-size: 18pt;
+    border: 1px solid white;
+    padding-inline: 1em;
+    box-sizing: border-box;
+    margin: 20px;
+    width: 70vw;
+    height: 2em;
+    text-align: center;
+}
+
+.error-box-title {
+    color: #eee;
+}
