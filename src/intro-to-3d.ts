@@ -150,13 +150,12 @@ function introTo3DDemo()
         }
     });
 
-    let camDistance = 5.0;
 
     canvas.addEventListener('wheel', function(event: WheelEvent)
     {
         if (document.pointerLockElement === canvas)
         {
-            camDistance += event.deltaY / 100.0;
+            orbitRadius += event.deltaY / 100.0;
             event.preventDefault();
         }
     }, { passive: false });
@@ -195,9 +194,9 @@ function introTo3DDemo()
         {
             cameraAngle += dt * glMatrix.toRadian(20);
 
-            camX = camDistance * Math.sin(cameraAngle);
+            camX = orbitRadius * Math.sin(cameraAngle);
             camY = orbitRadius * Math.sin(orbitVertical);
-            camZ = camDistance * Math.cos(cameraAngle);
+            camZ = orbitRadius * Math.cos(cameraAngle);
         }
 
         mat4.lookAt(
