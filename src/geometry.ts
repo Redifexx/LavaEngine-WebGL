@@ -4,10 +4,11 @@ import { vec3 } from "gl-matrix";
 import { showError } from "./gl-utils";
 
 export const COLOR_WHITE = vec3.fromValues(1.0, 1.0, 1.0);
+export const COLOR_GREY = vec3.fromValues(0.5, 0.5, 0.5);
 export const COLOR_BLACK = vec3.fromValues(0.0, 0.0, 0.0);
-export const COLOR_RED = vec3.fromValues(1.0, 0.0, 0.0);
-export const COLOR_GREEN = vec3.fromValues(0.0, 1.0, 0.0);
-export const COLOR_BLUE = vec3.fromValues(0.0, 0.0, 1.0);
+export const COLOR_RED = vec3.fromValues(1.0, 0.5, 0.5);
+export const COLOR_GREEN = vec3.fromValues(0.5, 1.0, 0.5);
+export const COLOR_BLUE = vec3.fromValues(0.5, 0.5, 1.0);
 
 //
 // Cube geometry

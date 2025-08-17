@@ -1,6 +1,6 @@
 import { fragmentShaderSourceCode } from "../shaders/default.frag";
 import { vertexShaderSourceCode } from "../shaders/default.vert";
-import { COLOR_BLUE, COLOR_GREEN, COLOR_RED, COLOR_WHITE, create3dInterleavedVao, CUBE_INDICES, CUBE_VERTICES, PLANE_INDICES, PLANE_VERTICES } from "./geometry";
+import { COLOR_BLUE, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_WHITE, create3dInterleavedVao, CUBE_INDICES, CUBE_VERTICES, PLANE_INDICES, PLANE_VERTICES } from "./geometry";
 import { createProgram, createStaticIndexBuffer, createStaticVertexBuffer, getContext, showError } from "./gl-utils";
 import { glMatrix, mat4, quat, vec3 } from 'gl-matrix';
 
@@ -100,12 +100,12 @@ function introTo3DDemo()
 
     const UP_VEC = vec3.fromValues(0, 1, 0);
     const shapes = [
-        new Shape(vec3.fromValues(0, 1, 0), 1.0, UP_VEC,        0,                      COLOR_BLUE, cubeVao, CUBE_INDICES.length),
+        new Shape(vec3.fromValues(0, 1, 0), 1.0, UP_VEC,        0,                      COLOR_WHITE, cubeVao, CUBE_INDICES.length),
         new Shape(vec3.fromValues(4, 0.2, 3), 0.2, UP_VEC,     glMatrix.toRadian(20),  COLOR_RED, cubeVao, CUBE_INDICES.length),
         new Shape(vec3.fromValues(3, 0.4, -2.5), 0.4, UP_VEC,     glMatrix.toRadian(40),  COLOR_GREEN, cubeVao, CUBE_INDICES.length),
         new Shape(vec3.fromValues(-2, 0.4, -2.5), 0.4, UP_VEC,   glMatrix.toRadian(60),  COLOR_BLUE, cubeVao, CUBE_INDICES.length),
         new Shape(vec3.fromValues(-5, 0.7, 2), 0.7, UP_VEC,       glMatrix.toRadian(80),  COLOR_RED, cubeVao, CUBE_INDICES.length),
-        new Shape(vec3.fromValues(0, 0, 0), 50.0, UP_VEC,       0,                       COLOR_WHITE, planeVao, PLANE_INDICES.length)
+        new Shape(vec3.fromValues(0, 0, 0), 50.0, UP_VEC,       0,                       COLOR_GREY, planeVao, PLANE_INDICES.length)
     ]
 
     const matView = mat4.create();
@@ -123,7 +123,7 @@ function introTo3DDemo()
 
         // Update
 
-        cameraAngle += dt * glMatrix.toRadian(60);
+        cameraAngle += dt * glMatrix.toRadian(20);
 
         const cameraX = 10 * Math.sin(cameraAngle);
         const cameraZ = 10 * Math.cos(cameraAngle);
@@ -151,8 +151,8 @@ function introTo3DDemo()
         const cameraPosition = vec3.fromValues(viewMat[12], viewMat[13], viewMat[14]);
 
         // Render
-        canvas.width = canvas.clientWidth * devicePixelRatio;
-        canvas.height = canvas.clientHeight * devicePixelRatio;
+        canvas.width = (canvas.clientWidth * devicePixelRatio) / 1;
+        canvas.height = (canvas.clientHeight * devicePixelRatio) / 1;
 
         gl.clearColor(0.02, 0.02, 0.02, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
