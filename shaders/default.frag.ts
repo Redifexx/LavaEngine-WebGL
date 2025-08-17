@@ -2,12 +2,15 @@ export const fragmentShaderSourceCode = `#version 300 es
 precision mediump float;
 
 in vec3 fragmentPosition;
+in vec2 fragmentTexCoord;
 in vec3 fragmentNormal;
 
 out vec4 outputColor;
 
 uniform vec3 viewPosition;
 uniform vec3 diffuseColor;
+
+uniform sampler2D albedoMap;
 
 struct PointLight
 {
@@ -33,14 +36,14 @@ vec3 PointLightResult(PointLight light)
     vec3 lightDir = normalize(light.position - fragmentPosition);
 
     float diff = max(dot(norm, lightDir), 0.0f);
-    vec3 diffuse = (diff * diffuseColor * light.color);
+    vec3 diffuse = (diff * vec3(texture(albedoMap, fragmentTexCoord)) * diffuseColor * light.color);
 
     // Specular (Phong)
     vec3 viewDir = normalize(viewPosition - fragmentPosition);
     vec3 reflectDir = reflect(-lightDir, norm);
 
     float spec = pow(max(dot(viewDir, reflectDir), 0.0f), 8.0);
-    vec3 specular = (light.color * vec3(0.5)) * (spec * diffuseColor);
+    vec3 specular = (light.color * vec3(0.2)) * (spec * diffuseColor);
 
     vec3 emissive = (light.color * vec3(0.0)) * diffuseColor;
 
@@ -60,14 +63,14 @@ vec3 DirectionalLightResult(DirectionalLight light)
     vec3 lightDir = normalize(-light.direction);
 
     float diff = max(dot(norm, lightDir), 0.0f);
-    vec3 diffuse = (diff * diffuseColor * light.color);
+    vec3 diffuse = (diff * diffuseColor * vec3(texture(albedoMap, fragmentTexCoord)) * light.color);
 
     // Specular (Phong)
     vec3 viewDir = normalize(viewPosition - fragmentPosition);
     vec3 reflectDir = reflect(-lightDir, norm);
 
     float spec = pow(max(dot(viewDir, reflectDir), 0.0f), 16.0);
-    vec3 specular = (light.color * vec3(0.5)) * (spec * diffuseColor);
+    vec3 specular = (light.color * vec3(0.2)) * (spec * diffuseColor);
 
     vec3 emissive = (light.color * vec3(0.0)) * diffuseColor;
 
@@ -78,7 +81,7 @@ vec3 DirectionalLightResult(DirectionalLight light)
 
 void main()
 {
-    vec3 ambient = vec3(1.0) * 0.25 * diffuseColor;
+    vec3 ambient = vec3(1.0) * 0.25 * vec3(texture(albedoMap, fragmentTexCoord));
     vec3 result = vec3(0.0f);
 
     PointLight ptLight0;
@@ -106,9 +109,9 @@ void main()
     ptLights[3] = ptLight3;
 
     DirectionalLight sun;
-    sun.direction = vec3(0.3f, -1.0f, 0.7f);
-    sun.color = vec3(1.0f);
-    sun.intensity = 1.0f;
+    sun.direction = vec3(0.3f, -1.0f, 0.3f);
+    sun.color = vec3(0.996, 1, 0.953);
+    sun.intensity = 1.2f;
 
     for (int i = 0; i < ptLights.length(); i++)
     {

@@ -92,7 +92,7 @@ export function createProgram(gl: WebGL2RenderingContext, vertexShaderSource: st
 
 export function getContext(canvas: HTMLCanvasElement)
 {
-    const gl = canvas.getContext('webgl2');
+    const gl = canvas.getContext('webgl2', { antialias: false });
     if (!gl)
     {
         const isWebGl1Supported = !!(document.createElement('canvas')).getContext('webgl');
@@ -113,3 +113,70 @@ export function getRandomInRange(min: number, max: number)
     return Math.random() * (max - min) + min;
 }
 
+// THANK YOU MOZILLA
+function isPowerOf2(value: number)
+{
+    return (value & (value - 1)) === 0;
+}
+
+export function loadTexture(gl: WebGL2RenderingContext, url: string)
+{
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    // Temp pixel to fill item while image is loading
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const width = 1;
+    const height = 1;
+    const border = 0;
+    const srcFormat = gl.RGBA;
+    const srcType = gl.UNSIGNED_BYTE;
+    const pixel = new Uint8Array([0, 0, 255, 255]);
+
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        level,
+        internalFormat,
+        width,
+        height,
+        border,
+        srcFormat,
+        srcType,
+        pixel,
+    );
+
+    const image = new Image();
+    image.onload = () => {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            level,
+            internalFormat,
+            srcFormat,
+            srcType,
+            image,
+        );
+
+        // WebGL1 has different requirements for power of 2 images
+        if (isPowerOf2(image.width) && isPowerOf2(image.height))
+        {
+            gl.generateMipmap(gl.TEXTURE_2D);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        }
+        else
+        {
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        }
+    };
+
+    image.src = url;
+
+    return texture;
+}

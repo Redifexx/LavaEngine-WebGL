@@ -1,12 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Quantico:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>WebGL-Demo</title>
     </head>
     <body>
-        <h1>WebGL Demo</h1>
+        <div id="site-header">
+            <div id="site-header-title">
+                <h1>Redifexx's Realtime WebGL Demo</h1>
+                <p id="site-header-subtitle">PS1 Style</p>
+            </div>
+            <div id="comment-box">
+                <p>Click on the demo to use the mouse to control the camera.</p>
+                <p>Press escape twice to reset the camera animation.</p>
+                <p>Scroll Wheel - Zoom</p>
+            </div>
+        </div>
         <canvas id="demo-canvas"></canvas>
         <div id="error-box">
             <span class="error-box-title">Made by Gio Perez Colon</span>

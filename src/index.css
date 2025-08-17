@@ -1,3 +1,9 @@
+.quantico-bold {
+  font-family: "Quantico", sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
 :root {
     font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
     line-height: 1.5;
@@ -17,22 +23,41 @@ html{
     display: flex;
     justify-content: center;
     flex-direction: column;
+    height: 100%;
+    margin: 0px;
 }
 
 body {
-    margin: 25px;
+    font-family: "Quantico", sans-serif;
+    margin: 0px;
     padding: 25px;
     background-color: #2a2a2a;
     display: flex;
     justify-content: center;
     flex-direction: column;
     align-items: center;
-    height: 90%;
+    height: 100%;
+    box-shadow: 0 0 0 10px #182129 inset
+}
+
+h1{
+   margin-bottom: 0;
+}
+
+p {
+    margin: 5px;
+}
+
+#comment-box {
+    background-color: rgb(87, 89, 89);
+    padding: 10px;
+    border-radius: 20px;
 }
 
 #demo-canvas {
     width: 70vw;
     height: 70vh;
+    margin-top: 20px;
 
     /*
     * WebGL trick: pick an offensive canvas background color to test
@@ -58,8 +83,28 @@ body {
     width: 70vw;
     height: 2em;
     text-align: center;
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
 }
 
 .error-box-title {
     color: #eee;
+}
+
+#site-header {
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    width: 70vw;
+    align-items: center;
+}
+
+#site-header-title {
+    margin-right: auto;
+}
+
+#site-header-subtitle{
+    margin: 0px;
 }
