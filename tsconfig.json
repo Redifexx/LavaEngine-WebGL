@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "target": "es2016",
+        "module": "commonjs",
+        "strict": true,
+        "outDir": "./dist",
+        "sourceMap": true,
+        "types": [] // Exclude all default type definitions, including 'node'
+    }
+}

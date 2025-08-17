@@ -1,0 +1,19 @@
+{
+  "name": "intro-to-3d",
+  "scripts": {
+    "build": "webpack",
+    "dev": "webpack --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.9.2",
+    "webpack": "^5.101.2",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "gl-matrix": "^3.4.4",
+    "nodejs": "^0.0.0"
+  }
+}
