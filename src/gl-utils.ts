@@ -92,7 +92,7 @@ export function createProgram(gl: WebGL2RenderingContext, vertexShaderSource: st
 
 export function getContext(canvas: HTMLCanvasElement)
 {
-    const gl = canvas.getContext('webgl2', { antialias: false });
+    const gl = canvas.getContext('webgl2', { antialias: true });
     if (!gl)
     {
         const isWebGl1Supported = !!(document.createElement('canvas')).getContext('webgl');

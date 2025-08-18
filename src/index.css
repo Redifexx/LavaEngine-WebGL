@@ -23,7 +23,6 @@ html{
     display: flex;
     justify-content: center;
     flex-direction: column;
-    height: 100%;
     margin: 0px;
 }
 
@@ -41,7 +40,8 @@ body {
 }
 
 h1{
-   margin-bottom: 0;
+    margin-bottom: 0;
+    margin-top: 0;
 }
 
 p {
@@ -49,15 +49,36 @@ p {
 }
 
 #comment-box {
-    background-color: rgb(87, 89, 89);
-    padding: 10px;
-    border-radius: 20px;
+    background-color: rgb(60, 72, 72);
+    width: 70vw;
+    border-radius: 10px;
+    padding: 5px;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+}
+
+#comment-box-control
+{
+    display: flex;
+    flex-direction: row;
+}
+
+#comment-box-highlight
+{
+    color: rgb(255, 111, 0);
+}
+
+#comment-box-content
+{
+    color: rgb(255, 255, 255);
 }
 
 #demo-canvas {
     width: 70vw;
-    height: 70vh;
+    height: 80vh;
     margin-top: 20px;
+    margin-bottom: 20px;
 
     /*
     * WebGL trick: pick an offensive canvas background color to test
@@ -99,12 +120,19 @@ p {
     flex-direction: row;
     width: 70vw;
     align-items: center;
+    margin-bottom: 0;
 }
 
 #site-header-title {
     margin-right: auto;
+    
 }
 
 #site-header-subtitle{
     margin: 0px;
+}
+
+#site-header-logo{
+    width: 50px;
+    height: 50px;
 }

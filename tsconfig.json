@@ -5,6 +5,7 @@
         "strict": true,
         "outDir": "./dist",
         "sourceMap": true,
+        "strictPropertyInitialization": false,
         "types": [] // Exclude all default type definitions, including 'node'
     }
 }

@@ -3,8 +3,8 @@ import { vertexShaderSourceCode } from "../shaders/default.vert";
 import { COLOR_BLUE, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_WHITE, create3dInterleavedVao, CUBE_INDICES, CUBE_VERTICES, PLANE_INDICES, PLANE_VERTICES } from "./geometry";
 import { createProgram, createStaticIndexBuffer, createStaticVertexBuffer, getContext, loadTexture, showError } from "./gl-utils";
 import { glMatrix, mat4, quat, vec3 } from 'gl-matrix';
-
 import './index.css'
+import { Camera, CameraMovement } from "./camera";
 
 class Shape {
     private matWorld = mat4.create();
@@ -126,10 +126,16 @@ function introTo3DDemo()
     const matView = mat4.create();
     const matProj = mat4.create();
 
+    // Camera setup
+    const camera = new Camera(vec3.fromValues(0.0, 5.0, 0.0));
+    //camera.Position = vec3.fromValues(0.0, 5.0, 0.0);
+    //camera.Front = vec3.fromValues(0.0, 0.0, -1.0);
+
     let cameraAngle = 0;
 
     // Render
     let lastFrameTime = performance.now();
+    let deltaTime = 0.0;
 
     // Some input
 
@@ -143,10 +149,7 @@ function introTo3DDemo()
     document.addEventListener('mousemove', function(event) {
         if (document.pointerLockElement === canvas)
         {
-            orbitHorizontal += event.movementX * 0.01;
-            orbitVertical += event.movementY * 0.01;
-            // clamp
-            orbitVertical = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, orbitVertical));
+            camera.processMouseMovement(event.movementX, -event.movementY)
         }
     });
 
@@ -165,21 +168,136 @@ function introTo3DDemo()
         cameraLocked = true;
     });
 
+    let isShiftDown = false;
+    let isFlying = false;
+
+    const keysPressed = new Set<string>();
+    document.addEventListener("keydown", (e) => keysPressed.add(e.key.toLowerCase()));
+    document.addEventListener("keyup", (e) => keysPressed.delete(e.key.toLowerCase()));
+
     document.addEventListener('keydown', function(event)
     {
-        if (event && event.key === "Escape") {
-            this.documentElement, this.exitPointerLock();
+        if (event && event.key === "Escape")
+        {
+            document.exitPointerLock();
             cameraLocked = false;
+        }
+        
+        if (event.code === "ShiftLeft")
+        {
+            isShiftDown = true;
+        }
+
+        if (event.key === "f" || event.key === "F")
+        {
+            isFlying = !isFlying;
+        }
+
+        if (event.code === "Space")
+        {
+            event.preventDefault();
+            if (camera.Position[1] === groundHeight) {
+                velocityY = 5.0;
+                console.log("Jump");
+            }
         }
     });
 
+    document.addEventListener('keyup', function(event)
+    {
+        if (event && event.key === "LeftShift")
+        {
+            isShiftDown = false;
+        }
+    });
 
+    let groundHeight = 2.0;
+    let velocityY = 0.0;
+
+    // Update
     const frame = function () {
         const thisFrameTime = performance.now();
-        const dt = (thisFrameTime - lastFrameTime) / 1000;
+        deltaTime = (thisFrameTime - lastFrameTime) / 1000;
         lastFrameTime = thisFrameTime;
 
-        // Update
+        if (!isFlying)
+        {
+            // simple gravity
+            velocityY += -15 * deltaTime;
+            camera.Position[1] += velocityY * deltaTime;
+            
+            // ground "collision"
+            if (camera.Position[1] <= groundHeight)
+            {
+                camera.Position[1] = groundHeight;
+                velocityY = 0;
+            }
+        }
+
+        // Checking Input
+        if (keysPressed.has("ShiftLeft"))
+        {
+            isShiftDown = true;
+        }
+        else
+        {
+            isShiftDown = false;
+        }
+
+        if (keysPressed.has("w"))
+        {
+            if (isFlying)
+            {
+                camera.processKeysFlight(CameraMovement.FORWARD, deltaTime, isShiftDown);
+            }
+            else
+            {
+                camera.processKeysWalk(CameraMovement.FORWARD, deltaTime, isShiftDown);
+            }
+        }
+        if (keysPressed.has("a"))
+        {
+            if (isFlying)
+            {
+                camera.processKeysFlight(CameraMovement.LEFT, deltaTime, isShiftDown);
+            }
+            else
+            {
+                camera.processKeysWalk(CameraMovement.LEFT, deltaTime, isShiftDown);
+            }
+        }
+        if (keysPressed.has("s"))
+        {
+            if (isFlying)
+            {
+                camera.processKeysFlight(CameraMovement.BACKWARD, deltaTime, isShiftDown);
+            }
+            else
+            {
+                camera.processKeysWalk(CameraMovement.BACKWARD, deltaTime, isShiftDown);
+            }
+        }
+        if (keysPressed.has("d"))
+        {
+            if (isFlying)
+            {
+                camera.processKeysFlight(CameraMovement.RIGHT, deltaTime, isShiftDown);
+            }
+            else
+            {
+                camera.processKeysWalk(CameraMovement.RIGHT, deltaTime, isShiftDown);
+            }
+        }
+        if (keysPressed.has("e") && isFlying)
+        {
+            camera.processKeysFlight(CameraMovement.UP, deltaTime, isShiftDown);
+        }
+        if (keysPressed.has("q") && isFlying)
+        {
+            camera.processKeysFlight(CameraMovement.DOWN, deltaTime, isShiftDown);
+        }
+
+
         let camX: number;
         let camY: number;
         let camZ: number;
@@ -192,19 +310,23 @@ function introTo3DDemo()
         }
         else
         {
-            cameraAngle += dt * glMatrix.toRadian(20);
+            cameraAngle += deltaTime * glMatrix.toRadian(20);
 
             camX = orbitRadius * Math.sin(cameraAngle);
             camY = orbitRadius * Math.sin(orbitVertical);
             camZ = orbitRadius * Math.cos(cameraAngle);
         }
 
-        mat4.lookAt(
-            matView,
-            vec3.fromValues(camX, camY, camZ),
-            vec3.fromValues(0, 0, 0),
-            vec3.fromValues(0, 1, 0)
-        );
+        mat4.copy(matView, camera.getViewMatrix());
+
+        //mat4.lookAt(
+        //    matView,
+        //    vec3.fromValues(camX, camY, camZ),
+        //    vec3.fromValues(0, 0, 0),
+        //    vec3.fromValues(0, 1, 0)
+        //);
+
+        
 
         mat4.perspective(
             matProj,
@@ -222,8 +344,8 @@ function introTo3DDemo()
         const cameraPosition = vec3.fromValues(viewMat[12], viewMat[13], viewMat[14]);
 
         // Render
-        canvas.width = (canvas.clientWidth * devicePixelRatio) / 2;
-        canvas.height = (canvas.clientHeight * devicePixelRatio) / 2;
+        canvas.width = (canvas.clientWidth * devicePixelRatio) / 1;
+        canvas.height = (canvas.clientHeight * devicePixelRatio) / 1;
 
         gl.clearColor(0.643, 0.98, 1.00, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
