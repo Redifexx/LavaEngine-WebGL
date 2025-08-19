@@ -81,6 +81,10 @@ function introTo3DDemo()
     // Texture
     const brickTexture = loadTexture(gl, "textures/brick.png");
     const grassTexture = loadTexture(gl, "textures/grass.png");
+    const woodTexture = loadTexture(gl, "textures/wood.png");
+    const stoneTexture = loadTexture(gl, "textures/stone.png");
+    const faceTexture = loadTexture(gl, "textures/face_2.png");
+    const gatorTexture = loadTexture(gl, "textures/gata2.png");
 
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
@@ -115,11 +119,11 @@ function introTo3DDemo()
 
     const UP_VEC = vec3.fromValues(0, 1, 0);
     const shapes = [
-        new Shape(vec3.fromValues(0, 1, 0), 1.0, UP_VEC,       0,                      COLOR_WHITE,    brickTexture,   cubeVao, CUBE_INDICES.length),
-        new Shape(vec3.fromValues(4, 0.2, 3), 0.2, UP_VEC,     glMatrix.toRadian(20),  COLOR_WHITE,    brickTexture,   cubeVao, CUBE_INDICES.length),
-        new Shape(vec3.fromValues(3, 0.4, -2.5), 0.4, UP_VEC,  glMatrix.toRadian(40),  COLOR_WHITE,    brickTexture,   cubeVao, CUBE_INDICES.length),
-        new Shape(vec3.fromValues(-2, 0.4, -2.5), 0.4, UP_VEC, glMatrix.toRadian(60),  COLOR_WHITE,    brickTexture,   cubeVao, CUBE_INDICES.length),
-        new Shape(vec3.fromValues(-5, 0.7, 2), 0.7, UP_VEC,    glMatrix.toRadian(80),  COLOR_WHITE,    brickTexture,   cubeVao, CUBE_INDICES.length),
+        new Shape(vec3.fromValues(5, 1, 0), 1.0, UP_VEC,       0,                      COLOR_WHITE,    brickTexture,   cubeVao, CUBE_INDICES.length),
+        new Shape(vec3.fromValues(4, 0.2, 3), 0.2, UP_VEC,     glMatrix.toRadian(20),  COLOR_WHITE,    woodTexture,   cubeVao, CUBE_INDICES.length),
+        new Shape(vec3.fromValues(3, 0.4, -2.5), 0.4, UP_VEC,  glMatrix.toRadian(40),  COLOR_WHITE,    gatorTexture,   cubeVao, CUBE_INDICES.length),
+        new Shape(vec3.fromValues(-2, 0.4, -2.5), 0.4, UP_VEC, glMatrix.toRadian(60),  COLOR_WHITE,    faceTexture,   cubeVao, CUBE_INDICES.length),
+        new Shape(vec3.fromValues(-5, 0.7, 2), 0.7, UP_VEC,    glMatrix.toRadian(80),  COLOR_WHITE,    stoneTexture,   cubeVao, CUBE_INDICES.length),
         new Shape(vec3.fromValues(0, 0, 0), 50.0, UP_VEC,      0,                      COLOR_WHITE,    grassTexture,   planeVao, PLANE_INDICES.length)
     ]
 
@@ -139,10 +143,6 @@ function introTo3DDemo()
 
     // Some input
 
-    let mouseX = 5.0;
-    let mouseY = 5.0;
-    let orbitHorizontal = 0;
-    let orbitVertical = 0.5;
     let orbitRadius = 8.0;
     let cameraLocked = false;
 
@@ -298,35 +298,7 @@ function introTo3DDemo()
         }
 
 
-        let camX: number;
-        let camY: number;
-        let camZ: number;
-
-        if (cameraLocked)
-        {
-            camX = orbitRadius * Math.cos(orbitVertical) * Math.sin(orbitHorizontal);
-            camY = orbitRadius * Math.sin(orbitVertical);
-            camZ = orbitRadius * Math.cos(orbitVertical) * Math.cos(orbitHorizontal);
-        }
-        else
-        {
-            cameraAngle += deltaTime * glMatrix.toRadian(20);
-
-            camX = orbitRadius * Math.sin(cameraAngle);
-            camY = orbitRadius * Math.sin(orbitVertical);
-            camZ = orbitRadius * Math.cos(cameraAngle);
-        }
-
         mat4.copy(matView, camera.getViewMatrix());
-
-        //mat4.lookAt(
-        //    matView,
-        //    vec3.fromValues(camX, camY, camZ),
-        //    vec3.fromValues(0, 0, 0),
-        //    vec3.fromValues(0, 1, 0)
-        //);
-
-        
 
         mat4.perspective(
             matProj,

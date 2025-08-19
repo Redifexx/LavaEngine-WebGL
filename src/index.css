@@ -56,6 +56,7 @@ p {
     display: flex;
     flex-direction: row;
     gap: 10px;
+    margin-bottom: 25px;
 }
 
 #comment-box-control
@@ -86,7 +87,7 @@ p {
     */
     background-color: #6652da;
 
-    border: 3px solid rgb(255, 111, 0);
+    border: 3px solid rgb(123, 255, 0);
 
     /* Help to illustrate the rasterizer's job: when artificially lowering resolution, show pixelated image */
     image-rendering: crisp-edges;
@@ -100,7 +101,7 @@ p {
     border: 1px solid white;
     padding-inline: 1em;
     box-sizing: border-box;
-    margin: 20px;
+    margin-bottom: 20px;
     width: 70vw;
     height: 2em;
     text-align: center;
@@ -108,6 +109,7 @@ p {
     display: flex;
     justify-content: center;
     flex-direction: column;
+    border-radius: 10px;
 }
 
 .error-box-title {
@@ -125,7 +127,7 @@ p {
 
 #site-header-title {
     margin-right: auto;
-    
+    text-shadow: 2px 2px 4px #d3d3d3;
 }
 
 #site-header-subtitle{
@@ -135,4 +137,31 @@ p {
 #site-header-logo{
     width: 50px;
     height: 50px;
+}
+
+#update-box {
+    background-color: rgb(72, 65, 60);
+    width: 70vw;
+    border-radius: 10px;
+    padding: 5px;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin-bottom: 25px;
+}
+
+#update-box-control
+{
+    display: flex;
+    flex-direction: row;
+}
+
+#update-box-highlight
+{
+    color: rgb(0, 187, 255);
+}
+
+#update-box-content
+{
+    color: rgb(255, 255, 255);
 }
