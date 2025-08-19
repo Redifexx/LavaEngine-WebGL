@@ -84,7 +84,7 @@ function introTo3DDemo()
     const woodTexture = loadTexture(gl, "textures/wood.png");
     const stoneTexture = loadTexture(gl, "textures/stone.png");
     const faceTexture = loadTexture(gl, "textures/face_2.png");
-    const gatorTexture = loadTexture(gl, "textures/gata2.png");
+    const liminalTexture = loadTexture(gl, "textures/liminal.png");
 
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
@@ -121,7 +121,7 @@ function introTo3DDemo()
     const shapes = [
         new Shape(vec3.fromValues(5, 1, 0), 1.0, UP_VEC,       0,                      COLOR_WHITE,    brickTexture,   cubeVao, CUBE_INDICES.length),
         new Shape(vec3.fromValues(4, 0.2, 3), 0.2, UP_VEC,     glMatrix.toRadian(20),  COLOR_WHITE,    woodTexture,   cubeVao, CUBE_INDICES.length),
-        new Shape(vec3.fromValues(3, 0.4, -2.5), 0.4, UP_VEC,  glMatrix.toRadian(40),  COLOR_WHITE,    gatorTexture,   cubeVao, CUBE_INDICES.length),
+        new Shape(vec3.fromValues(3, 0.4, -2.5), 0.4, UP_VEC,  glMatrix.toRadian(40),  COLOR_WHITE,    liminalTexture,   cubeVao, CUBE_INDICES.length),
         new Shape(vec3.fromValues(-2, 0.4, -2.5), 0.4, UP_VEC, glMatrix.toRadian(60),  COLOR_WHITE,    faceTexture,   cubeVao, CUBE_INDICES.length),
         new Shape(vec3.fromValues(-5, 0.7, 2), 0.7, UP_VEC,    glMatrix.toRadian(80),  COLOR_WHITE,    stoneTexture,   cubeVao, CUBE_INDICES.length),
         new Shape(vec3.fromValues(0, 0, 0), 50.0, UP_VEC,      0,                      COLOR_WHITE,    grassTexture,   planeVao, PLANE_INDICES.length)
