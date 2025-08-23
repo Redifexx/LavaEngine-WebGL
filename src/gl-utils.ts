@@ -102,10 +102,22 @@ export function getContext(canvas: HTMLCanvasElement)
         }
         else
         {
+            console.log('WEB GL 2');
             throw new Error('WebGL is not supported on this device - try using a different device or browser');
         }
     }
+    console.log('WEB GL 2');
     return gl;
+}
+
+export function getExtension(gl: WebGL2RenderingContext, extension: string)
+{
+    const ext = gl.getExtension(extension);
+    if (!ext)
+    {
+        throw new Error('Extension not found.')
+    }
+    return ext;
 }
 
 export function getRandomInRange(min: number, max: number)
@@ -119,11 +131,55 @@ function isPowerOf2(value: number)
     return (value & (value - 1)) === 0;
 }
 
-export function loadTexture(gl: WebGL2RenderingContext, url: string)
+export function createTexture(gl: WebGL2RenderingContext,
+    texWidth: number = 512,
+    texHeight: number = 512,
+    mipLevel: number = 0,
+    internalFormat: number = gl.RGBA,
+    srcFormat: number = gl.RGBA,
+    border: number = 0,
+    srcType: number = gl.UNSIGNED_BYTE,
+    data: Uint8Array | null = null
+)
 {
     const texture = gl.createTexture();
+
     gl.bindTexture(gl.TEXTURE_2D, texture);
 
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        mipLevel,
+        internalFormat,
+        texWidth,
+        texHeight,
+        border,
+        srcFormat,
+        srcType,
+        data,
+    );
+    
+    // WebGL1 has different requirements for power of 2 images
+    if (isPowerOf2(texWidth) && isPowerOf2(texHeight))
+    {
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    }
+    else
+    {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    }
+
+    return texture;
+}
+
+export function loadTexture(gl: WebGL2RenderingContext, url: string)
+{
     // Temp pixel to fill item while image is loading
     const level = 0;
     const internalFormat = gl.RGBA;
@@ -134,17 +190,7 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string)
     const srcType = gl.UNSIGNED_BYTE;
     const pixel = new Uint8Array([0, 0, 255, 255]);
 
-    gl.texImage2D(
-        gl.TEXTURE_2D,
-        level,
-        internalFormat,
-        width,
-        height,
-        border,
-        srcFormat,
-        srcType,
-        pixel,
-    );
+    const texture = createTexture(gl, width, height, level, internalFormat, srcFormat, border, srcType, pixel);
 
     const image = new Image();
     image.onload = () => {

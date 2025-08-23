@@ -1,0 +1,49 @@
+{
+  "name": "webgl-gltf",
+  "version": "0.3.3",
+  "description": "GLTF 2.0 loader for WebGL",
+  "keywords": [
+    "WebGL",
+    "glTF",
+    "3D",
+    "Mesh",
+    "loader"
+  ],
+  "homepage": "https://github.com/larsjarlvik/webgl-gltf",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/larsjarlvik/webgl-gltf.git"
+  },
+  "bugs": {
+    "url": "https://github.com/larsjarlvik/webgl-gltf/issues"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "start": "webpack-dev-server --mode development",
+    "build": "webpack --mode production",
+    "prepublish": "rimraf dist/ && node node_modules/typescript/bin/tsc --project ./src && cp -r src/webgl-gltf/types dist/"
+  },
+  "author": "Lars Jarlvik",
+  "license": "ISC",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^4.32.0",
+    "@typescript-eslint/parser": "^4.32.0",
+    "clean-webpack-plugin": "^4.0.0",
+    "eslint": "^7.32.0",
+    "eslint-loader": "^3.0.3",
+    "html-webpack-plugin": "^5.3.2",
+    "rimraf": "^3.0.2",
+    "ts-loader": "^9.2.6",
+    "typescript": "^4.4.3",
+    "webpack": "^5.55.0",
+    "webpack-cli": "^4.8.0",
+    "webpack-dev-server": "^4.3.0"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.3.0"
+  }
+}

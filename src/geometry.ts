@@ -1,6 +1,6 @@
 // Vertex buffer format: XYZ RGB (interleaved)
 
-import { vec3 } from "gl-matrix";
+import { mat4, quat, vec3 } from "gl-matrix";
 import { showError } from "./gl-utils";
 
 export const COLOR_WHITE = vec3.fromValues(1.0, 1.0, 1.0);
@@ -122,4 +122,48 @@ export function create3dInterleavedVao(
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
     return vao;
+}
+
+export class Shape {
+    private matWorld = mat4.create();
+    private scaleVec = vec3.create();
+    private rotation = quat.create();
+
+    constructor(
+        private pos: vec3,
+        private scale: number,
+        private rotationAxis: vec3,
+        private rotationAngle: number,
+        private color: vec3,
+        private albedoMap: WebGLTexture | null,
+        public readonly vao: WebGLVertexArrayObject,
+        public readonly numIndices: number) {}
+
+    draw(gl: WebGL2RenderingContext,
+        matWorldUniform: WebGLUniformLocation,
+        diffuseColorUniform: WebGLUniformLocation,
+        albedoMapUniform: WebGLUniformLocation
+    )
+    {
+        quat.setAxisAngle(this.rotation, this.rotationAxis, this.rotationAngle);
+        vec3.set(this.scaleVec, this.scale, this.scale, this.scale);
+
+        mat4.fromRotationTranslationScale(
+            this.matWorld,
+            this.rotation,
+            this.pos,
+            this.scaleVec
+        );
+
+        gl.uniformMatrix4fv(matWorldUniform, false, this.matWorld);
+        gl.uniform3fv(diffuseColorUniform, this.color);
+        
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.albedoMap);
+        gl.uniform1i(albedoMapUniform, 0);
+
+        gl.bindVertexArray(this.vao);
+        gl.drawElements(gl.TRIANGLES, this.numIndices, gl.UNSIGNED_SHORT, 0);
+        gl.bindVertexArray(null);
+    }
 }

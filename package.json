@@ -16,6 +16,7 @@
   "dependencies": {
     "fs": "^0.0.1-security",
     "gl-matrix": "^3.4.4",
-    "nodejs": "^0.0.0"
+    "nodejs": "^0.0.0",
+    "webgl-gltf": "^0.3.3"
   }
 }

@@ -1,54 +1,13 @@
 import { fragmentShaderSourceCode } from "../shaders/default.frag";
 import { vertexShaderSourceCode } from "../shaders/default.vert";
-import { COLOR_BLUE, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_WHITE, create3dInterleavedVao, CUBE_INDICES, CUBE_VERTICES, PLANE_INDICES, PLANE_VERTICES } from "./geometry";
-import { createProgram, createStaticIndexBuffer, createStaticVertexBuffer, getContext, loadTexture, showError } from "./gl-utils";
+import { COLOR_BLUE, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_WHITE, create3dInterleavedVao, Shape, CUBE_INDICES, CUBE_VERTICES, PLANE_INDICES, PLANE_VERTICES } from "./geometry";
+import { createProgram, createStaticIndexBuffer, createStaticVertexBuffer, createTexture, getContext, getExtension, loadTexture, showError } from "./gl-utils";
 import { glMatrix, mat4, quat, vec3 } from 'gl-matrix';
 import './index.css'
 import { Camera, CameraMovement } from "./camera";
+import { Entity } from "./gameobjects/entity";
+import { Mesh } from "./datatypes/mesh";
 
-class Shape {
-    private matWorld = mat4.create();
-    private scaleVec = vec3.create();
-    private rotation = quat.create();
-
-    constructor(
-        private pos: vec3,
-        private scale: number,
-        private rotationAxis: vec3,
-        private rotationAngle: number,
-        private color: vec3,
-        private albedoMap: WebGLTexture | null,
-        public readonly vao: WebGLVertexArrayObject,
-        public readonly numIndices: number) {}
-
-    draw(gl: WebGL2RenderingContext,
-        matWorldUniform: WebGLUniformLocation,
-        diffuseColorUniform: WebGLUniformLocation,
-        albedoMapUniform: WebGLUniformLocation
-    )
-    {
-        quat.setAxisAngle(this.rotation, this.rotationAxis, this.rotationAngle);
-        vec3.set(this.scaleVec, this.scale, this.scale, this.scale);
-
-        mat4.fromRotationTranslationScale(
-            this.matWorld,
-            this.rotation,
-            this.pos,
-            this.scaleVec
-        );
-
-        gl.uniformMatrix4fv(matWorldUniform, false, this.matWorld);
-        gl.uniform3fv(diffuseColorUniform, this.color);
-        
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.albedoMap);
-        gl.uniform1i(albedoMapUniform, 0);
-
-        gl.bindVertexArray(this.vao);
-        gl.drawElements(gl.TRIANGLES, this.numIndices, gl.UNSIGNED_SHORT, 0);
-        gl.bindVertexArray(null);
-    }
-}
 
 function introTo3DDemo()
 {
@@ -60,6 +19,31 @@ function introTo3DDemo()
     }
 
     const gl = getContext(canvas);
+    //const ext = getExtension(gl, "WEBGL_depth_texture"); NOT NEEDED IN WEBGL 2
+
+    let worldEntities: Entity[] = [];
+
+
+    const e_plane = new Entity();
+    worldEntities.push(e_plane);
+    const planeMeshData = new Mesh(gl, PLANE_VERTICES, PLANE_INDICES);
+
+    let cubeEntities: Entity[] = [];
+    const cubeMeshData = new Mesh(gl, CUBE_VERTICES, CUBE_INDICES);
+    for (let i = 0; i < 5; i++)
+    {
+        cubeEntities[i] = new Entity(worldEntities.length);
+        // add model component
+    }
+
+    const e_player = new Entity(worldEntities.length);
+    worldEntities.push(e_player);
+
+    const e_sun = new Entity(worldEntities.length);
+    worldEntities.push(e_sun);
+
+
+
 
     const cubeVertices = createStaticVertexBuffer(gl, CUBE_VERTICES);
     const cubeIndices = createStaticIndexBuffer(gl, CUBE_INDICES);
@@ -117,6 +101,16 @@ function introTo3DDemo()
         return;
     }
 
+    // SHADOWS
+    //const depthTexture = createTexture(gl, 512, 512, 0, gl.DEPTH_COMPONENT, gl.DEPTH_COMPONENT, 0, gl.UNSIGNED_INT, null);
+    //const depthFramebuffer = gl.createFramebuffer();
+    //gl.bindFramebuffer(gl.FRAMEBUFFER, depthFramebuffer);
+    //gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTexture, 0);
+    //
+    //const unusedTexture = createTexture(gl, 512, 512);
+    //gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, unusedTexture, 0);
+
+
     const UP_VEC = vec3.fromValues(0, 1, 0);
     const shapes = [
         new Shape(vec3.fromValues(5, 1, 0), 1.0, UP_VEC,       0,                      COLOR_WHITE,    brickTexture,   cubeVao, CUBE_INDICES.length),
@@ -132,8 +126,6 @@ function introTo3DDemo()
 
     // Camera setup
     const camera = new Camera(vec3.fromValues(0.0, 5.0, 0.0));
-    //camera.Position = vec3.fromValues(0.0, 5.0, 0.0);
-    //camera.Front = vec3.fromValues(0.0, 0.0, -1.0);
 
     let cameraAngle = 0;
 
@@ -326,6 +318,7 @@ function introTo3DDemo()
         gl.viewport(0, 0, canvas.width, canvas.height);
 
         gl.useProgram(demoProgram);
+
         gl.uniformMatrix4fv(matViewProjUniform, false, matViewProj);
         gl.uniform3fv(matViewPosUniform, cameraPosition);
 
