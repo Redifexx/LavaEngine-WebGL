@@ -1,3 +1,5 @@
+import { glMatrix, quat, vec3 } from "gl-matrix";
+
 export function showError(errorText: string) 
 {
     console.log(errorText);
@@ -51,30 +53,29 @@ export function createProgram(gl: WebGL2RenderingContext, vertexShaderSource: st
 
     if (!vertexShader || !fragmentShader || !program)
     {
-        showError('Failed to allocate GL objects ('
+        console.log("SHADER ERROR");
+        throw new Error('Failed to allocate GL objects ('
             + 'vs=${!!vertexShader}, '
             + 'fs=${!!fragmentShader}, '
-            + 'program=${!!program})'
-        );
-        return null;
+            + 'program=${!!program})');
     }
 
     gl.shaderSource(vertexShader, vertexShaderSource);
     gl.compileShader(vertexShader);
     if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS))
     {
+        console.log("SHADER ERROR");
         const errorMessage = gl.getShaderInfoLog(vertexShader);
-        showError('Failed to compile vertex shader: ${errorMessage}');
-        return null;
+        throw new Error(`Failed to compile vertex shader: ${errorMessage}`);
     }
 
     gl.shaderSource(fragmentShader, fragmentShaderSource);
     gl.compileShader(fragmentShader);
     if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS))
     {
+        console.log("SHADER ERROR");
         const errorMessage = gl.getShaderInfoLog(fragmentShader);
-        showError('Failed to compile fragment shader: ${errorMessage}');
-        return null;
+        throw new Error(`Failed to compile fragment shader: ${errorMessage}`);
     }
 
     gl.attachShader(program, vertexShader);
@@ -82,11 +83,11 @@ export function createProgram(gl: WebGL2RenderingContext, vertexShaderSource: st
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS))
     {
+        console.log("SHADER ERROR");
         const errorMessage = gl.getProgramInfoLog(program);
-        showError('Failed to link GPU program: ${errorMessage}');
-        return null;
+        throw new Error(`Failed to link GPU program: ${errorMessage}`);
     }
-
+    
     return program;
 }
 
@@ -225,4 +226,17 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string)
     image.src = url;
 
     return texture;
+}
+
+export function eulerToDirection(yaw_: number, pitch_: number, roll_: number)
+{
+    const yaw = glMatrix.toRadian(yaw_);
+    const pitch = glMatrix.toRadian(pitch_);
+    const roll = glMatrix.toRadian(roll_);
+
+    const q = quat.create();
+    quat.fromEuler(q, pitch_, yaw_, roll_);
+    
+    const forward = vec3.fromValues(0, 0, 1);
+    return vec3.normalize(vec3.create(), vec3.transformQuat(vec3.create(), forward, q));
 }

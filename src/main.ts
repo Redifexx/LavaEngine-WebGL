@@ -4,9 +4,15 @@ import { COLOR_BLUE, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_WHITE, create3dIn
 import { createProgram, createStaticIndexBuffer, createStaticVertexBuffer, createTexture, getContext, getExtension, loadTexture, showError } from "./gl-utils";
 import { glMatrix, mat4, quat, vec3 } from 'gl-matrix';
 import './index.css'
-import { Camera, CameraMovement } from "./camera";
-import { Entity } from "./gameobjects/entity";
 import { Mesh } from "./datatypes/mesh";
+import { Scene } from "./gameobjects/scene";
+import { Material } from "./datatypes/material";
+import { Shader } from "./datatypes/shader";
+import { Model } from "./datatypes/model";
+import { ModelComponent } from "./components/model-component";
+import { TransformComponent } from "./components/transform-component";
+import { CameraComponent } from "./components/camera-component";
+import { LightComponent } from "./components/light-component";
 
 
 function introTo3DDemo()
@@ -21,28 +27,87 @@ function introTo3DDemo()
     const gl = getContext(canvas);
     //const ext = getExtension(gl, "WEBGL_depth_texture"); NOT NEEDED IN WEBGL 2
 
-    let worldEntities: Entity[] = [];
+    const mainScene = new Scene(gl);
+    
+    const e_plane = mainScene.addEntity(
+        vec3.fromValues(0.0, 0.0, 0.0), 
+        vec3.fromValues(0.0, 0.0, 0.0),
+        vec3.fromValues(50.0, 50.0, 50.0)
+    );
+    
+    const e_player = mainScene.addEntity(vec3.fromValues(0.0, 0.0, 0.0));
+    const e_camera = mainScene.addEntity(vec3.fromValues(0.0, 2.0, 0.0));
+    const e_sun = mainScene.addEntity();
+
+    const e_cube_1 = mainScene.addEntity(
+        vec3.fromValues(0.0, -10.0, 0.0), 
+        vec3.fromValues(0.0, 0.0, 0.0),
+        vec3.fromValues(1.0, 1.0, 1.0)
+    );
+    const e_cube_2 = mainScene.addEntity(
+        vec3.fromValues(4.0, 0.2, 3.0), 
+        vec3.fromValues(0.0, 0.0, 0.0),
+        vec3.fromValues(0.2, 0.2, 0.2)
+    );
+    const e_cube_3 = mainScene.addEntity(
+        vec3.fromValues(3.0, 0.4, -2.5), 
+        vec3.fromValues(0.0, 0.0, 0.0),
+        vec3.fromValues(0.4, 0.4, 0.4)
+    );
+    const e_cube_4 = mainScene.addEntity(
+        vec3.fromValues(-5.0, 0.7, 2.0), 
+        vec3.fromValues(0.0, 0.0, 0.0),
+        vec3.fromValues(0.7, 0.7, 0.7)
+    );
+
+    
+    // Create meshs from vert/ind
+    const msh_plane = new Mesh(gl, PLANE_VERTICES, PLANE_INDICES);
+    const msh_cube = new Mesh(gl, CUBE_VERTICES, CUBE_INDICES);
+
+    
+    // Create shader to render material with
+    const sdr_standard = new Shader(gl, vertexShaderSourceCode, fragmentShaderSourceCode);
+
+    
+    // Create material to render model with
+    const mat_grass = new Material(sdr_standard);
+    mat_grass.setTex(0, loadTexture(gl, "textures/grass.png"));
+
+    
+    const mat_stone = new Material(sdr_standard);
+    mat_stone.setTex(0, loadTexture(gl, "textures/stone.png")); 
+
+    const mat_brick = new Material(sdr_standard);
+    mat_brick.setTex(0, loadTexture(gl, "textures/brick.png")); 
+
+    
+    // Create models from meshs (make modelcomponent house materials)
+    const mod_plane = new Model(mat_grass, msh_plane);
+    const mod_cube_1 = new Model(mat_brick, msh_cube);
+    const mod_cube_2 = new Model(mat_brick, msh_cube);
+    const mod_cube_3 = new Model(mat_brick, msh_cube);
+    const mod_cube_4 = new Model(mat_brick, msh_cube);
+
+    
+    // Add model components to entities (trying to maintain ECS-ish)
+    // scene.render->entity->modelcomp->model.draw(entity.transform)
+    e_plane.addComponent(ModelComponent, new ModelComponent(mod_plane));
+    e_cube_1.addComponent(ModelComponent, new ModelComponent(mod_cube_1));
+    e_cube_2.addComponent(ModelComponent, new ModelComponent(mod_cube_2));
+    e_cube_3.addComponent(ModelComponent, new ModelComponent(mod_cube_3));
+    e_cube_4.addComponent(ModelComponent, new ModelComponent(mod_cube_4));
+
+    e_camera.addComponent(CameraComponent, new CameraComponent());
+    e_player.addChildEntity(e_camera);
+
+    e_sun.addComponent(LightComponent, new LightComponent()); // default light
+    
 
 
-    const e_plane = new Entity();
-    worldEntities.push(e_plane);
-    const planeMeshData = new Mesh(gl, PLANE_VERTICES, PLANE_INDICES);
-
-    let cubeEntities: Entity[] = [];
-    const cubeMeshData = new Mesh(gl, CUBE_VERTICES, CUBE_INDICES);
-    for (let i = 0; i < 5; i++)
-    {
-        cubeEntities[i] = new Entity(worldEntities.length);
-        // add model component
-    }
-
-    const e_player = new Entity(worldEntities.length);
-    worldEntities.push(e_player);
-
-    const e_sun = new Entity(worldEntities.length);
-    worldEntities.push(e_sun);
 
 
+ /*
 
 
     const cubeVertices = createStaticVertexBuffer(gl, CUBE_VERTICES);
@@ -126,7 +191,6 @@ function introTo3DDemo()
 
     // Camera setup
     const camera = new Camera(vec3.fromValues(0.0, 5.0, 0.0));
-
     let cameraAngle = 0;
 
     // Render
@@ -203,6 +267,10 @@ function introTo3DDemo()
         }
     });
 
+    */
+   // Render
+    let lastFrameTime = performance.now();
+    let deltaTime = 0.0;
     let groundHeight = 2.0;
     let velocityY = 0.0;
 
@@ -212,6 +280,7 @@ function introTo3DDemo()
         deltaTime = (thisFrameTime - lastFrameTime) / 1000;
         lastFrameTime = thisFrameTime;
 
+        /*
         if (!isFlying)
         {
             // simple gravity
@@ -289,40 +358,16 @@ function introTo3DDemo()
             camera.processKeysFlight(CameraMovement.DOWN, deltaTime, isShiftDown);
         }
 
+        */
 
-        mat4.copy(matView, camera.getViewMatrix());
-
-        mat4.perspective(
-            matProj,
-            glMatrix.toRadian(80),
-            canvas.width / canvas.height,
-            0.1, 100.0
-        );
-
-        const matViewProj = mat4.create();
-        mat4.multiply(matViewProj, matProj, matView)
-
-        const viewMat = mat4.create();
-        mat4.invert(viewMat, matView);
-
-        const cameraPosition = vec3.fromValues(viewMat[12], viewMat[13], viewMat[14]);
-
+        //const viewMat = mat4.create();
+        //mat4.invert(viewMat, matView);
+//----------------------------------------------------------------------------
         // Render
         canvas.width = (canvas.clientWidth * devicePixelRatio) / 1;
         canvas.height = (canvas.clientHeight * devicePixelRatio) / 1;
 
-        gl.clearColor(0.643, 0.98, 1.00, 1.0);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        gl.enable(gl.DEPTH_TEST);
-        gl.enable(gl.CULL_FACE);
-        gl.viewport(0, 0, canvas.width, canvas.height);
-
-        gl.useProgram(demoProgram);
-
-        gl.uniformMatrix4fv(matViewProjUniform, false, matViewProj);
-        gl.uniform3fv(matViewPosUniform, cameraPosition);
-
-        shapes.forEach((shape) => shape.draw(gl, matWorldUniform, diffuseColorUniform, albedoMapUniform));
+        mainScene.render(canvas.width, canvas.height);
 
         requestAnimationFrame(frame);
     }

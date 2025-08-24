@@ -1,24 +1,25 @@
 import { TransformComponent } from "../components/transform-component";
-import { MaterialData } from "./material-data";
+import { Material } from "./material";
 import { Mesh } from "./mesh";
-import { ShaderData } from "./shader-data";
 
 export class Model
 {
     meshCollection: Mesh[] = [];
-    materialData: MaterialData; 
+    material: Material; 
 
 
     constructor(
-        materialData: MaterialData // must have
+        material: Material,
+        mesh: Mesh
     )
     {
-        this.setMaterial(materialData);
+        this.setMaterial(material);
+        this.addMesh(mesh);
     }
 
-    setMaterial(materialData: MaterialData)
+    setMaterial(material: Material)
     {
-        this.materialData = materialData;
+        this.material = material;
         for(let i = 0; i < this.meshCollection.length; i++)
         {
             this.meshCollection[i].setVAO();
@@ -27,7 +28,7 @@ export class Model
 
     addMesh(mesh: Mesh)
     {
-        mesh.materialData = this.materialData;
+        mesh.material = this.material;
         mesh.setVAO();
         this.meshCollection.push(mesh);
     }
@@ -36,7 +37,7 @@ export class Model
     {
         for(let i = 0; i < this.meshCollection.length; i++)
         {
-            this.draw(transform);
+            this.meshCollection[i].draw(transform);
         }
     }
 }

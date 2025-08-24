@@ -1,5 +1,3 @@
-import { glMatrix, mat4, quat, vec3 } from 'gl-matrix';
-
 export enum CameraMovement
 {
     FORWARD,
@@ -18,62 +16,8 @@ const SENSITIVITY = 0.1;
 const ZOOM = 80.0;
 const MULTIPLIER = 2.0;
 
-export class Camera
-{
-    // Camera attributes
-    Position: vec3;
-    Front: vec3;
-    Up: vec3;
-    Right: vec3;
-    WorldUp: vec3;
-
-    // Euler Angles
-    Yaw: number;
-    Pitch: number;
-
-    // Camera Options
-    MovementSpeed: number;
-    MouseSensitivity: number;
-    Zoom: number;
-    Multiplier: number;
-
-    // Constructor with vectors
-    constructor(
-        position = vec3.fromValues(0.0, 0.0, 0.0),
-        up = vec3.fromValues(0.0, 1.0, 0.0),
-        yaw = YAW, pitch = PITCH)
-    {
-        this.Front = vec3.fromValues(0.0, 0.0, -1.0);
-        this.Right = vec3.create();
-        this.Up = vec3.create();
-        this.MovementSpeed = SPEED;
-        this.MouseSensitivity = SENSITIVITY;
-        this.Zoom = ZOOM;
-        this.Multiplier = MULTIPLIER;
-        this.Position = position;
-        this.WorldUp = up;
-        this.Yaw = yaw;
-        this.Pitch = pitch;
-        this.updateCameraVectors();
-        console.log("Camera Position: "
-            + this.Position[0].toString()
-            + ", " +
-            + this.Position[1].toString()
-            + ", " +
-            + this.Position[2].toString()
-        );
-    }
-
-    // Helper for walk
-    getGroundForward(): vec3
-    {
-        const forward = vec3.clone(this.Front);
-        forward[1] = 0.0;
-        vec3.normalize(forward, forward);
-        return forward;
-    };
-
-    processKeysFlight(direction: CameraMovement, deltaTime: number, isSprinting: boolean = false)
+/*
+processKeysFlight(direction: CameraMovement, deltaTime: number, isSprinting: boolean = false)
     {
         let velocity = this.MovementSpeed * deltaTime;
         let multiplier = isSprinting ? this.Multiplier : 1.0;
@@ -171,6 +115,33 @@ export class Camera
         );
     }
 
+    
+    // Helper for walk
+        getGroundForward(): vec3
+        {
+            const forward = vec3.clone(this.Front);
+            forward[1] = 0.0;
+            vec3.normalize(forward, forward);
+            return forward;
+        };
+    
+
+        updateCameraVectors()
+            {
+                let front = vec3.fromValues(0.0, 0.0, 0.0);
+                front[0] = Math.cos(glMatrix.toRadian(this.Yaw)) * Math.cos(glMatrix.toRadian(this.Pitch));
+                front[1] = Math.sin(glMatrix.toRadian(this.Pitch));
+                front[2] = Math.sin(glMatrix.toRadian(this.Yaw)) * Math.cos(glMatrix.toRadian(this.Pitch));
+                vec3.normalize(this.Front, front);
+        
+                // recalculate the right and up vectors
+                vec3.cross(this.Right, this.Front, this.WorldUp);
+                vec3.normalize(this.Right, this.Right);
+        
+                vec3.cross(this.Up, this.Right, this.Front);
+                vec3.normalize(this.Up, this.Up);
+            }
+                
     processMouseMovement(xOffset: number, yOffset: number, constrainPitch: GLboolean = true)
     {
         xOffset *= this.MouseSensitivity;
@@ -209,29 +180,4 @@ export class Camera
         }
     }
 
-    getViewMatrix()
-    {
-        const viewMat = mat4.create();
-        const posFront = vec3.create();
-        vec3.add(posFront, this.Position, this.Front);
-        mat4.lookAt(viewMat, this.Position, posFront, this.Up);
-        return viewMat;
-    }
-
-    updateCameraVectors()
-    {
-        let front = vec3.fromValues(0.0, 0.0, 0.0);
-        front[0] = Math.cos(glMatrix.toRadian(this.Yaw)) * Math.cos(glMatrix.toRadian(this.Pitch));
-        front[1] = Math.sin(glMatrix.toRadian(this.Pitch));
-        front[2] = Math.sin(glMatrix.toRadian(this.Yaw)) * Math.cos(glMatrix.toRadian(this.Pitch));
-        vec3.normalize(this.Front, front);
-
-        // recalculate the right and up vectors
-        vec3.cross(this.Right, this.Front, this.WorldUp);
-        vec3.normalize(this.Right, this.Right);
-
-        vec3.cross(this.Up, this.Right, this.Front);
-        vec3.normalize(this.Up, this.Up);
-    }
-
-}
+    */

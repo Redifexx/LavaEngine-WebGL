@@ -1,8 +1,7 @@
 import { mat4, vec3 } from "gl-matrix";
 import { TransformComponent } from "../components/transform-component";
-import { create3dInterleavedVao } from "../geometry";
 import { createStaticIndexBuffer, createStaticVertexBuffer, showError } from "../gl-utils";
-import { MaterialData } from "./material-data";
+import { Material } from "./material";
 
 export class Mesh
 {
@@ -12,7 +11,7 @@ export class Mesh
     vertexBuffer: WebGLBuffer | null;
     indexBuffer: WebGLBuffer | null;
     vertexArrayObject: WebGLVertexArrayObject;
-    materialData: MaterialData;
+    material: Material;
 
     constructor(gl: WebGL2RenderingContext,
         meshVertices: Float32Array<ArrayBuffer>,
@@ -36,23 +35,23 @@ export class Mesh
 
         this.gl.bindVertexArray(this.vertexArrayObject);
 
-        this.gl.enableVertexAttribArray(this.materialData.posAttrib);
-        this.gl.enableVertexAttribArray(this.materialData.texAttrib);
-        this.gl.enableVertexAttribArray(this.materialData.normAttrib);
+        this.gl.enableVertexAttribArray(this.material.posAttrib);
+        this.gl.enableVertexAttribArray(this.material.texAttrib);
+        this.gl.enableVertexAttribArray(this.material.normAttrib);
 
         // Interleaved format: (x, y, z, u, v, xn, yn, zn) (all f32)
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
         this.gl.vertexAttribPointer(
-            this.materialData.posAttrib, 3, this.gl.FLOAT, false,
+            this.material.posAttrib, 3, this.gl.FLOAT, false,
             8 * Float32Array.BYTES_PER_ELEMENT, 0
         );
         this.gl.vertexAttribPointer(
-            this.materialData.texAttrib, 2, this.gl.FLOAT, false,
+            this.material.texAttrib, 2, this.gl.FLOAT, false,
             8 * Float32Array.BYTES_PER_ELEMENT,
             3 * Float32Array.BYTES_PER_ELEMENT
         );
         this.gl.vertexAttribPointer(
-            this.materialData.normAttrib, 3, this.gl.FLOAT, false,
+            this.material.normAttrib, 3, this.gl.FLOAT, false,
             8 * Float32Array.BYTES_PER_ELEMENT,
             5 * Float32Array.BYTES_PER_ELEMENT
         );
@@ -66,8 +65,6 @@ export class Mesh
 
     draw(transform: TransformComponent)
     {
-        this.gl.useProgram(this.materialData.shaderData.shaderProgram);
-
         const modelMatrix = mat4.create();
         mat4.fromRotationTranslationScale(
             modelMatrix,
@@ -76,9 +73,9 @@ export class Mesh
             transform.scale
         );
 
-        this.gl.uniformMatrix4fv(this.materialData.modelMatrixUniformLocation, false, modelMatrix);
+        this.gl.uniformMatrix4fv(this.material.modelMatrixUniformLocation, false, modelMatrix);
 
-        this.materialData.bindTextures();
+        this.material.bindTextures();
 
         this.gl.bindVertexArray(this.vertexArrayObject);
 

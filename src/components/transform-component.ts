@@ -3,8 +3,20 @@ import { Component } from "../gameobjects/component";
 
 export class TransformComponent extends Component
 {
-    typeId = 0;
-    position: vec3 = vec3.fromValues(0.0, 0.0, 0.0);
-    rotation: vec3 = vec3.fromValues(0.0, 0.0, 0.0); // switch to quaternion
-    scale: vec3 = vec3.fromValues(1.0, 1.0, 1.0);
+    static typeId: symbol = Symbol.for("TransformComponent");
+    position: vec3;
+    rotation: vec3; // switch to quaternion
+    scale: vec3;
+
+    constructor(
+        pos: vec3,
+        rot: vec3,
+        scale: vec3,
+    )
+    {
+        super();
+        this.position = pos;
+        this.rotation = rot;
+        this.scale = scale;
+    }
 }
