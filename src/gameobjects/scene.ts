@@ -156,6 +156,7 @@ export class Scene
                 this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".direction"), lightDirection);
                 this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".color"), light.color);
                 this.gl.uniform1f(this.gl.getUniformLocation(program, base + ".intensity"), light.intensity);
+                console.log(lightDirection);
                 numDir++;
             }
             else if (light.lightType === LightType.SPOT)
@@ -168,7 +169,13 @@ export class Scene
                 this.gl.uniform1f(this.gl.getUniformLocation(program, base + ".intensity"), light.intensity);
                 this.gl.uniform1f(this.gl.getUniformLocation(program, base + ".innerCutOff"), light.innerCutOff);
                 this.gl.uniform1f(this.gl.getUniformLocation(program, base + ".outerCutOff"), light.outerCutOff);
+                numSpot++;
             }
+
+            this.gl.uniform1i(this.gl.getUniformLocation(program, "numPointLights"), numPoint);
+            this.gl.uniform1i(this.gl.getUniformLocation(program, "numDirLights"), numDir);
+            this.gl.uniform1i(this.gl.getUniformLocation(program, "numSpotLights"), numSpot);
+
         }
     }
 

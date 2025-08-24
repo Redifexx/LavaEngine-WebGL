@@ -37,10 +37,13 @@ function introTo3DDemo()
     
     const e_player = mainScene.addEntity(vec3.fromValues(0.0, 0.0, 0.0));
     const e_camera = mainScene.addEntity(vec3.fromValues(0.0, 2.0, 0.0));
-    const e_sun = mainScene.addEntity();
+    const e_sun = mainScene.addEntity(
+        vec3.fromValues(0.0, 0.0, 0.0),
+        vec3.fromValues(-60.0, -20.0, -40.0)
+    );
 
     const e_cube_1 = mainScene.addEntity(
-        vec3.fromValues(0.0, -10.0, 0.0), 
+        vec3.fromValues(0.0, 1.0, -10.0), 
         vec3.fromValues(0.0, 0.0, 0.0),
         vec3.fromValues(1.0, 1.0, 1.0)
     );

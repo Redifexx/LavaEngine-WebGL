@@ -16,10 +16,12 @@ export class Camera
     // Constructor with vectors
     constructor()
     {
+        
         this.Front = vec3.fromValues(0.0, 0.0, -1.0);
         this.Right = vec3.fromValues(1.0, 0.0, 0.0);
         this.Up = vec3.fromValues(0.0, 1.0, 0.0);
-        vec3.copy(this.Up, this.WorldUp);
+        this.WorldUp = this.Up;
+        console.log(this.WorldUp[0] + " " + this.WorldUp[1] + " " + this.WorldUp[2]);
     }
 
     draw(

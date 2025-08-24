@@ -88,7 +88,7 @@ vec3 DirectionalLightResult(DirectionalLight light)
     vec3 lightDir = normalize(-light.direction);
 
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = (diff * diffuseColor * vec3(texture(tex0, fragmentTexCoord)) * light.color);
+    vec3 diffuse = (diff * vec3(texture(tex0, fragmentTexCoord)) * light.color);
 
     // Specular (Phong)
     vec3 viewDir = normalize(viewPosition - fragmentPosition);
@@ -100,7 +100,8 @@ vec3 DirectionalLightResult(DirectionalLight light)
     vec3 emissive = (light.color * vec3(0.0)) * diffuseColor;
 
     vec3 result = (light.intensity * (diffuse + specular + emissive));
-
+    //vec3 ambient = vec3(1.0) * 1.0 * vec3(texture(tex0, fragmentTexCoord));
+    //result = ambient; 
     return result;
 }
 

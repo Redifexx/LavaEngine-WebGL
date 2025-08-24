@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "gl-matrix";
+import { mat4, quat, vec3 } from "gl-matrix";
 import { TransformComponent } from "../components/transform-component";
 import { createStaticIndexBuffer, createStaticVertexBuffer, showError } from "../gl-utils";
 import { Material } from "./material";
@@ -66,9 +66,13 @@ export class Mesh
     draw(transform: TransformComponent)
     {
         const modelMatrix = mat4.create();
+
+        const rotationQuat = quat.create();
+        quat.fromEuler(rotationQuat, transform.rotation[0], transform.rotation[1], transform.rotation[2]);
+        
         mat4.fromRotationTranslationScale(
             modelMatrix,
-            transform.rotation,
+            rotationQuat,
             transform.position,
             transform.scale
         );
@@ -78,6 +82,7 @@ export class Mesh
         this.material.bindTextures();
 
         this.gl.bindVertexArray(this.vertexArrayObject);
-
+        this.gl.drawElements(this.gl.TRIANGLES, this.indices.length, this.gl.UNSIGNED_SHORT, 0);
+        this.gl.bindVertexArray(null);
     }
 }

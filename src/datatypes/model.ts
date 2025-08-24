@@ -35,9 +35,9 @@ export class Model
     
     draw(transform: TransformComponent)
     {
-        for(let i = 0; i < this.meshCollection.length; i++)
+        for (const mesh of this.meshCollection)
         {
-            this.meshCollection[i].draw(transform);
+            mesh.draw(transform);
         }
     }
 }

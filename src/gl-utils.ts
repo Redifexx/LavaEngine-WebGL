@@ -228,15 +228,15 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string)
     return texture;
 }
 
-export function eulerToDirection(yaw_: number, pitch_: number, roll_: number)
+export function eulerToDirection(pitch_: number, yaw_: number, roll_: number)
 {
-    const yaw = glMatrix.toRadian(yaw_);
-    const pitch = glMatrix.toRadian(pitch_);
-    const roll = glMatrix.toRadian(roll_);
-
     const q = quat.create();
     quat.fromEuler(q, pitch_, yaw_, roll_);
     
-    const forward = vec3.fromValues(0, 0, 1);
-    return vec3.normalize(vec3.create(), vec3.transformQuat(vec3.create(), forward, q));
+    const forward = vec3.fromValues(0, 0, -1);
+    const dir = vec3.create();
+    vec3.transformQuat(dir, forward, q);
+    vec3.normalize(dir, dir);
+    return dir;
+
 }
