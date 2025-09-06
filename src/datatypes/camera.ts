@@ -1,5 +1,6 @@
 import { glMatrix, mat4, quat, vec3 } from 'gl-matrix';
 import { CameraType } from '../components/camera-component';
+import { Input } from '../engine/input';
 
 export class Camera
 {
@@ -42,6 +43,7 @@ export class Camera
         const matViewProj = mat4.create();
 
         mat4.copy(matView, this.getViewMatrix(position));
+
 
         if (camType === CameraType.PERSPECTIVE)
         {

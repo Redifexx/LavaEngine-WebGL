@@ -27,7 +27,7 @@ import '../index.css'
         this.GL_CONTEXT = getContext(this.CANVAS);
         this.CANVAS_WIDTH = (this.CANVAS.clientWidth * devicePixelRatio) / 1;
         this.CANVAS_HEIGHT = (this.CANVAS.clientHeight * devicePixelRatio) / 1;
-        this.TARGET_FPS = 120;
+        this.TARGET_FPS = 240;
         this.StartEngine();
     }
 
@@ -35,6 +35,7 @@ import '../index.css'
     {
         this.CURRENT_PROJECT = new EngineDemo(this.GL_CONTEXT);
         this.CURRENT_PROJECT.Start();
+
         
         // ---- INPUT LISTENING ----
         Input.InitInputEvents();
@@ -56,7 +57,6 @@ import '../index.css'
                 lastFrameTime = thisFrameTime;
 
                 // --- UPDATE LOGIC ---
-                Input.ReceiveInputs();
                 LavaEngine.CANVAS!.width = (LavaEngine.CANVAS!.clientWidth * devicePixelRatio) / 1;
                 LavaEngine.CANVAS!.height = (LavaEngine.CANVAS!.clientHeight * devicePixelRatio) / 1;
                 

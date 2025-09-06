@@ -1,7 +1,7 @@
 import { vec3 } from "gl-matrix";
 import { Entity } from "./entity";
 import { ModelComponent } from "../components/model-component";
-import { TransformComponent } from "../components/transform-component";
+import { TransformComponent, Transform } from "../components/transform-component";
 import { LightComponent, LightType } from "../components/light-component";
 import { eulerToDirection } from "../gl-utils";
 import { Material } from "../datatypes/material";
@@ -110,7 +110,7 @@ export class Scene
                 
             for (const modelComp of models)
             {
-                modelComp.model.draw(modelComp.parentEntity.getComponentOrThrow(TransformComponent));
+                modelComp.model.draw(modelComp.parentEntity.getGlobalTransform());
             }
         }
     }
@@ -145,7 +145,7 @@ export class Scene
             if (light.lightType === LightType.POINT)
             {
                 const base = `ptLights[${numPoint}]`;
-                this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".position"), light.parentEntity.getComponentOrThrow(TransformComponent).position);
+                this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".position"), light.parentEntity.getComponentOrThrow(TransformComponent).transform.position);
                 this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".color"), light.color);
                 this.gl.uniform1f(this.gl.getUniformLocation(program, base + ".intensity"), light.intensity);
                 numPoint++;
@@ -153,7 +153,7 @@ export class Scene
             else if (light.lightType === LightType.DIRECTIONAL)
             {
                 const base = `dirLights[${numDir}]`;
-                const lightDirection = eulerToDirection(light.parentEntity.getComponentOrThrow(TransformComponent).rotation[0], light.parentEntity.getComponentOrThrow(TransformComponent).rotation[1], light.parentEntity.getComponentOrThrow(TransformComponent).rotation[2]);
+                const lightDirection = eulerToDirection(light.parentEntity.getComponentOrThrow(TransformComponent).transform.rotation[0], light.parentEntity.getComponentOrThrow(TransformComponent).transform.rotation[1], light.parentEntity.getComponentOrThrow(TransformComponent).transform.rotation[2]);
                 this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".direction"), lightDirection);
                 this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".color"), light.color);
                 this.gl.uniform1f(this.gl.getUniformLocation(program, base + ".intensity"), light.intensity);
@@ -162,9 +162,9 @@ export class Scene
             else if (light.lightType === LightType.SPOT)
             {
                 const base = `spotLights[${numSpot}]`;
-                const lightDirection = eulerToDirection(light.parentEntity.getComponentOrThrow(TransformComponent).rotation[0], light.parentEntity.getComponentOrThrow(TransformComponent).rotation[1], light.parentEntity.getComponentOrThrow(TransformComponent).rotation[2]);
-                this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".position"), light.parentEntity.getComponentOrThrow(TransformComponent).position);
-                this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".direction"), light.parentEntity.getComponentOrThrow(TransformComponent).rotation);
+                const lightDirection = eulerToDirection(light.parentEntity.getComponentOrThrow(TransformComponent).transform.rotation[0], light.parentEntity.getComponentOrThrow(TransformComponent).transform.rotation[1], light.parentEntity.getComponentOrThrow(TransformComponent).transform.rotation[2]);
+                this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".position"), light.parentEntity.getComponentOrThrow(TransformComponent).transform.position);
+                this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".direction"), light.parentEntity.getComponentOrThrow(TransformComponent).transform.rotation);
                 this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".color"), light.color);
                 this.gl.uniform1f(this.gl.getUniformLocation(program, base + ".intensity"), light.intensity);
                 this.gl.uniform1f(this.gl.getUniformLocation(program, base + ".innerCutOff"), light.innerCutOff);

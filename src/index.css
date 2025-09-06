@@ -11,7 +11,7 @@
 
     color-scheme: light dark;
     color: rgba(255, 255, 255, 0.87);
-    background-color: #182129;
+    background-color: #502e15;
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -30,7 +30,7 @@ body {
     font-family: "Quantico", sans-serif;
     margin: 0px;
     padding: 25px;
-    background-color: #2a2a2a;
+    background: linear-gradient(to bottom, #2a2a2a, #852300);
     display: flex;
     justify-content: center;
     flex-direction: column;
@@ -87,7 +87,7 @@ p {
     */
     background-color: #6652da;
 
-    border: 3px solid rgb(123, 255, 0);
+    border: 5px solid rgb(0, 0, 0);
 
     /* Help to illustrate the rasterizer's job: when artificially lowering resolution, show pixelated image */
     image-rendering: crisp-edges;

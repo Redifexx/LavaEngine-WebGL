@@ -1,8 +1,9 @@
 import { vec3 } from "gl-matrix";
-import { TransformComponent } from "../components/transform-component";
+import { TransformComponent, Transform } from "../components/transform-component";
 import { Component, ComponentConstructor } from "./component"
 import { Scene } from "./scene";
 import { ScriptableBehavior } from "./scriptable-behavior";
+import { Input } from "../engine/input";
 
 export class Entity
 {
@@ -33,6 +34,7 @@ export class Entity
     addChildEntity(childEntity: Entity)
     {
         this.childEntities.push(childEntity);
+        childEntity.parentEntity = this;
     }
 
     addComponent<T extends Component>(componentClass: ComponentConstructor<T>, component: T)
@@ -62,19 +64,32 @@ export class Entity
         return script;
     }
 
+    getGlobalTransform(): Transform
+    {
+        let newTransform: Transform = new Transform();
+        newTransform.position = this.getGlobalPosition();
+        newTransform.rotation = this.transformComponent.transform.rotation;
+        newTransform.scale = this.transformComponent.transform.scale;
+        return newTransform;
+    }
+
    getGlobalPosition(): vec3
    {
-        const transform = this.getComponentOrThrow(TransformComponent);
+        const transformComponent = this.getComponentOrThrow(TransformComponent);
 
         if (this.parentEntity) {
             const parentPos = this.parentEntity.getGlobalPosition();
             const result = vec3.create();
-            vec3.add(result, transform.position, parentPos);
+            vec3.add(result, transformComponent.transform.position, parentPos);
+            if (this.name === "Camera" && Input.GetKeyHeld("e"))
+            {
+                console.log(result);
+            }
             return result;
         }
 
         // return a copy, not the internal reference
-        return vec3.clone(transform.position);
+        return vec3.clone(transformComponent.transform.position);
     }
 
     hasComponent<T extends Component>(type: ComponentConstructor<T>): boolean

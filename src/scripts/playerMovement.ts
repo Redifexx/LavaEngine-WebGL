@@ -1,4 +1,5 @@
-import { TransformComponent } from "../components/transform-component";
+import { vec3 } from "gl-matrix";
+import { TransformComponent, Transform } from "../components/transform-component";
 import { Input } from "../engine/input";
 import { LavaEngine } from "../engine/lava-engine";
 import { Entity } from "../gameobjects/entity";
@@ -18,11 +19,25 @@ export class PlayerMovement extends ScriptableBehavior
 
     override Update(): void
     {
-        console.log("UPDATE");
-        if (Input.GetKeyHeld("W"))
+        if (Input.GetKeyHeld("w"))
         {
-            console.log("KEY HELD");
-            this.parentEntity.getComponentOrThrow(TransformComponent).position[0] += 5.0 * LavaEngine.DELTA_TIME;
+            const transform = this.parentEntity.getComponentOrThrow(TransformComponent).transform;
+            const forward = transform.GetForward();
+            const movement = vec3.create();
+
+            vec3.scale(movement, forward, 5.0 * LavaEngine.DELTA_TIME);
+
+            vec3.add(transform.position, transform.position, movement);
+        }
+        if (Input.GetKeyHeld("k"))
+        {
+            const transform = this.parentEntity.getComponentOrThrow(TransformComponent).transform;
+            transform.rotation[1] -= 20.0 * LavaEngine.DELTA_TIME;
+        }
+        if (Input.GetKeyHeld("l"))
+        {
+            const transform = this.parentEntity.getComponentOrThrow(TransformComponent).transform;
+            transform.rotation[1] += 20.0 * LavaEngine.DELTA_TIME;
         }
     }
 

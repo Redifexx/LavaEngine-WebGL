@@ -1,5 +1,5 @@
 import { mat4, quat, vec3 } from "gl-matrix";
-import { TransformComponent } from "../components/transform-component";
+import { Transform, TransformComponent } from "../components/transform-component";
 import { createStaticIndexBuffer, createStaticVertexBuffer, showError } from "../gl-utils";
 import { Material } from "./material";
 
@@ -63,7 +63,7 @@ export class Mesh
         this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
     }
 
-    draw(transform: TransformComponent)
+    draw(transform: Transform)
     {
         const modelMatrix = mat4.create();
 

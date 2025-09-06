@@ -1,4 +1,4 @@
-import { TransformComponent } from "../components/transform-component";
+import { Transform, TransformComponent } from "../components/transform-component";
 import { Material } from "./material";
 import { Mesh } from "./mesh";
 
@@ -33,7 +33,7 @@ export class Model
         this.meshCollection.push(mesh);
     }
     
-    draw(transform: TransformComponent)
+    draw(transform: Transform)
     {
         for (const mesh of this.meshCollection)
         {
