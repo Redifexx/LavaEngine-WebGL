@@ -1,4 +1,4 @@
-# WebGL-Demo
+# Lava Engine (WebGL)
 
 Taking some time to learn WebGL. Click the image to try it out!
 

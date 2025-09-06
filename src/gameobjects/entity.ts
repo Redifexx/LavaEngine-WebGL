@@ -2,18 +2,22 @@ import { vec3 } from "gl-matrix";
 import { TransformComponent } from "../components/transform-component";
 import { Component, ComponentConstructor } from "./component"
 import { Scene } from "./scene";
+import { ScriptableBehavior } from "./scriptable-behavior";
 
 export class Entity
 {
     id: number;
+    name: string;
     scene: Scene;
     transformComponent: TransformComponent;
     components: Map<symbol, Component> = new Map();
+    scripts = new Set<ScriptableBehavior>();
 
     parentEntity: Entity | null;
     childEntities: Entity[] = [];
     constructor(
         eID: number = 0,
+        eName: string,
         scene: Scene,
         pos: vec3,
         rotation: vec3,
@@ -21,6 +25,7 @@ export class Entity
     ) {
         this.scene = scene;
         this.id = eID;
+        this.name = eName;
         this.transformComponent = new TransformComponent(pos, rotation, scale);
         this.addComponent(TransformComponent, this.transformComponent);
     }
@@ -49,6 +54,12 @@ export class Entity
             throw new Error(`Component ${type.name} not found on entity`);
         }
         return component;
+    }
+
+    addScript<T extends ScriptableBehavior>(ScriptClass: new (e: Entity) => T): T {
+        const script = new ScriptClass(this);
+        this.scripts.add(script);
+        return script;
     }
 
    getGlobalPosition(): vec3

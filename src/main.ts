@@ -13,8 +13,9 @@ import { ModelComponent } from "./components/model-component";
 import { TransformComponent } from "./components/transform-component";
 import { CameraComponent } from "./components/camera-component";
 import { LightComponent } from "./components/light-component";
+import { Input } from "./engine/input";
 
-
+/*
 function mainEngine()
 {
     // --------- WINDOW SETUP --------
@@ -77,7 +78,6 @@ function mainEngine()
     // Create material to render model with
     const mat_grass = new Material(sdr_standard);
     mat_grass.setTex(0, loadTexture(gl, "textures/grass.png"));
-
     
     const mat_stone = new Material(sdr_standard);
     mat_stone.setTex(0, loadTexture(gl, "textures/stone.png")); 
@@ -271,7 +271,7 @@ function mainEngine()
         }
     });
 
-    */
+    
 
 
     // --------- RENDER LOOP --------
@@ -281,6 +281,7 @@ function mainEngine()
     let velocityY = 0.0;
     
     const frame = function () {
+        Input.ReceiveInputs();
         const thisFrameTime = performance.now();
         deltaTime = (thisFrameTime - lastFrameTime) / 1000;
         lastFrameTime = thisFrameTime;
@@ -363,7 +364,7 @@ function mainEngine()
             camera.processKeysFlight(CameraMovement.DOWN, deltaTime, isShiftDown);
         }
 
-        */
+        
 
         //const viewMat = mat4.create();
         //mat4.invert(viewMat, matView);
@@ -374,6 +375,7 @@ function mainEngine()
 
         mainScene.render(canvas.width, canvas.height);
 
+        Input.ValidateInputs();
         requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
@@ -389,3 +391,4 @@ try {
 function inverse(matView: mat4): any {
     throw new Error("Function not implemented.");
 }
+*/

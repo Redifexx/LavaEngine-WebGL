@@ -13,6 +13,7 @@ export class Scene
 {
     gl: WebGL2RenderingContext;
     entities: Entity[] = [];
+    entityMap: Map<string, Entity> = new Map();
     mainCamera: CameraComponent | null;
 
     // efficient rendering
@@ -24,28 +25,32 @@ export class Scene
     }
 
     addEntity(
+        name: string,
         pos: vec3 = vec3.fromValues(0.0, 0.0, 0.0),
         rotation: vec3 = vec3.fromValues(0.0, 0.0, 0.0),
         scale: vec3 = vec3.fromValues(1.0, 1.0, 1.0)
     )
     {
-        const newEntity = new Entity(this.entities.length, this, pos, rotation, scale);
+        const newEntity = new Entity(this.entities.length, name, this, pos, rotation, scale);
         this.entities.push(newEntity);
+        this.entityMap.set(name, newEntity);
         this.updateEntity(newEntity);
         return newEntity;
     }
 
+    getEntityByName(name: string): Entity | undefined
+    {
+        return this.entityMap.get(name);
+    }
+
     updateEntity(newEntity: Entity)
     {
-        console.log("cam update");
         for (let i = 0; i < this.entities.length; i++)
         {
             if (this.entities[i] === newEntity)
             {
-                console.log("main cam " + this.mainCamera);
                 if (newEntity.hasComponent(ModelComponent))
                 {
-                    console.log("cam false");
                     const curModelComponent = newEntity.getComponentOrThrow(ModelComponent);
                     const material = curModelComponent.model.material;
                     if (!this.modelsByMaterial.has(material))
@@ -54,10 +59,8 @@ export class Scene
                     }
                     this.modelsByMaterial.get(material)!.push(curModelComponent);
                 }
-                console.log("cam RIGHT HERE-> " + newEntity.hasComponent(CameraComponent));
                 if (newEntity.hasComponent(CameraComponent) && !this.mainCamera)
                 {
-                    console.log("MAIN CAM");
                     this.mainCamera = newEntity.getComponentOrThrow(CameraComponent);
                 }
             }
@@ -110,8 +113,6 @@ export class Scene
                 modelComp.model.draw(modelComp.parentEntity.getComponentOrThrow(TransformComponent));
             }
         }
-
-        console.log("finished frame");
     }
 
     useProgram(currentProgram: WebGLProgram | null, program: WebGLProgram)
@@ -156,7 +157,6 @@ export class Scene
                 this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".direction"), lightDirection);
                 this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".color"), light.color);
                 this.gl.uniform1f(this.gl.getUniformLocation(program, base + ".intensity"), light.intensity);
-                console.log(lightDirection);
                 numDir++;
             }
             else if (light.lightType === LightType.SPOT)
@@ -182,5 +182,27 @@ export class Scene
     setMainCamera(camera: CameraComponent)
     {
         this.mainCamera = camera;
+    }
+
+    Start()
+    {
+        for (const e of this.entities)
+        {
+            for (const s of e.scripts)
+            {
+                s.Start();
+            }
+        }
+    }
+
+    Update()
+    {
+        for (const e of this.entities)
+        {
+            for (const s of e.scripts)
+            {
+                s.Update();
+            }
+        }
     }
 }
