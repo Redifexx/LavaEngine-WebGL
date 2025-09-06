@@ -15,8 +15,9 @@ import { CameraComponent } from "./components/camera-component";
 import { LightComponent } from "./components/light-component";
 
 
-function introTo3DDemo()
+function mainEngine()
 {
+    // --------- WINDOW SETUP --------
     const canvas = document.getElementById('demo-canvas');
     if (!canvas || !(canvas instanceof HTMLCanvasElement))
     {
@@ -25,8 +26,9 @@ function introTo3DDemo()
     }
 
     const gl = getContext(canvas);
-    //const ext = getExtension(gl, "WEBGL_depth_texture"); NOT NEEDED IN WEBGL 2
 
+
+    // --------- THE GAME --------
     const mainScene = new Scene(gl);
     
     const e_plane = mainScene.addEntity(
@@ -62,7 +64,6 @@ function introTo3DDemo()
         vec3.fromValues(0.0, 0.0, 0.0),
         vec3.fromValues(0.7, 0.7, 0.7)
     );
-
     
     // Create meshs from vert/ind
     const msh_plane = new Mesh(gl, PLANE_VERTICES, PLANE_INDICES);
@@ -271,13 +272,14 @@ function introTo3DDemo()
     });
 
     */
-   // Render
+
+
+    // --------- RENDER LOOP --------
     let lastFrameTime = performance.now();
     let deltaTime = 0.0;
     let groundHeight = 2.0;
     let velocityY = 0.0;
-
-    // Update
+    
     const frame = function () {
         const thisFrameTime = performance.now();
         deltaTime = (thisFrameTime - lastFrameTime) / 1000;
@@ -378,7 +380,7 @@ function introTo3DDemo()
 }
 
 try {
-    introTo3DDemo();
+    mainEngine();
 } catch (e)
 {
     showError('Unhandled JavaScript exception: ${e}');
