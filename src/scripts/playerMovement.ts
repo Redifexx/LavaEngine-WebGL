@@ -25,19 +25,19 @@ export class PlayerMovement extends ScriptableBehavior
             const forward = transform.GetForward();
             const movement = vec3.create();
 
-            vec3.scale(movement, forward, 5.0 * LavaEngine.DELTA_TIME);
+            vec3.scale(movement, forward, 5.0 * LavaEngine.deltaTime);
 
             vec3.add(transform.position, transform.position, movement);
         }
         if (Input.GetKeyHeld("k"))
         {
             const transform = this.parentEntity.getComponentOrThrow(TransformComponent).transform;
-            transform.rotation[1] -= 20.0 * LavaEngine.DELTA_TIME;
+            transform.rotation[1] -= 20.0 * LavaEngine.deltaTime;
         }
         if (Input.GetKeyHeld("l"))
         {
             const transform = this.parentEntity.getComponentOrThrow(TransformComponent).transform;
-            transform.rotation[1] += 20.0 * LavaEngine.DELTA_TIME;
+            transform.rotation[1] += 20.0 * LavaEngine.deltaTime;
         }
     }
 
