@@ -13,6 +13,7 @@ import { ModelComponent } from "../components/model-component";
 import { CameraComponent } from "../components/camera-component";
 import { LightComponent } from "../components/light-component";
 import { PlayerMovement } from "../scripts/playerMovement";
+import { CameraController } from "../scripts/cameraController";
 
 export class EngineDemo extends Project
 {
@@ -42,6 +43,24 @@ export class EngineDemo extends Project
             "Sun",
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(-60.0, -20.0, -40.0)
+        );
+
+        const e_redlight = this.MAIN_SCENE.addEntity(
+            "RedLight",
+            vec3.fromValues(2.0, 5.0, -5.0),
+            vec3.fromValues(-90.0, -10.0, -10.0)
+        );
+
+        const e_greenlight = this.MAIN_SCENE.addEntity(
+            "GreenLight",
+            vec3.fromValues(-2.0, 5.0, 5.0),
+            vec3.fromValues(-90.0, -10.0, -20.0)
+        );
+
+        const e_bluelight = this.MAIN_SCENE.addEntity(
+            "BlueLight",
+            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(0.0, 0.0, 0.0)
         );
 
         const e_cube_1 = this.MAIN_SCENE.addEntity(
@@ -104,8 +123,13 @@ export class EngineDemo extends Project
         e_camera.addComponent(CameraComponent, new CameraComponent());
         e_player.addChildEntity(e_camera);
         e_player.addScript(PlayerMovement);
+        e_camera.addScript(CameraController);
     
         e_sun.addComponent(LightComponent, new LightComponent()); // default light
+        e_redlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 0.0, 0.0), 5.0));
+        e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 5.0));
+        e_bluelight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 0.0, 1.0), 5.0));
+        e_camera.addChildEntity(e_bluelight);
     }
 
     override Start(): void

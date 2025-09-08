@@ -17,6 +17,7 @@ export class LavaEngine
 
     static ui_canvas: HTMLCanvasElement | null;
     static ui: CanvasRenderingContext2D | null;
+    static isPointerLock: boolean;
 
     static fpsTarget: number;
     static deltaTime: number;
@@ -47,6 +48,10 @@ export class LavaEngine
 
         this.ResizeCanvases();
         window.addEventListener("resize", () => LavaEngine.ResizeCanvases());
+        this.canvas.addEventListener('click', () => {
+            this.canvas?.requestPointerLock();
+            this.isPointerLock = true;
+        });
         
         this.StartEngine();
     }
@@ -88,10 +93,10 @@ export class LavaEngine
                 LavaEngine.DrawDebugui();
                 
                 LavaEngine.UpdateEngine();
+                Input.ValidateInputs();
 
                 LavaEngine.project.MAIN_SCENE.render(LavaEngine.canvas!.width, LavaEngine.canvas!.height);
 
-                Input.ValidateInputs();
             }
 
             

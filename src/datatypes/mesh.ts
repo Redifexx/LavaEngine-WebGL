@@ -85,4 +85,12 @@ export class Mesh
         this.gl.drawElements(this.gl.TRIANGLES, this.indices.length, this.gl.UNSIGNED_SHORT, 0);
         this.gl.bindVertexArray(null);
     }
+
+    clone(): Mesh {
+        // deep copy the data so it's not shared
+        return new Mesh(this.gl,
+            new Float32Array(this.vertices),
+            new Uint16Array(this.indices)
+        );
+    }
 }

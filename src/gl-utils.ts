@@ -231,7 +231,7 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string)
 export function eulerToDirection(pitch_: number, yaw_: number, roll_: number)
 {
     const q = quat.create();
-    quat.fromEuler(q, pitch_, yaw_, roll_);
+    quat.fromEuler(q, pitch_, -yaw_, roll_);
     
     const forward = vec3.fromValues(0, 0, -1);
     const dir = vec3.create();

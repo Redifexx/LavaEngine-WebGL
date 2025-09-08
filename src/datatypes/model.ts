@@ -14,7 +14,8 @@ export class Model
     )
     {
         this.setMaterial(material);
-        this.addMesh(mesh);
+        let newMesh = mesh.clone();
+        this.addMesh(newMesh);
     }
 
     setMaterial(material: Material)
