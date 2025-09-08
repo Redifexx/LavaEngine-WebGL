@@ -104,7 +104,7 @@ export class Scene
                 this.mainCamera.farPlane,
                 material.viewProjMatrixUniformLocation,
                 material.viewPosMatrixUniformLocation,
-                this.mainCamera.parentEntity.getGlobalPosition(),
+                this.mainCamera.parentEntity.getGlobalTransform(),
                 this.gl
             );
                 

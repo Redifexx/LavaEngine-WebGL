@@ -1,11 +1,13 @@
-import { getContext, showError } from "../gl-utils";
+import { eulerToQuat, getContext, quatToEuler, showError } from "../gl-utils";
 import { EngineDemo } from "../projects/engine-demo";
 import { Input } from "./input";
 import { Project } from "./project";
 import '../index.css'
+import { TransformComponent } from "../components/transform-component";
+import { quat, vec3 } from "gl-matrix";
 
  
- export class LavaEngine
+export class LavaEngine
  {
     static canvas: HTMLCanvasElement | null;
     static gl_context: WebGL2RenderingContext;
@@ -107,6 +109,7 @@ import '../index.css'
     static DrawDebugui()
     {
         this.ui!.clearRect(0, 0, this.ui_canvas!.width, this.ui_canvas!.height);
+        let playerTransform = this.project.MAIN_SCENE.getEntityByName("Player")!.getComponentOrThrow(TransformComponent)!.transform;
 
         this.ui!.font = "20px Quantico"; 
         this.ui!.fillStyle = "white";
@@ -115,6 +118,10 @@ import '../index.css'
         this.ui!.shadowOffsetX = 3;
         this.ui!.shadowOffsetY = 3;
         this.ui!.fillText(`FPS: ${this.fps.toFixed(1)} (${this.frameTime.toFixed(1)} ms)`, 50, 50);
+        this.ui!.fillText(`X: ${playerTransform.position[0].toFixed(2)} Y: ${playerTransform.position[1].toFixed(2)} Z: ${playerTransform.position[2].toFixed(2)}`, 50, 75);
+        this.ui!.fillText(`RX: ${playerTransform.rotation[0].toFixed(2)} RY: ${playerTransform.rotation[1].toFixed(2)} RZ: ${playerTransform.rotation[2].toFixed(2)}`, 50, 100);
+        const forward = playerTransform.GetForward();
+        this.ui!.fillText(`VDX: ${forward[0].toFixed(2)} VDY: ${forward[1].toFixed(2)} VDZ: ${forward[2].toFixed(2)}`, 50, 125);
     }
 
     static ResizeCanvases()

@@ -21,11 +21,11 @@ export class Input
         const key = e.key.toLowerCase();
         if (!this.heldList.has(key)) {
             this.pressedList.add(key); // pressed this frame
-        }
-        else
-        {
+            console.log("KEY PRESSED");
+
         }
         this.heldList.add(key); // held down
+        console.log("KEY HELD");
         });
 
         document.addEventListener("keyup", (e) => {

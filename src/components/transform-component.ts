@@ -15,12 +15,26 @@ export class Transform
         const yaw: number = glMatrix.toRadian(this.rotation[1]);
         const pitch: number = glMatrix.toRadian(this.rotation[0]);
         
-        //const roll: number = glMatrix.toRadian(this.rotation[2]);
         this.forward[0] = Math.cos(pitch) * Math.sin(yaw); 
         this.forward[1] = Math.sin(pitch);
         this.forward[2] = -Math.cos(pitch) * Math.cos(yaw);
         vec3.normalize(this.forward, this.forward);
         return this.forward;
+    }
+
+    GetRight()
+    {
+        vec3.cross(this.right, this.GetForward(), [0, 1, 0]); // world up
+        vec3.normalize(this.right, this.right);
+        return this.right;
+    }
+
+    GetUp()
+    {
+        this.GetRight();
+        vec3.cross(this.up, this.right, this.forward);
+        vec3.normalize(this.up, this.up);
+        return this.up;
     }
 }
 

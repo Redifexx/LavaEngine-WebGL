@@ -1,9 +1,10 @@
-import { vec3 } from "gl-matrix";
+import { quat, vec3 } from "gl-matrix";
 import { TransformComponent, Transform } from "../components/transform-component";
 import { Component, ComponentConstructor } from "./component"
 import { Scene } from "./scene";
 import { ScriptableBehavior } from "./scriptable-behavior";
 import { Input } from "../engine/input";
+import { eulerToQuat, quatToEuler } from "../gl-utils";
 
 export class Entity
 {
@@ -68,7 +69,7 @@ export class Entity
     {
         let newTransform: Transform = new Transform();
         newTransform.position = this.getGlobalPosition();
-        newTransform.rotation = this.transformComponent.transform.rotation;
+        newTransform.rotation = this.getGlobalRotation();
         newTransform.scale = this.transformComponent.transform.scale;
         return newTransform;
     }
@@ -90,6 +91,38 @@ export class Entity
 
         // return a copy, not the internal reference
         return vec3.clone(transformComponent.transform.position);
+    }
+
+    getGlobalRotation(): vec3
+    {
+        const transformComponent = this.getComponentOrThrow(TransformComponent);
+
+        const localQuat = eulerToQuat(transformComponent.transform.rotation);
+
+        if (this.parentEntity)
+        {
+            const parentQuat = this.parentEntity.getGlobalRotationQuat();
+            const globalQuat = quat.create();
+            quat.multiply(globalQuat, parentQuat, localQuat);
+
+            const euler = quatToEuler(globalQuat);
+            return euler;
+        }
+        return vec3.clone(transformComponent.transform.rotation);
+    }
+
+    getGlobalRotationQuat(): quat
+    {
+        const transformComponent = this.getComponentOrThrow(TransformComponent);
+        const localQuat = eulerToQuat(transformComponent.transform.rotation);
+        if (this.parentEntity)
+        {
+            const parentQuat = this.parentEntity.getGlobalRotationQuat();
+            const globalQuat = quat.create();
+            quat.multiply(globalQuat, parentQuat, localQuat);
+            return globalQuat;
+        }
+        return localQuat;
     }
 
     hasComponent<T extends Component>(type: ComponentConstructor<T>): boolean

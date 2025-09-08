@@ -240,3 +240,47 @@ export function eulerToDirection(pitch_: number, yaw_: number, roll_: number)
     return dir;
 
 }
+
+// thanks to stefnotch from github
+export function eulerToQuat(r: vec3): quat
+{
+    const roll = r[2] * Math.PI/180;
+    const pitch = r[0] * Math.PI/180;
+    const yaw = r[1] * Math.PI/180;
+    let cr = Math.cos(roll * 0.5);
+    let sr = Math.sin(roll * 0.5);
+    let cp = Math.cos(pitch * 0.5);
+    let sp = Math.sin(pitch * 0.5);
+    let cy = Math.cos(yaw * 0.5);
+    let sy = Math.sin(yaw * 0.5);
+
+    let q = quat.create();
+    q[3] = cr * cp * cy + sr * sp * sy;
+    q[0] = sr * cp * cy - cr * sp * sy;
+    q[1] = cr * sp * cy + sr * cp * sy;
+    q[2] = cr * cp * sy - sr * sp * cy;
+
+    return q;
+}
+
+export function quatToEuler(q: quat): vec3
+{
+    let out = vec3.create();
+
+    // roll (z-axis rotation)
+    let sinr_cosp = 2 * (q[3] * q[0] + q[1] * q[2]);
+    let cosr_cosp = 1 - 2 * (q[0] * q[0] + q[1] * q[1]);
+    out[2] = Math.atan2(sinr_cosp, cosr_cosp) * 180/Math.PI;
+
+    // pitch (x-axis rotation)
+    let sinp = Math.sqrt(1 + 2 * (q[3] * q[1] - q[0] * q[2]));
+    let cosp = Math.sqrt(1 - 2 * (q[3] * q[1] - q[0] * q[2]));
+    out[0] = (2 *  Math.atan2(sinp, cosp) - Math.PI / 2) * 180/Math.PI;
+
+    // yaw (y-axis rotation)
+    let siny_cosp = 2 * (q[3] * q[2] + q[0] * q[1]);
+    let cosy_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2]);
+    out[1] =  Math.atan2(siny_cosp, cosy_cosp) * 180/Math.PI;
+
+    return out;
+}

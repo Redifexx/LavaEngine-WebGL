@@ -88,9 +88,9 @@ export class EngineDemo extends Project
 
         // Create models from meshs (make modelcomponent house materials)
         const mod_plane = new Model(mat_grass, msh_plane);
-        const mod_cube_1 = new Model(mat_brick, msh_cube);
-        const mod_cube_2 = new Model(mat_brick, msh_cube);
-        const mod_cube_3 = new Model(mat_brick, msh_cube);
+        const mod_cube_1 = new Model(mat_stone, msh_cube);
+        const mod_cube_2 = new Model(mat_stone, msh_cube);
+        const mod_cube_3 = new Model(mat_stone, msh_cube);
         const mod_cube_4 = new Model(mat_brick, msh_cube);
 
         // Add model components to entities (trying to maintain ECS-ish)
