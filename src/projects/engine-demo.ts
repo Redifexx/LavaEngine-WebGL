@@ -13,11 +13,8 @@ import { ModelComponent } from "../components/model-component";
 import { CameraComponent } from "../components/camera-component";
 import { LightComponent } from "../components/light-component";
 import { PlayerMovement } from "../scripts/playerMovement";
-<<<<<<< HEAD
-=======
 import { CameraController } from "../scripts/cameraController";
 import { MeshRotate } from "../scripts/meshRotate";
->>>>>>> dev
 
 export class EngineDemo extends Project
 {
@@ -49,8 +46,6 @@ export class EngineDemo extends Project
             vec3.fromValues(-60.0, -20.0, -40.0)
         );
 
-<<<<<<< HEAD
-=======
         const e_redlight = this.MAIN_SCENE.addEntity(
             "RedLight",
             vec3.fromValues(2.0, 5.0, -5.0),
@@ -85,7 +80,6 @@ export class EngineDemo extends Project
             vec3.fromValues(0.0, 0.0, 0.0)
         );
 
->>>>>>> dev
         const e_cube_1 = this.MAIN_SCENE.addEntity(
             "Cube1",
             vec3.fromValues(0.0, 1.0, -10.0), 
@@ -128,17 +122,6 @@ export class EngineDemo extends Project
         const mat_brick = new Material(sdr_standard);
         mat_brick.setTex(0, loadTexture(this.GL_CONTEXT, "textures/brick.png")); 
 
-<<<<<<< HEAD
-        // Create models from meshs (make modelcomponent house materials)
-        const mod_plane = new Model(mat_grass, msh_plane);
-        const mod_cube_1 = new Model(mat_stone, msh_cube);
-        const mod_cube_2 = new Model(mat_stone, msh_cube);
-        const mod_cube_3 = new Model(mat_stone, msh_cube);
-        const mod_cube_4 = new Model(mat_brick, msh_cube);
-
-        // Add model components to entities (trying to maintain ECS-ish)
-        // scene.render->entity->modelcomp->model.draw(entity.transform)
-=======
         const mat_face = new Material(sdr_standard);
         mat_face.setTex(0, loadTexture(this.GL_CONTEXT, "textures/me.jpg")); 
 
@@ -153,20 +136,11 @@ export class EngineDemo extends Project
         const mod_cube_4 = new Model(mat_brick, msh_cube);
 
         // Add model components to entities (trying to maintain ECS-ish)
->>>>>>> dev
         e_plane.addComponent(ModelComponent, new ModelComponent(mod_plane));
         e_cube_1.addComponent(ModelComponent, new ModelComponent(mod_cube_1));
         e_cube_2.addComponent(ModelComponent, new ModelComponent(mod_cube_2));
         e_cube_3.addComponent(ModelComponent, new ModelComponent(mod_cube_3));
         e_cube_4.addComponent(ModelComponent, new ModelComponent(mod_cube_4));
-<<<<<<< HEAD
-    
-        e_camera.addComponent(CameraComponent, new CameraComponent());
-        e_player.addChildEntity(e_camera);
-        e_player.addScript(PlayerMovement);
-    
-        e_sun.addComponent(LightComponent, new LightComponent()); // default light
-=======
         e_cube_1.addScript(new MeshRotate());
         e_cube_2.addScript(new MeshRotate());
         e_cube_3.addScript(new MeshRotate());
@@ -186,16 +160,11 @@ export class EngineDemo extends Project
         e_yellowlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 0.0), 5.0));
         e_flashlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 1.0), 5.0));
         e_camera.addChildEntity(e_flashlight);
->>>>>>> dev
     }
 
     override Start(): void
     {
         this.Setup();
-<<<<<<< HEAD
-        // Every script start
-=======
->>>>>>> dev
         this.MAIN_SCENE.Start();
     }
 
