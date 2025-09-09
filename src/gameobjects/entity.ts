@@ -96,7 +96,6 @@ export class Entity
             return result;
         }
 
-        // return a copy, not the internal reference
         return vec3.clone(transformComponent.transform.position);
     }
 

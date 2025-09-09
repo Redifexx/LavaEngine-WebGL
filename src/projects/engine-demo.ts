@@ -122,11 +122,17 @@ export class EngineDemo extends Project
         const mat_brick = new Material(sdr_standard);
         mat_brick.setTex(0, loadTexture(this.GL_CONTEXT, "textures/brick.png")); 
 
+        const mat_face = new Material(sdr_standard);
+        mat_face.setTex(0, loadTexture(this.GL_CONTEXT, "textures/me.jpg")); 
+
+        const mat_gata = new Material(sdr_standard);
+        mat_gata.setTex(0, loadTexture(this.GL_CONTEXT, "textures/gata2.png")); 
+
         // Create models from meshs (make modelcomponent house materials)
         const mod_plane = new Model(mat_grass, msh_plane);
-        const mod_cube_1 = new Model(mat_stone, msh_cube);
+        const mod_cube_1 = new Model(mat_face, msh_cube);
         const mod_cube_2 = new Model(mat_stone, msh_cube);
-        const mod_cube_3 = new Model(mat_stone, msh_cube);
+        const mod_cube_3 = new Model(mat_gata, msh_cube);
         const mod_cube_4 = new Model(mat_brick, msh_cube);
 
         // Add model components to entities (trying to maintain ECS-ish)
@@ -159,7 +165,6 @@ export class EngineDemo extends Project
     override Start(): void
     {
         this.Setup();
-        // Every script start
         this.MAIN_SCENE.Start();
     }
 

@@ -11,6 +11,11 @@ export class PlayerMovement extends ScriptableBehavior
     velocityY = 0.0;
     groundHeight = 0.0;
     flashlight: Entity | null;
+    movementVelocity = vec3.create();
+    speed = 0.0;
+    moveSpeed = 1.3;
+    walkSpeed = 0.3;
+    airSpeed = 0.3;
 
     constructor()
     {
@@ -35,53 +40,29 @@ export class PlayerMovement extends ScriptableBehavior
 
         if (LavaEngine.isPointerLock)
         {
+            this.SpeedCheck();
+
+            const acceleration = vec3.create();
+
             if (Input.GetKeyHeld("w"))
             {
-                const forward = this.playerTransform.GetForward();
-                const movement = vec3.create();
-
-                vec3.scale(movement, forward, 5.0 * LavaEngine.deltaTime);
-
-                vec3.add(this.playerTransform.position, this.playerTransform.position, movement);
+                vec3.add(acceleration, acceleration, this.playerTransform.GetForward());
             }
             if (Input.GetKeyHeld("s"))
             {
-                const forward = this.playerTransform.GetForward();
-                const movement = vec3.create();
-
-                vec3.scale(movement, forward, -5.0 * LavaEngine.deltaTime);
-
-                vec3.add(this.playerTransform.position, this.playerTransform.position, movement);
+                const backward = vec3.create();
+                vec3.scale(backward, this.playerTransform.GetForward(), -1);
+                vec3.add(acceleration, acceleration, backward);
             }
             if (Input.GetKeyHeld("d"))
             {
-                const transform = this.parentEntity!.getComponentOrThrow(TransformComponent).transform;
-                const right = transform.GetRight();
-                const movement = vec3.create();
-
-                vec3.scale(movement, right, 5.0 * LavaEngine.deltaTime);
-
-                vec3.add(transform.position, transform.position, movement);
+                vec3.add(acceleration, acceleration, this.playerTransform.GetRight());
             }
             if (Input.GetKeyHeld("a"))
             {
-                const transform = this.parentEntity!.getComponentOrThrow(TransformComponent).transform;
-                const right = transform.GetRight();
-                const movement = vec3.create();
-
-                vec3.scale(movement, right, -5.0 * LavaEngine.deltaTime);
-
-                vec3.add(transform.position, transform.position, movement);
-            }
-            if (Input.GetKeyHeld("k"))
-            {
-                const transform = this.parentEntity!.getComponentOrThrow(TransformComponent).transform;
-                transform.rotation[1] -= 200.0 * LavaEngine.deltaTime;
-            }
-            if (Input.GetKeyHeld("l"))
-            {
-                const transform = this.parentEntity!.getComponentOrThrow(TransformComponent).transform;
-                transform.rotation[1] += 200.0 * LavaEngine.deltaTime;
+                const left = vec3.create();
+                vec3.scale(left, this.playerTransform.GetRight(), -1);
+                vec3.add(acceleration, acceleration, left);
             }
 
             if (Input.GetKeyPressed("escape"))
@@ -103,6 +84,44 @@ export class PlayerMovement extends ScriptableBehavior
                 {
                     this.flashlight.setActive(!this.flashlight.getActive());
                 }
+            }
+
+
+            // SPEED CONTROL FOR DIAGONAL MOVEMENT
+            if (vec3.length(acceleration) > 0)
+            {
+                vec3.normalize(acceleration, acceleration);
+                vec3.scale(acceleration, acceleration, this.speed * LavaEngine.deltaTime);
+                vec3.add(this.movementVelocity, this.movementVelocity, acceleration);
+            }
+
+            // apply velocity
+            vec3.add(this.playerTransform.position, this.playerTransform.position, this.movementVelocity);
+
+            // drag
+            vec3.scale(this.movementVelocity, this.movementVelocity, 0.9);
+            if (vec3.length(this.movementVelocity) < 0.001)
+            {
+                vec3.set(this.movementVelocity, 0, 0, 0);
+            }
+        }
+    }
+
+    SpeedCheck()
+    {
+        if (this.playerTransform.position[1] !== this.groundHeight && this.speed !== this.airSpeed && Input.GetKeyReleased('w'))
+        {
+            this.speed = this.airSpeed;
+        }
+        else if (this.playerTransform.position[1] === this.groundHeight)
+        {
+            if (Input.GetKeyHeld("shiftleft") && this.speed !== this.walkSpeed)
+            {
+                this.speed = this.walkSpeed;
+            }
+            else if (this.speed !== this.moveSpeed)
+            {
+                this.speed = this.moveSpeed;
             }
         }
     }

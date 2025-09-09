@@ -33,7 +33,12 @@ export class CameraController extends ScriptableBehavior
             yOffset *= this.sensitivity;
 
             //YAW
-            this.parentEntity!.parentEntity!.getComponentOrThrow(TransformComponent).transform.rotation[1] += xOffset;
+            let transformRotation = this.parentEntity!.parentEntity!.getComponentOrThrow(TransformComponent).transform.rotation;
+            transformRotation[1] += xOffset;
+            if (transformRotation[1] >= 360 || transformRotation[1] <= -360)
+            {
+                transformRotation[1] = 0;
+            }
 
             this.pitch -= yOffset;
 

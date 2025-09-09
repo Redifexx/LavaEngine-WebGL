@@ -103,7 +103,7 @@ export class Scene
 
     render(width: number, height: number)
     {
-        this.gl.clearColor(0.643, 0.98, 1.00, 1.0);
+        this.gl.clearColor(0.478, 0.365, 0.298, 1.0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.enable(this.gl.CULL_FACE);
