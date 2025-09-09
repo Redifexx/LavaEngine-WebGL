@@ -15,6 +15,8 @@ import { LightComponent } from "../components/light-component";
 import { PlayerMovement } from "../scripts/playerMovement";
 import { CameraController } from "../scripts/cameraController";
 import { MeshRotate } from "../scripts/meshRotate";
+import { skyboxVertSdrSourceCode } from "../../shaders/skybox/skybox.vert";
+import { skyboxFragSdrSourceCode } from "../../shaders/skybox/skybox.frag";
 
 export class EngineDemo extends Project
 {
@@ -40,6 +42,7 @@ export class EngineDemo extends Project
 
         const e_player = this.MAIN_SCENE.addEntity("Player", vec3.fromValues(0.0, 0.0, 0.0));
         const e_camera = this.MAIN_SCENE.addEntity("Camera", vec3.fromValues(0.0, 2.0, 0.0));
+        const e_skybox = this.MAIN_SCENE.addEntity("Skybox", vec3.fromValues(0.0, 0.0, 0.0));
         const e_sun = this.MAIN_SCENE.addEntity(
             "Sun",
             vec3.fromValues(0.0, 0.0, 0.0),
@@ -123,6 +126,7 @@ export class EngineDemo extends Project
 
         // Create shader to render material with
         const sdr_standard = new Shader(this.GL_CONTEXT, vertexShaderSourceCode, fragmentShaderSourceCode);
+        const sdr_skybox = new Shader(this.GL_CONTEXT, skyboxVertSdrSourceCode, skyboxFragSdrSourceCode);
 
         // Create material to render model with
         const mat_grass = new Material(sdr_standard);
@@ -140,6 +144,8 @@ export class EngineDemo extends Project
         const mat_gata = new Material(sdr_standard);
         mat_gata.setTex(0, loadTexture(this.GL_CONTEXT, "textures/geoff.jpg")); 
 
+        const mat_skybox = new Material(sdr_skybox, true);
+
         const mat_tiles = new Material(sdr_standard);
         mat_tiles.setTex(0, loadTexture(this.GL_CONTEXT, "textures/tiles_diff.jpg")); 
         mat_tiles.setTex(1, loadTexture(this.GL_CONTEXT, "textures/tiles_spec.png")); 
@@ -153,6 +159,7 @@ export class EngineDemo extends Project
         const mod_cube_3 = new Model(mat_gata, msh_cube);
         const mod_cube_4 = new Model(mat_brick, msh_cube);
         const mod_cube_5 = new Model(mat_tiles, msh_cube);
+        const mod_skybox = new Model(mat_skybox, msh_cube);
 
         // Add model components to entities (trying to maintain ECS-ish)
         e_plane.addComponent(ModelComponent, new ModelComponent(mod_plane));
@@ -161,6 +168,8 @@ export class EngineDemo extends Project
         e_cube_3.addComponent(ModelComponent, new ModelComponent(mod_cube_3));
         e_cube_4.addComponent(ModelComponent, new ModelComponent(mod_cube_4));
         e_cube_5.addComponent(ModelComponent, new ModelComponent(mod_cube_5));
+        e_skybox.addComponent(ModelComponent, new ModelComponent(mod_skybox));
+
         e_cube_1.addScript(new MeshRotate());
         e_cube_2.addScript(new MeshRotate());
         e_cube_3.addScript(new MeshRotate());

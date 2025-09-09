@@ -1,4 +1,4 @@
-import { glMatrix, mat4, quat, vec3 } from 'gl-matrix';
+import { glMatrix, mat3, mat4, quat, vec3 } from 'gl-matrix';
 import { CameraType } from '../components/camera-component';
 import { Input } from '../engine/input';
 import { Transform } from '../components/transform-component';
@@ -69,8 +69,54 @@ export class Camera
         mat4.multiply(matViewProj, matProj, matView)
 
         gl.uniformMatrix4fv(matViewProjUniform, false, matViewProj);
-        gl.uniform3fv(matViewPosUniform, transform.position);
 
+        gl.uniform3fv(matViewPosUniform, transform.position);
+    }
+
+    drawSky(
+        camType: CameraType,
+        fieldOfView: number,
+        canvasWidth: number,
+        canvasHeight: number,
+        nearPlane: number,
+        farPlane: number,
+        viewMatrixUniform: WebGLUniformLocation,
+        projMatrixUniform: WebGLUniformLocation,
+        transform: Transform,
+        gl: WebGL2RenderingContext
+    )
+    {
+        const matView = mat4.create();
+        const matProj = mat4.create();
+
+        mat4.copy(matView, this.getViewMatrix(transform));
+        matView[12] = 0;
+        matView[13] = 0;
+        matView[14] = 0;
+
+        if (camType === CameraType.PERSPECTIVE)
+        {
+            mat4.perspective(
+            matProj,
+            glMatrix.toRadian(fieldOfView),
+            canvasWidth / canvasHeight,
+            nearPlane, farPlane);
+        }
+        else
+        {
+            mat4.ortho(
+                matProj,
+                -1,
+                1,
+                -1,
+                1,
+                nearPlane,
+                farPlane
+            );
+        }
+
+        gl.uniformMatrix4fv(viewMatrixUniform, false, matView);
+        gl.uniformMatrix4fv(projMatrixUniform, false, matProj);
     }
 
     getViewMatrix(transform: Transform)

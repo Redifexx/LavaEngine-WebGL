@@ -52,6 +52,8 @@ export class Scene
                 const curModelComponent = newEntity.getComponentOrThrow(ModelComponent);
                 const material = curModelComponent.model.material;
 
+                if (material.isCubemap) console.log("HAS CUBEMAP");
+
                 if (!this.modelsByMaterial.has(material))
                 {
                     this.modelsByMaterial.set(material, []);
@@ -120,8 +122,48 @@ export class Scene
             }
         }
 
+        // --- RENDER SKYBOX FIRST ---
+        for (const [material, models] of this.modelsByMaterial.entries()) {
+            if (!material.isCubemap) continue;
+
+            console.log("CUBEMAP");
+
+            this.gl.depthMask(false);
+            this.gl.cullFace(this.gl.FRONT); // render inside of cube
+            this.gl.depthFunc(this.gl.LEQUAL);
+
+            this.useProgram(currentShaderProgram, material.shader.shaderProgram);
+
+            if (this.mainCamera === null)
+            {
+                console.log("NO CAMERA ATTACHED");
+            }
+            
+            this.mainCamera?.camera.drawSky(
+                this.mainCamera.cameraType,
+                this.mainCamera.fieldOfView,
+                width,
+                height,
+                this.mainCamera.nearPlane,
+                this.mainCamera.farPlane,
+                material.viewMatrixUniformLocation!,
+                material.projMatrixUniformLocation!,
+                this.mainCamera.parentEntity.getGlobalTransform(),
+                this.gl
+            );
+            for (const modelComp of models)
+            {
+                modelComp.model.draw(modelComp.parentEntity.getGlobalTransform());
+            }
+            this.gl.cullFace(this.gl.BACK);
+            this.gl.depthFunc(this.gl.LESS);
+            this.gl.depthMask(true);
+        }
+
+        // --- RENDER REST OF SCENE ---
         for (const [material, models] of this.modelsByMaterial.entries())
         {
+
             this.useProgram(currentShaderProgram, material.shader.shaderProgram);
             this.setLights(material.shader.shaderProgram, lightList);
             if (this.mainCamera === null)
@@ -136,8 +178,8 @@ export class Scene
                 height,
                 this.mainCamera.nearPlane,
                 this.mainCamera.farPlane,
-                material.viewProjMatrixUniformLocation,
-                material.viewPosMatrixUniformLocation,
+                material.viewProjMatrixUniformLocation!,
+                material.viewPosMatrixUniformLocation!,
                 this.mainCamera.parentEntity.getGlobalTransform(),
                 this.gl
             );
@@ -147,6 +189,7 @@ export class Scene
                 modelComp.model.draw(modelComp.parentEntity.getGlobalTransform());
             }
         }
+        
     }
 
     useProgram(currentProgram: WebGLProgram | null, program: WebGLProgram)

@@ -26,11 +26,9 @@ export class Input
             if (key === "space") e.preventDefault();
             if (!this.heldList.has(key)) {
                 this.pressedList.add(key); // pressed this frame
-                console.log("KEY PRESSED");
 
             }
             this.heldList.add(key); // held down
-            console.log("KEY HELD");
         });
 
         document.addEventListener("keyup", (e) => {

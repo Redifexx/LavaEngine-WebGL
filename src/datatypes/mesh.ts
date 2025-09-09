@@ -34,27 +34,42 @@ export class Mesh
         }
 
         this.gl.bindVertexArray(this.vertexArrayObject);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
 
-        this.gl.enableVertexAttribArray(this.material.posAttrib);
-        this.gl.enableVertexAttribArray(this.material.texAttrib);
-        this.gl.enableVertexAttribArray(this.material.normAttrib);
 
         // Interleaved format: (x, y, z, u, v, xn, yn, zn) (all f32)
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
-        this.gl.vertexAttribPointer(
-            this.material.posAttrib, 3, this.gl.FLOAT, false,
-            8 * Float32Array.BYTES_PER_ELEMENT, 0
-        );
-        this.gl.vertexAttribPointer(
-            this.material.texAttrib, 2, this.gl.FLOAT, false,
-            8 * Float32Array.BYTES_PER_ELEMENT,
-            3 * Float32Array.BYTES_PER_ELEMENT
-        );
-        this.gl.vertexAttribPointer(
-            this.material.normAttrib, 3, this.gl.FLOAT, false,
-            8 * Float32Array.BYTES_PER_ELEMENT,
-            5 * Float32Array.BYTES_PER_ELEMENT
-        );
+        if (this.material.posAttrib >= 0)
+        {
+            this.gl.enableVertexAttribArray(this.material.posAttrib);
+            this.gl.vertexAttribPointer(
+                this.material.posAttrib, 3, this.gl.FLOAT, false,
+                8 * Float32Array.BYTES_PER_ELEMENT, 0
+            );
+        }
+        
+        if (!this.material.isCubemap)
+        {
+            if (this.material.texAttrib >= 0)
+            {
+                this.gl.enableVertexAttribArray(this.material.texAttrib);
+                this.gl.vertexAttribPointer(
+                this.material.texAttrib, 2, this.gl.FLOAT, false,
+                8 * Float32Array.BYTES_PER_ELEMENT,
+                3 * Float32Array.BYTES_PER_ELEMENT
+                );
+            }
+
+            if (this.material.normAttrib >= 0)
+            {
+                this.gl.enableVertexAttribArray(this.material.normAttrib);
+                this.gl.vertexAttribPointer(
+                    this.material.normAttrib, 3, this.gl.FLOAT, false,
+                    8 * Float32Array.BYTES_PER_ELEMENT,
+                    5 * Float32Array.BYTES_PER_ELEMENT
+                );
+            }
+        }
+
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
 
         this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);

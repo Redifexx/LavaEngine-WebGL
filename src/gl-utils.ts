@@ -140,15 +140,16 @@ export function createTexture(gl: WebGL2RenderingContext,
     srcFormat: number = gl.RGBA,
     border: number = 0,
     srcType: number = gl.UNSIGNED_BYTE,
-    data: Uint8Array | null = null
+    data: Uint8Array | null = null,
+    texType: number = gl.TEXTURE_2D
 )
 {
     const texture = gl.createTexture();
 
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.bindTexture(texType, texture);
 
     gl.texImage2D(
-        gl.TEXTURE_2D,
+        texType,
         mipLevel,
         internalFormat,
         texWidth,
@@ -162,24 +163,24 @@ export function createTexture(gl: WebGL2RenderingContext,
     // WebGL1 has different requirements for power of 2 images
     if (isPowerOf2(texWidth) && isPowerOf2(texHeight))
     {
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.generateMipmap(texType);
+        gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     }
     else
     {
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     }
 
     return texture;
 }
 
-export function loadTexture(gl: WebGL2RenderingContext, url: string)
+export function loadTexture(gl: WebGL2RenderingContext, url: string, texType: number = gl.TEXTURE_2D)
 {
     // Temp pixel to fill item while image is loading
     const level = 0;
@@ -191,13 +192,14 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string)
     const srcType = gl.UNSIGNED_BYTE;
     const pixel = new Uint8Array([0, 0, 255, 255]);
 
-    const texture = createTexture(gl, width, height, level, internalFormat, srcFormat, border, srcType, pixel);
+    const texture = createTexture(gl, width, height, level, internalFormat, srcFormat, border, srcType, pixel, texType);
 
     const image = new Image();
     image.onload = () => {
-        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.bindTexture(texType, texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         gl.texImage2D(
-            gl.TEXTURE_2D,
+            texType,
             level,
             internalFormat,
             srcFormat,
@@ -208,23 +210,86 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string)
         // WebGL1 has different requirements for power of 2 images
         if (isPowerOf2(image.width) && isPowerOf2(image.height))
         {
-            gl.generateMipmap(gl.TEXTURE_2D);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.generateMipmap(texType);
+            gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
+            gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         }
         else
         {
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
+            gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         }
     };
 
     image.src = url;
 
+    return texture;
+}
+
+export function loadCubemap(
+    gl: WebGL2RenderingContext,
+    urls: string[]
+): WebGLTexture | null
+{
+    if (urls.length !== 6)
+    {
+        showError("Cubemap needs 6 textures");
+        return null;
+    }
+
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const width = 1;
+    const height = 1;
+    const border = 0;
+    const srcFormat = gl.RGBA;
+    const srcType = gl.UNSIGNED_BYTE;
+    const pixel = new Uint8Array([0, 0, 255, 255]);
+
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+    
+    for (let i = 0; i < 6; i++)
+    {
+        gl.texImage2D(
+            gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
+            level,
+            internalFormat,
+            width,
+            height,
+            border,
+            srcFormat,
+            srcType,
+            pixel,
+        );
+    }
+
+    urls.forEach((url, i) => {
+        const image = new Image();
+        image.onload = () => {
+            gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+            gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, level, internalFormat, srcFormat, srcType, image);
+
+            // mipmaps
+            if (i === 5)
+            {
+                gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+            }
+        };
+        image.src = url;
+    });
+
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
     return texture;
 }
 

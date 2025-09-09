@@ -42,7 +42,6 @@ export class LavaEngine
         }
 
         this.gl_context = getContext(this.canvas);
-        this.gl_context.pixelStorei(this.gl_context.UNPACK_FLIP_Y_WEBGL, true);
         this.canvasWidth = (this.canvas.clientWidth * devicePixelRatio) / 1;
         this.canvasHeight = (this.canvas.clientHeight * devicePixelRatio) / 1;
         this.fpsTarget = 240;
