@@ -1,4 +1,4 @@
-export const fragmentShaderSourceCode = `#version 300 es
+#version 300 es
 precision mediump float;
 
 in vec3 fragmentPosition;
@@ -9,6 +9,7 @@ out vec4 outputColor;
 
 uniform vec3 viewPosition;
 uniform vec3 diffuseColor;
+
 uniform sampler2D tex0;
 
 // LIGHT DEFINITION
@@ -38,18 +39,14 @@ struct SpotLight
 
 // Uniform arrays for light
 
-const int MAX_POINT_LIGHTS = 16;
-const int MAX_DIRECTIONAL_LIGHTS = 16;
-const int MAX_SPOT_LIGHTS = 16;
-
 uniform int numPointLights;
-uniform PointLight ptLights[MAX_POINT_LIGHTS]; // MAX
+uniform PointLight ptLights[16]; // MAX
 
 uniform int numDirLights;
-uniform DirectionalLight dirLights[MAX_DIRECTIONAL_LIGHTS]; // MAX
+uniform DirectionalLight dirLights[4]; // MAX
 
 uniform int numSpotLights;
-uniform SpotLight spotLights[MAX_SPOT_LIGHTS]; // MAX
+uniform SpotLight spotLights[4]; // MAX
 
 
 
@@ -60,14 +57,14 @@ vec3 PointLightResult(PointLight light)
     vec3 norm = normalize(fragmentNormal);
     vec3 lightDir = normalize(light.position - fragmentPosition);
 
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = (diff * vec3(texture(tex0, fragmentTexCoord)) * light.color);
+    float diff = max(dot(norm, lightDir), 0.0f);
+    vec3 diffuse = (diff * vec3(texture(tex0, fragmentTexCoord)) * diffuseColor * light.color);
 
     // Specular (Phong)
     vec3 viewDir = normalize(viewPosition - fragmentPosition);
     vec3 reflectDir = reflect(-lightDir, norm);
 
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8.0);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0f), 8.0);
     vec3 specular = (light.color * vec3(0.2)) * (spec * diffuseColor);
 
     vec3 emissive = (light.color * vec3(0.0)) * diffuseColor;
@@ -87,21 +84,20 @@ vec3 DirectionalLightResult(DirectionalLight light)
     vec3 norm = normalize(fragmentNormal);
     vec3 lightDir = normalize(-light.direction);
 
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = (diff * vec3(texture(tex0, fragmentTexCoord)) * light.color);
+    float diff = max(dot(norm, lightDir), 0.0f);
+    vec3 diffuse = (diff * diffuseColor * vec3(texture(tex0, fragmentTexCoord)) * light.color);
 
     // Specular (Phong)
     vec3 viewDir = normalize(viewPosition - fragmentPosition);
     vec3 reflectDir = reflect(-lightDir, norm);
 
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0f), 16.0);
     vec3 specular = (light.color * vec3(0.2)) * (spec * diffuseColor);
 
     vec3 emissive = (light.color * vec3(0.0)) * diffuseColor;
 
     vec3 result = (light.intensity * (diffuse + specular + emissive));
-    //vec3 ambient = vec3(1.0) * 1.0 * vec3(texture(tex0, fragmentTexCoord));
-    //result = ambient; 
+
     return result;
 }
 
@@ -113,16 +109,16 @@ vec3 SpotLightResult(SpotLight light)
     vec3 norm = normalize(fragmentNormal);
     vec3 lightDir = normalize(light.position - fragmentPosition);
 
-    vec3 result = vec3(0.0);
+    vec3 result = vec3(0.0f);
     //Diffuse
-    float diff = max(dot(norm, lightDir), 0.0);
+    float diff = max(dot(norm, lightDir), 0.0f);
     vec3 diffuse = (diff * vec3(texture(tex0, fragmentTexCoord))) * light.color;
 
     // Specular (Phong)
     vec3 viewDir = normalize(viewPosition - fragmentPosition);
     vec3 reflectDir = reflect(-lightDir, norm);
 
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0f), 16.0);
     vec3 specular = (light.color * vec3(0.2)) * (spec * diffuseColor);
 
     vec3 emissive = (light.color * vec3(0.0)) * diffuseColor;
@@ -133,7 +129,7 @@ vec3 SpotLightResult(SpotLight light)
 
     // Light Falloff
     float distance = length(light.position - fragmentPosition);
-    float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * (distance * distance));
+    float attenuation = 1.0f / (1.0f + 0.09f * distance + 0.032f * (distance * distance));
 
     //Softness intensity
     diffuse *= intensity;
@@ -148,27 +144,24 @@ vec3 SpotLightResult(SpotLight light)
 void main()
 {
     vec3 ambient = vec3(1.0) * 0.25 * vec3(texture(tex0, fragmentTexCoord));
-    vec3 result = vec3(0.0);
+    vec3 result = vec3(0.0f);
 
-    for (int i = 0; i < MAX_POINT_LIGHTS; i++)
+    for (int i = 0; i < numPointLights; i++)
     {
-        if (i >= numPointLights) break;
         result += PointLightResult(ptLights[i]);
     }
 
-    for (int i = 0; i < MAX_DIRECTIONAL_LIGHTS; i++)
+    for (int i = 0; i < numDirLights; i++)
     {
-        if (i >= numDirLights) break;
         result += DirectionalLightResult(dirLights[i]);
     }
 
-    for (int i = 0; i < MAX_SPOT_LIGHTS; i++)
+    for (int i = 0; i < numSpotLights; i++)
     {
-        if (i >= numSpotLights) break;
         result += SpotLightResult(spotLights[i]);
     }
         
     result += ambient;
 
     outputColor = vec4(result, 1.0);
-}`;
+}

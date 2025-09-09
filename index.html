@@ -6,22 +6,29 @@
         <link href="https://fonts.googleapis.com/css2?family=Quantico:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>WebGL-Demo</title>
+        <title>Lava Engine WebGL Demo</title>
     </head>
     <body>
         <div id="site-header">
             <div id="site-header-title">
-                <h1>Redifexx's Interactive WebGL Demo</h1>
+                <h1>Redifexx's Lava Engine WebGL Demo</h1>
             </div>
             <p id="site-header-subtitle">
             </p>
             <img id="site-header-logo" src="textures/RGL.ico" alt="redifexx logo">
         </div>
-        <canvas id="demo-canvas"></canvas>
+        <div id="content-container">
+            <canvas id="ui-canvas"></canvas>
+            <canvas id="demo-canvas"></canvas>
+        </div>
         <div id="comment-box">
             <div id="comment-box-control">
                 <p id="comment-box-highlight">WASD: </p>
-                <p id="comment-box-content">Move</p>
+                <p id="comment-box-content">Move (Run)</p>
+            </div>
+            <div id="comment-box-control">
+                <p id="comment-box-highlight">Left Shift: </p>
+                <p id="comment-box-content">Walk</p>
             </div>
             <div id="comment-box-control">
                 <p id="comment-box-highlight">Space: </p>
@@ -29,18 +36,22 @@
             </div>
             <div id="comment-box-control">
                 <p id="comment-box-highlight">F: </p>
-                <p id="comment-box-content">Toggle Camera Flight</p>
+                <p id="comment-box-content">Toggle Flashlight</p>
+            </div>
+            <div id="comment-box-control">
+                <p id="comment-box-highlight">R: </p>
+                <p id="comment-box-content">Toggle Cube Rotation</p>
             </div>
         </div>
         <div id="update-box">
             <div id="update-box-control">
-                <p id="update-box-highlight">Last Updated 8/18/2025: </p>
-                <p id="update-box-content">Added first person movement. Additional textures.</p>
+                <p id="update-box-highlight">Last Updated 9/8/2025: </p>
+                <p id="update-box-content">HEAVILY refactored. Now setup with ECS and can run different projects. Added additional lights, keybinds, and scripting.</p>
             </div>
         </div>
         <div id="error-box">
             <span class="error-box-title">Made by Gio Perez Colon</span>
         </div>
-        <script src="dist/main.js"></script>
+        <script src="dist/lava-engine.js"></script>
     </body>
 </html>

@@ -1,57 +1,24 @@
 import { fragmentShaderSourceCode } from "../shaders/default.frag";
 import { vertexShaderSourceCode } from "../shaders/default.vert";
-import { COLOR_BLUE, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_WHITE, create3dInterleavedVao, CUBE_INDICES, CUBE_VERTICES, PLANE_INDICES, PLANE_VERTICES } from "./geometry";
-import { createProgram, createStaticIndexBuffer, createStaticVertexBuffer, getContext, loadTexture, showError } from "./gl-utils";
+import { COLOR_BLUE, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_WHITE, create3dInterleavedVao, Shape, CUBE_INDICES, CUBE_VERTICES, PLANE_INDICES, PLANE_VERTICES } from "./geometry";
+import { createProgram, createStaticIndexBuffer, createStaticVertexBuffer, createTexture, getContext, getExtension, loadTexture, showError } from "./gl-utils";
 import { glMatrix, mat4, quat, vec3 } from 'gl-matrix';
 import './index.css'
-import { Camera, CameraMovement } from "./camera";
+import { Mesh } from "./datatypes/mesh";
+import { Scene } from "./gameobjects/scene";
+import { Material } from "./datatypes/material";
+import { Shader } from "./datatypes/shader";
+import { Model } from "./datatypes/model";
+import { ModelComponent } from "./components/model-component";
+import { TransformComponent } from "./components/transform-component";
+import { CameraComponent } from "./components/camera-component";
+import { LightComponent } from "./components/light-component";
+import { Input } from "./engine/input";
 
-class Shape {
-    private matWorld = mat4.create();
-    private scaleVec = vec3.create();
-    private rotation = quat.create();
-
-    constructor(
-        private pos: vec3,
-        private scale: number,
-        private rotationAxis: vec3,
-        private rotationAngle: number,
-        private color: vec3,
-        private albedoMap: WebGLTexture | null,
-        public readonly vao: WebGLVertexArrayObject,
-        public readonly numIndices: number) {}
-
-    draw(gl: WebGL2RenderingContext,
-        matWorldUniform: WebGLUniformLocation,
-        diffuseColorUniform: WebGLUniformLocation,
-        albedoMapUniform: WebGLUniformLocation
-    )
-    {
-        quat.setAxisAngle(this.rotation, this.rotationAxis, this.rotationAngle);
-        vec3.set(this.scaleVec, this.scale, this.scale, this.scale);
-
-        mat4.fromRotationTranslationScale(
-            this.matWorld,
-            this.rotation,
-            this.pos,
-            this.scaleVec
-        );
-
-        gl.uniformMatrix4fv(matWorldUniform, false, this.matWorld);
-        gl.uniform3fv(diffuseColorUniform, this.color);
-        
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.albedoMap);
-        gl.uniform1i(albedoMapUniform, 0);
-
-        gl.bindVertexArray(this.vao);
-        gl.drawElements(gl.TRIANGLES, this.numIndices, gl.UNSIGNED_SHORT, 0);
-        gl.bindVertexArray(null);
-    }
-}
-
-function introTo3DDemo()
+/*
+function mainEngine()
 {
+    // --------- WINDOW SETUP --------
     const canvas = document.getElementById('demo-canvas');
     if (!canvas || !(canvas instanceof HTMLCanvasElement))
     {
@@ -60,6 +27,92 @@ function introTo3DDemo()
     }
 
     const gl = getContext(canvas);
+
+
+    // --------- THE GAME --------
+    const mainScene = new Scene(gl);
+    
+    const e_plane = mainScene.addEntity(
+        vec3.fromValues(0.0, 0.0, 0.0), 
+        vec3.fromValues(0.0, 0.0, 0.0),
+        vec3.fromValues(50.0, 50.0, 50.0)
+    );
+    
+    const e_player = mainScene.addEntity(vec3.fromValues(0.0, 0.0, 0.0));
+    const e_camera = mainScene.addEntity(vec3.fromValues(0.0, 2.0, 0.0));
+    const e_sun = mainScene.addEntity(
+        vec3.fromValues(0.0, 0.0, 0.0),
+        vec3.fromValues(-60.0, -20.0, -40.0)
+    );
+
+    const e_cube_1 = mainScene.addEntity(
+        vec3.fromValues(0.0, 1.0, -10.0), 
+        vec3.fromValues(0.0, 0.0, 0.0),
+        vec3.fromValues(1.0, 1.0, 1.0)
+    );
+    const e_cube_2 = mainScene.addEntity(
+        vec3.fromValues(4.0, 0.2, 3.0), 
+        vec3.fromValues(0.0, 0.0, 0.0),
+        vec3.fromValues(0.2, 0.2, 0.2)
+    );
+    const e_cube_3 = mainScene.addEntity(
+        vec3.fromValues(3.0, 0.4, -2.5), 
+        vec3.fromValues(0.0, 0.0, 0.0),
+        vec3.fromValues(0.4, 0.4, 0.4)
+    );
+    const e_cube_4 = mainScene.addEntity(
+        vec3.fromValues(-5.0, 0.7, 2.0), 
+        vec3.fromValues(0.0, 0.0, 0.0),
+        vec3.fromValues(0.7, 0.7, 0.7)
+    );
+    
+    // Create meshs from vert/ind
+    const msh_plane = new Mesh(gl, PLANE_VERTICES, PLANE_INDICES);
+    const msh_cube = new Mesh(gl, CUBE_VERTICES, CUBE_INDICES);
+
+    
+    // Create shader to render material with
+    const sdr_standard = new Shader(gl, vertexShaderSourceCode, fragmentShaderSourceCode);
+
+    
+    // Create material to render model with
+    const mat_grass = new Material(sdr_standard);
+    mat_grass.setTex(0, loadTexture(gl, "textures/grass.png"));
+    
+    const mat_stone = new Material(sdr_standard);
+    mat_stone.setTex(0, loadTexture(gl, "textures/stone.png")); 
+
+    const mat_brick = new Material(sdr_standard);
+    mat_brick.setTex(0, loadTexture(gl, "textures/brick.png")); 
+
+    
+    // Create models from meshs (make modelcomponent house materials)
+    const mod_plane = new Model(mat_grass, msh_plane);
+    const mod_cube_1 = new Model(mat_brick, msh_cube);
+    const mod_cube_2 = new Model(mat_brick, msh_cube);
+    const mod_cube_3 = new Model(mat_brick, msh_cube);
+    const mod_cube_4 = new Model(mat_brick, msh_cube);
+
+    
+    // Add model components to entities (trying to maintain ECS-ish)
+    // scene.render->entity->modelcomp->model.draw(entity.transform)
+    e_plane.addComponent(ModelComponent, new ModelComponent(mod_plane));
+    e_cube_1.addComponent(ModelComponent, new ModelComponent(mod_cube_1));
+    e_cube_2.addComponent(ModelComponent, new ModelComponent(mod_cube_2));
+    e_cube_3.addComponent(ModelComponent, new ModelComponent(mod_cube_3));
+    e_cube_4.addComponent(ModelComponent, new ModelComponent(mod_cube_4));
+
+    e_camera.addComponent(CameraComponent, new CameraComponent());
+    e_player.addChildEntity(e_camera);
+
+    e_sun.addComponent(LightComponent, new LightComponent()); // default light
+    
+
+
+
+
+ /*
+
 
     const cubeVertices = createStaticVertexBuffer(gl, CUBE_VERTICES);
     const cubeIndices = createStaticIndexBuffer(gl, CUBE_INDICES);
@@ -117,6 +170,16 @@ function introTo3DDemo()
         return;
     }
 
+    // SHADOWS
+    //const depthTexture = createTexture(gl, 512, 512, 0, gl.DEPTH_COMPONENT, gl.DEPTH_COMPONENT, 0, gl.UNSIGNED_INT, null);
+    //const depthFramebuffer = gl.createFramebuffer();
+    //gl.bindFramebuffer(gl.FRAMEBUFFER, depthFramebuffer);
+    //gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTexture, 0);
+    //
+    //const unusedTexture = createTexture(gl, 512, 512);
+    //gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, unusedTexture, 0);
+
+
     const UP_VEC = vec3.fromValues(0, 1, 0);
     const shapes = [
         new Shape(vec3.fromValues(5, 1, 0), 1.0, UP_VEC,       0,                      COLOR_WHITE,    brickTexture,   cubeVao, CUBE_INDICES.length),
@@ -132,9 +195,6 @@ function introTo3DDemo()
 
     // Camera setup
     const camera = new Camera(vec3.fromValues(0.0, 5.0, 0.0));
-    //camera.Position = vec3.fromValues(0.0, 5.0, 0.0);
-    //camera.Front = vec3.fromValues(0.0, 0.0, -1.0);
-
     let cameraAngle = 0;
 
     // Render
@@ -211,15 +271,22 @@ function introTo3DDemo()
         }
     });
 
+    
+
+
+    // --------- RENDER LOOP --------
+    let lastFrameTime = performance.now();
+    let deltaTime = 0.0;
     let groundHeight = 2.0;
     let velocityY = 0.0;
-
-    // Update
+    
     const frame = function () {
+        Input.ReceiveInputs();
         const thisFrameTime = performance.now();
         deltaTime = (thisFrameTime - lastFrameTime) / 1000;
         lastFrameTime = thisFrameTime;
 
+        /*
         if (!isFlying)
         {
             // simple gravity
@@ -297,47 +364,25 @@ function introTo3DDemo()
             camera.processKeysFlight(CameraMovement.DOWN, deltaTime, isShiftDown);
         }
 
+        
 
-        mat4.copy(matView, camera.getViewMatrix());
-
-        mat4.perspective(
-            matProj,
-            glMatrix.toRadian(80),
-            canvas.width / canvas.height,
-            0.1, 100.0
-        );
-
-        const matViewProj = mat4.create();
-        mat4.multiply(matViewProj, matProj, matView)
-
-        const viewMat = mat4.create();
-        mat4.invert(viewMat, matView);
-
-        const cameraPosition = vec3.fromValues(viewMat[12], viewMat[13], viewMat[14]);
-
+        //const viewMat = mat4.create();
+        //mat4.invert(viewMat, matView);
+//----------------------------------------------------------------------------
         // Render
         canvas.width = (canvas.clientWidth * devicePixelRatio) / 1;
         canvas.height = (canvas.clientHeight * devicePixelRatio) / 1;
 
-        gl.clearColor(0.643, 0.98, 1.00, 1.0);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        gl.enable(gl.DEPTH_TEST);
-        gl.enable(gl.CULL_FACE);
-        gl.viewport(0, 0, canvas.width, canvas.height);
+        mainScene.render(canvas.width, canvas.height);
 
-        gl.useProgram(demoProgram);
-        gl.uniformMatrix4fv(matViewProjUniform, false, matViewProj);
-        gl.uniform3fv(matViewPosUniform, cameraPosition);
-
-        shapes.forEach((shape) => shape.draw(gl, matWorldUniform, diffuseColorUniform, albedoMapUniform));
-
+        Input.ValidateInputs();
         requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
 }
 
 try {
-    introTo3DDemo();
+    mainEngine();
 } catch (e)
 {
     showError('Unhandled JavaScript exception: ${e}');
@@ -346,3 +391,4 @@ try {
 function inverse(matView: mat4): any {
     throw new Error("Function not implemented.");
 }
+*/

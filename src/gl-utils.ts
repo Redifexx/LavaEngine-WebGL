@@ -1,3 +1,5 @@
+import { glMatrix, quat, vec3 } from "gl-matrix";
+
 export function showError(errorText: string) 
 {
     console.log(errorText);
@@ -51,30 +53,29 @@ export function createProgram(gl: WebGL2RenderingContext, vertexShaderSource: st
 
     if (!vertexShader || !fragmentShader || !program)
     {
-        showError('Failed to allocate GL objects ('
+        console.log("SHADER ERROR");
+        throw new Error('Failed to allocate GL objects ('
             + 'vs=${!!vertexShader}, '
             + 'fs=${!!fragmentShader}, '
-            + 'program=${!!program})'
-        );
-        return null;
+            + 'program=${!!program})');
     }
 
     gl.shaderSource(vertexShader, vertexShaderSource);
     gl.compileShader(vertexShader);
     if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS))
     {
+        console.log("SHADER ERROR");
         const errorMessage = gl.getShaderInfoLog(vertexShader);
-        showError('Failed to compile vertex shader: ${errorMessage}');
-        return null;
+        throw new Error(`Failed to compile vertex shader: ${errorMessage}`);
     }
 
     gl.shaderSource(fragmentShader, fragmentShaderSource);
     gl.compileShader(fragmentShader);
     if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS))
     {
+        console.log("SHADER ERROR");
         const errorMessage = gl.getShaderInfoLog(fragmentShader);
-        showError('Failed to compile fragment shader: ${errorMessage}');
-        return null;
+        throw new Error(`Failed to compile fragment shader: ${errorMessage}`);
     }
 
     gl.attachShader(program, vertexShader);
@@ -82,11 +83,11 @@ export function createProgram(gl: WebGL2RenderingContext, vertexShaderSource: st
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS))
     {
+        console.log("SHADER ERROR");
         const errorMessage = gl.getProgramInfoLog(program);
-        showError('Failed to link GPU program: ${errorMessage}');
-        return null;
+        throw new Error(`Failed to link GPU program: ${errorMessage}`);
     }
-
+    
     return program;
 }
 
@@ -102,10 +103,22 @@ export function getContext(canvas: HTMLCanvasElement)
         }
         else
         {
+            console.log('WEB GL 2');
             throw new Error('WebGL is not supported on this device - try using a different device or browser');
         }
     }
+    console.log('WEB GL 2');
     return gl;
+}
+
+export function getExtension(gl: WebGL2RenderingContext, extension: string)
+{
+    const ext = gl.getExtension(extension);
+    if (!ext)
+    {
+        throw new Error('Extension not found.')
+    }
+    return ext;
 }
 
 export function getRandomInRange(min: number, max: number)
@@ -119,11 +132,55 @@ function isPowerOf2(value: number)
     return (value & (value - 1)) === 0;
 }
 
-export function loadTexture(gl: WebGL2RenderingContext, url: string)
+export function createTexture(gl: WebGL2RenderingContext,
+    texWidth: number = 512,
+    texHeight: number = 512,
+    mipLevel: number = 0,
+    internalFormat: number = gl.RGBA,
+    srcFormat: number = gl.RGBA,
+    border: number = 0,
+    srcType: number = gl.UNSIGNED_BYTE,
+    data: Uint8Array | null = null
+)
 {
     const texture = gl.createTexture();
+
     gl.bindTexture(gl.TEXTURE_2D, texture);
 
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        mipLevel,
+        internalFormat,
+        texWidth,
+        texHeight,
+        border,
+        srcFormat,
+        srcType,
+        data,
+    );
+    
+    // WebGL1 has different requirements for power of 2 images
+    if (isPowerOf2(texWidth) && isPowerOf2(texHeight))
+    {
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    }
+    else
+    {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    }
+
+    return texture;
+}
+
+export function loadTexture(gl: WebGL2RenderingContext, url: string)
+{
     // Temp pixel to fill item while image is loading
     const level = 0;
     const internalFormat = gl.RGBA;
@@ -134,17 +191,7 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string)
     const srcType = gl.UNSIGNED_BYTE;
     const pixel = new Uint8Array([0, 0, 255, 255]);
 
-    gl.texImage2D(
-        gl.TEXTURE_2D,
-        level,
-        internalFormat,
-        width,
-        height,
-        border,
-        srcFormat,
-        srcType,
-        pixel,
-    );
+    const texture = createTexture(gl, width, height, level, internalFormat, srcFormat, border, srcType, pixel);
 
     const image = new Image();
     image.onload = () => {
@@ -179,4 +226,61 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string)
     image.src = url;
 
     return texture;
+}
+
+export function eulerToDirection(pitch_: number, yaw_: number, roll_: number)
+{
+    const q = quat.create();
+    quat.fromEuler(q, pitch_, -yaw_, roll_);
+    
+    const forward = vec3.fromValues(0, 0, -1);
+    const dir = vec3.create();
+    vec3.transformQuat(dir, forward, q);
+    vec3.normalize(dir, dir);
+    return dir;
+
+}
+
+// thanks to stefnotch from github
+export function eulerToQuat(r: vec3): quat
+{
+    const roll = r[2] * Math.PI/180;
+    const pitch = r[0] * Math.PI/180;
+    const yaw = r[1] * Math.PI/180;
+    let cr = Math.cos(roll * 0.5);
+    let sr = Math.sin(roll * 0.5);
+    let cp = Math.cos(pitch * 0.5);
+    let sp = Math.sin(pitch * 0.5);
+    let cy = Math.cos(yaw * 0.5);
+    let sy = Math.sin(yaw * 0.5);
+
+    let q = quat.create();
+    q[3] = cr * cp * cy + sr * sp * sy;
+    q[0] = sr * cp * cy - cr * sp * sy;
+    q[1] = cr * sp * cy + sr * cp * sy;
+    q[2] = cr * cp * sy - sr * sp * cy;
+
+    return q;
+}
+
+export function quatToEuler(q: quat): vec3
+{
+    let out = vec3.create();
+
+    // roll (z-axis rotation)
+    let sinr_cosp = 2 * (q[3] * q[0] + q[1] * q[2]);
+    let cosr_cosp = 1 - 2 * (q[0] * q[0] + q[1] * q[1]);
+    out[2] = Math.atan2(sinr_cosp, cosr_cosp) * 180/Math.PI;
+
+    // pitch (x-axis rotation)
+    let sinp = Math.sqrt(1 + 2 * (q[3] * q[1] - q[0] * q[2]));
+    let cosp = Math.sqrt(1 - 2 * (q[3] * q[1] - q[0] * q[2]));
+    out[0] = (2 *  Math.atan2(sinp, cosp) - Math.PI / 2) * 180/Math.PI;
+
+    // yaw (y-axis rotation)
+    let siny_cosp = 2 * (q[3] * q[2] + q[0] * q[1]);
+    let cosy_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2]);
+    out[1] =  Math.atan2(siny_cosp, cosy_cosp) * 180/Math.PI;
+
+    return out;
 }

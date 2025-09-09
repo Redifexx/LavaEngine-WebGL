@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/main.ts',
+  entry: './src/engine/lava-engine.ts',
   mode: 'development',
   devtool: 'inline-source-map',
   module: {
@@ -21,7 +21,7 @@ module.exports = {
     extensions: ['.ts'],
   },
   output: {
-    filename: 'main.js',
+    filename: 'lava-engine.js',
     path: path.resolve(__dirname, 'dist'),
   },
 };
