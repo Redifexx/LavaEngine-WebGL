@@ -3,7 +3,7 @@ import { Entity } from "./entity";
 import { ModelComponent } from "../components/model-component";
 import { TransformComponent, Transform } from "../components/transform-component";
 import { LightComponent, LightType } from "../components/light-component";
-import { eulerToDirection } from "../gl-utils";
+import { eulerToDirection, showError } from "../gl-utils";
 import { Material } from "../datatypes/material";
 import { Camera } from "../datatypes/camera";
 import { CameraComponent } from "../components/camera-component";
@@ -45,24 +45,58 @@ export class Scene
 
     updateEntity(newEntity: Entity)
     {
-        for (let i = 0; i < this.entities.length; i++)
+        if (newEntity.getActive())
         {
-            if (this.entities[i] === newEntity)
+            if (newEntity.hasComponent(ModelComponent))
             {
-                if (newEntity.hasComponent(ModelComponent))
+                const curModelComponent = newEntity.getComponentOrThrow(ModelComponent);
+                const material = curModelComponent.model.material;
+
+                if (!this.modelsByMaterial.has(material))
                 {
-                    const curModelComponent = newEntity.getComponentOrThrow(ModelComponent);
-                    const material = curModelComponent.model.material;
-                    if (!this.modelsByMaterial.has(material))
+                    this.modelsByMaterial.set(material, []);
+                }
+
+                const list = this.modelsByMaterial.get(material);
+                if (!list?.includes(curModelComponent))
+                {
+                    list?.push(curModelComponent);
+                }
+            }
+
+            if (newEntity.hasComponent(CameraComponent) && !this.mainCamera)
+            {
+                this.mainCamera = newEntity.getComponentOrThrow(CameraComponent);
+            }
+        }
+        else
+        {
+            if (newEntity.hasComponent(ModelComponent))
+            {
+                const curModelComponent = newEntity.getComponentOrThrow(ModelComponent);
+                const material = curModelComponent.model.material;
+
+                if (this.modelsByMaterial.has(material))
+                {
+                    const list = this.modelsByMaterial.get(material);
+                    const index = list?.indexOf(curModelComponent);
+
+                    if (index !== -1)
                     {
-                        this.modelsByMaterial.set(material, []);
+                        list?.splice(index!, 1);
                     }
-                    this.modelsByMaterial.get(material)!.push(curModelComponent);
+
+                    if (list?.length === 0)
+                    {
+                        this.modelsByMaterial.delete(material);
+                    }
                 }
-                if (newEntity.hasComponent(CameraComponent) && !this.mainCamera)
-                {
-                    this.mainCamera = newEntity.getComponentOrThrow(CameraComponent);
-                }
+            }
+
+            if (newEntity.hasComponent(CameraComponent) && this.mainCamera === newEntity.getComponentOrThrow(CameraComponent))
+            {
+                this.mainCamera = null;
+                showError("MISSING CAMERA");
             }
         }
     }
@@ -80,7 +114,7 @@ export class Scene
         const lightList: LightComponent[] = [];
         for (let i = 0; i < this.entities.length; i++)
         {
-            if (this.entities[i].hasComponent(LightComponent))
+            if (this.entities[i].hasComponent(LightComponent) && this.entities[i].getActive())
             {
                 lightList.push(this.entities[i].getComponentOrThrow(LightComponent));
             }
@@ -187,7 +221,7 @@ export class Scene
     {
         for (const e of this.entities)
         {
-            for (const s of e.scripts)
+            for (const s of e.scripts.values())
             {
                 s.Start();
             }
@@ -198,7 +232,7 @@ export class Scene
     {
         for (const e of this.entities)
         {
-            for (const s of e.scripts)
+            for (const s of e.scripts.values())
             {
                 s.Update();
             }

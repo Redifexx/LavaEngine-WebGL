@@ -14,6 +14,7 @@ import { CameraComponent } from "../components/camera-component";
 import { LightComponent } from "../components/light-component";
 import { PlayerMovement } from "../scripts/playerMovement";
 import { CameraController } from "../scripts/cameraController";
+import { MeshRotate } from "../scripts/meshRotate";
 
 export class EngineDemo extends Project
 {
@@ -53,12 +54,28 @@ export class EngineDemo extends Project
 
         const e_greenlight = this.MAIN_SCENE.addEntity(
             "GreenLight",
-            vec3.fromValues(-2.0, 5.0, 5.0),
-            vec3.fromValues(-90.0, -10.0, -20.0)
+            vec3.fromValues(-2.0, 3.0, 8.0),
+            vec3.fromValues(-15.0, 0.0, 0.0)
         );
 
         const e_bluelight = this.MAIN_SCENE.addEntity(
             "BlueLight",
+            vec3.fromValues(6.0, 2, 1.0)
+        );
+
+        const e_purplelight = this.MAIN_SCENE.addEntity(
+            "PurpleLight",
+            vec3.fromValues(0.0, 5, 10.0)
+        );
+
+        const e_yellowlight = this.MAIN_SCENE.addEntity(
+            "YellowLight",
+            vec3.fromValues(-8.0, 4, -8.0),
+            vec3.fromValues(0.0, 140.0, -50.0)
+        );
+
+        const e_flashlight = this.MAIN_SCENE.addEntity(
+            "FlashLight",
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.0, 0.0, 0.0)
         );
@@ -113,23 +130,30 @@ export class EngineDemo extends Project
         const mod_cube_4 = new Model(mat_brick, msh_cube);
 
         // Add model components to entities (trying to maintain ECS-ish)
-        // scene.render->entity->modelcomp->model.draw(entity.transform)
         e_plane.addComponent(ModelComponent, new ModelComponent(mod_plane));
         e_cube_1.addComponent(ModelComponent, new ModelComponent(mod_cube_1));
         e_cube_2.addComponent(ModelComponent, new ModelComponent(mod_cube_2));
         e_cube_3.addComponent(ModelComponent, new ModelComponent(mod_cube_3));
         e_cube_4.addComponent(ModelComponent, new ModelComponent(mod_cube_4));
+        e_cube_1.addScript(new MeshRotate());
+        e_cube_2.addScript(new MeshRotate());
+        e_cube_3.addScript(new MeshRotate());
+        e_cube_4.addScript(new MeshRotate());
     
         e_camera.addComponent(CameraComponent, new CameraComponent());
         e_player.addChildEntity(e_camera);
-        e_player.addScript(PlayerMovement);
-        e_camera.addScript(CameraController);
+        e_player.addScript(new PlayerMovement());
+        (e_player.getScript("PlayerMovement") as PlayerMovement).flashlight = e_flashlight;
+        e_camera.addScript(new CameraController());
     
-        e_sun.addComponent(LightComponent, new LightComponent()); // default light
-        e_redlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 0.0, 0.0), 5.0));
+        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 0.2)); // default light
+        e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.0, 0.0), 5.0));
         e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 5.0));
-        e_bluelight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 0.0, 1.0), 5.0));
-        e_camera.addChildEntity(e_bluelight);
+        e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.0, 1.0), 5.0));
+        e_purplelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.5, 0.0, 1.0), 5.0));
+        e_yellowlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 0.0), 5.0));
+        e_flashlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 1.0), 5.0));
+        e_camera.addChildEntity(e_flashlight);
     }
 
     override Start(): void

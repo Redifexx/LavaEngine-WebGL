@@ -13,7 +13,8 @@ export class Entity
     scene: Scene;
     transformComponent: TransformComponent;
     components: Map<symbol, Component> = new Map();
-    scripts = new Set<ScriptableBehavior>();
+    scripts: Map<string, ScriptableBehavior> = new Map();
+    isActive: boolean;
 
     parentEntity: Entity | null;
     childEntities: Entity[] = [];
@@ -30,6 +31,7 @@ export class Entity
         this.name = eName;
         this.transformComponent = new TransformComponent(pos, rotation, scale);
         this.addComponent(TransformComponent, this.transformComponent);
+        this.isActive = true;
     }
 
     addChildEntity(childEntity: Entity)
@@ -59,10 +61,15 @@ export class Entity
         return component;
     }
 
-    addScript<T extends ScriptableBehavior>(ScriptClass: new (e: Entity) => T): T {
-        const script = new ScriptClass(this);
-        this.scripts.add(script);
+    addScript<T extends ScriptableBehavior>(script: T): T
+    {
+        script.parentEntity = this as Entity;
+        this.scripts.set(script.name, script);
         return script;
+    }
+
+    getScript<T extends ScriptableBehavior>(name: string): T | undefined {
+        return this.scripts.get(name) as T | undefined;
     }
 
     getGlobalTransform(): Transform
@@ -123,6 +130,22 @@ export class Entity
             return globalQuat;
         }
         return localQuat;
+    }
+
+    getActive(): boolean
+    {
+        let globalActive = true;
+        if (this.parentEntity)
+        {
+            globalActive = this.parentEntity.getActive();
+        }
+        return (this.isActive && globalActive);
+    }
+
+    setActive(b: boolean)
+    {
+        this.isActive = b;
+        this.scene.updateEntity(this);
     }
 
     hasComponent<T extends Component>(type: ComponentConstructor<T>): boolean

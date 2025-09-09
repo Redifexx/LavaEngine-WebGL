@@ -11,14 +11,14 @@ export class CameraController extends ScriptableBehavior
     pitch: number;
     sensitivity: number;
 
-    constructor(e: Entity)
+    constructor(s: number = 0.1)
     {
-        super(e);
+        super("CameraController");
+        this.sensitivity = s;
     }
 
     override Start(): void
     {
-        this.sensitivity = 0.1;
         this.pitch = this.parentEntity!.getComponentOrThrow(TransformComponent).transform.rotation[0];
     }
 
@@ -33,7 +33,7 @@ export class CameraController extends ScriptableBehavior
             yOffset *= this.sensitivity;
 
             //YAW
-            this.parentEntity.parentEntity!.getComponentOrThrow(TransformComponent).transform.rotation[1] += xOffset;
+            this.parentEntity!.parentEntity!.getComponentOrThrow(TransformComponent).transform.rotation[1] += xOffset;
 
             this.pitch -= yOffset;
 

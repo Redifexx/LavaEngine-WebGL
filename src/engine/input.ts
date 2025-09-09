@@ -21,12 +21,9 @@ export class Input
         //document.addEventListener("keyup", (e) => this.AddKeyReleased(e.key.toLowerCase()));
 
         document.addEventListener("keydown", (e) => {
-            if (e.key === 'Escape') // put this elsewhere plz
-            {
-                document.exitPointerLock();
-                LavaEngine.isPointerLock = false;
-            }
-            const key = e.key.toLowerCase();
+            const key = this.NormalizeKey(e);
+            if (key === "escape") return;
+            if (key === "space") e.preventDefault();
             if (!this.heldList.has(key)) {
                 this.pressedList.add(key); // pressed this frame
                 console.log("KEY PRESSED");
@@ -37,7 +34,7 @@ export class Input
         });
 
         document.addEventListener("keyup", (e) => {
-            const key = e.key.toLowerCase();
+            const key = this.NormalizeKey(e);
             this.heldList.delete(key);
             this.releasedList.add(key); // released this frame
         });
@@ -49,20 +46,34 @@ export class Input
             this.mouseX = e.clientX;
             this.mouseY = e.clientY;
             if (document.pointerLockElement === LavaEngine.canvas) {
-                // accumulate deltas instead of replacing
                 this.mouseMovementX += e.movementX;
                 this.mouseMovementY += e.movementY;
             }
         });
+
+        document.addEventListener('wheel', function(event: WheelEvent)
+        {
+            if (document.pointerLockElement === LavaEngine.canvas)
+            {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
+        document.addEventListener("pointerlockchange", () => {
+            if (document.pointerLockElement === LavaEngine.canvas) {
+                LavaEngine.isPointerLock = true;
+            } else {
+                LavaEngine.isPointerLock = false;
+            }
+        });
+
     }
 
-    // Call at Frame End
     static ValidateInputs(): void
     {
         this.pressedList.clear();
         this.releasedList.clear();
         this.mouseClicked = false;
-        // Reset mouse movement each frame
         this.mouseMovementX = 0;
         this.mouseMovementY = 0;
     }
@@ -133,5 +144,13 @@ export class Input
         this.mouseClicked = mouseClicked;
     }
 
-
+    //helper
+    static NormalizeKey(e: KeyboardEvent): string
+    {
+        if (e.code.startsWith("Key"))
+        {
+            return e.key.toLowerCase();
+        }
+        return e.code.toLowerCase();
+    }
 }

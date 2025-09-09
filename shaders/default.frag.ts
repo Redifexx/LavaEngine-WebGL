@@ -61,7 +61,7 @@ vec3 PointLightResult(PointLight light)
     vec3 lightDir = normalize(light.position - fragmentPosition);
 
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = (diff * vec3(texture(tex0, fragmentTexCoord)) * diffuseColor * light.color);
+    vec3 diffuse = (diff * vec3(texture(tex0, fragmentTexCoord)) * light.color);
 
     // Specular (Phong)
     vec3 viewDir = normalize(viewPosition - fragmentPosition);

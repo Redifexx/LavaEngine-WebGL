@@ -2,11 +2,12 @@ import { Entity } from "./entity";
 
 export abstract class ScriptableBehavior
 {
-    parentEntity: Entity;
+    name: string;
+    parentEntity: Entity | null = null;
 
-    constructor(e: Entity)
+    constructor(n: string)
     {
-        this.parentEntity = e;
+        this.name = n;
     }
 
     public abstract Start(): void;
