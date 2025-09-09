@@ -126,7 +126,7 @@ export class EngineDemo extends Project
         mat_face.setTex(0, loadTexture(this.GL_CONTEXT, "textures/me.jpg")); 
 
         const mat_gata = new Material(sdr_standard);
-        mat_gata.setTex(0, loadTexture(this.GL_CONTEXT, "textures/gata2.png")); 
+        mat_gata.setTex(0, loadTexture(this.GL_CONTEXT, "textures/geoff.jpg")); 
 
         // Create models from meshs (make modelcomponent house materials)
         const mod_plane = new Model(mat_grass, msh_plane);
