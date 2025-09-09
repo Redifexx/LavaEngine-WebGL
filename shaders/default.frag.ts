@@ -8,8 +8,9 @@ in vec3 fragmentNormal;
 out vec4 outputColor;
 
 uniform vec3 viewPosition;
-uniform vec3 diffuseColor;
 uniform sampler2D tex0;
+uniform sampler2D tex1;
+uniform sampler2D tex3;
 
 // LIGHT DEFINITION
 struct DirectionalLight
@@ -68,17 +69,17 @@ vec3 PointLightResult(PointLight light)
     vec3 reflectDir = reflect(-lightDir, norm);
 
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8.0);
-    vec3 specular = (light.color * vec3(0.2)) * (spec * diffuseColor);
+    vec3 specular = (light.color) * (spec * vec3(texture(tex1, fragmentTexCoord)));
 
-    vec3 emissive = (light.color * vec3(0.0)) * diffuseColor;
+    vec3 emissive = vec3(texture(tex3, fragmentTexCoord));
 
     // Light Falloff
     float distance = length(light.position - fragmentPosition);
     float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.01 * distance * distance); //possible optimazation
 
-    vec3 result = (attenuation * light.intensity * (diffuse + specular + emissive));
+    vec3 result = (attenuation * light.intensity * (diffuse + specular));
 
-    return result;
+    return result + emissive;
 }
 
 vec3 DirectionalLightResult(DirectionalLight light)
@@ -95,14 +96,12 @@ vec3 DirectionalLightResult(DirectionalLight light)
     vec3 reflectDir = reflect(-lightDir, norm);
 
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
-    vec3 specular = (light.color * vec3(0.2)) * (spec * diffuseColor);
+    vec3 specular = (light.color) * (spec * vec3(texture(tex1, fragmentTexCoord)));
 
-    vec3 emissive = (light.color * vec3(0.0)) * diffuseColor;
+    vec3 emissive = vec3(texture(tex3, fragmentTexCoord));
 
-    vec3 result = (light.intensity * (diffuse + specular + emissive));
-    //vec3 ambient = vec3(1.0) * 1.0 * vec3(texture(tex0, fragmentTexCoord));
-    //result = ambient; 
-    return result;
+    vec3 result = (light.intensity * (diffuse + specular));
+    return result + emissive;
 }
 
 
@@ -123,9 +122,9 @@ vec3 SpotLightResult(SpotLight light)
     vec3 reflectDir = reflect(-lightDir, norm);
 
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
-    vec3 specular = (light.color * vec3(0.2)) * (spec * diffuseColor);
+    vec3 specular = (light.color) * (spec * vec3(texture(tex1, fragmentTexCoord)));
 
-    vec3 emissive = (light.color * vec3(0.0)) * diffuseColor;
+    vec3 emissive = vec3(texture(tex3, fragmentTexCoord));
 
     float theta = dot(lightDir, normalize(-light.direction));
     float epsilon = light.innerCutOff - light.outerCutOff;
@@ -139,9 +138,9 @@ vec3 SpotLightResult(SpotLight light)
     diffuse *= intensity;
     specular *= intensity;
 
-    result = (attenuation * light.intensity * (diffuse + specular + emissive));
+    result = (attenuation * light.intensity * (diffuse + specular));
 
-    return result;
+    return result + emissive;
 }
 
 

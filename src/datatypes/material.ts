@@ -1,5 +1,5 @@
 import { Shader } from "./shader";
-import { showError } from "../gl-utils";
+import { loadTexture, showError } from "../gl-utils";
 
 export class Material
 {
@@ -67,7 +67,11 @@ export class Material
         this.posAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'vertexPosition');
         this.texAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'vertexTexCoord');
         this.normAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'vertexNormal');
-        
+
+        // Default Material Textures
+        this.setTex(0, loadTexture(this.gl, "textures/default_diffuse.png"));
+        this.setTex(1, loadTexture(this.gl, "textures/default_spec.png"));
+        this.setTex(3, loadTexture(this.gl, "textures/default_emis.png"));
     }
 
     bindTextures()
@@ -85,7 +89,7 @@ export class Material
         {
             this.shader.gl.activeTexture(this.shader.gl.TEXTURE1);
             this.shader.gl.bindTexture(this.shader.gl.TEXTURE_2D, this.textures[1]);
-            this.shader.gl.uniform1i(this.texUniformLocations[1], 0);
+            this.shader.gl.uniform1i(this.texUniformLocations[1], 1);
         }
         
         // Tex 2
@@ -93,7 +97,7 @@ export class Material
         {
             this.shader.gl.activeTexture(this.shader.gl.TEXTURE2);
             this.shader.gl.bindTexture(this.shader.gl.TEXTURE_2D, this.textures[2]);
-            this.shader.gl.uniform1i(this.texUniformLocations[2], 0);
+            this.shader.gl.uniform1i(this.texUniformLocations[2], 2);
         }
 
         // Tex 3
@@ -101,7 +105,7 @@ export class Material
         {
             this.shader.gl.activeTexture(this.shader.gl.TEXTURE3);
             this.shader.gl.bindTexture(this.shader.gl.TEXTURE_2D, this.textures[3]);
-            this.shader.gl.uniform1i(this.texUniformLocations[3], 0);
+            this.shader.gl.uniform1i(this.texUniformLocations[3], 3);
         }
     }
 
