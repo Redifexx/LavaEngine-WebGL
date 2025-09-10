@@ -17,6 +17,7 @@
     "fs": "^0.0.1-security",
     "gl-matrix": "^3.4.4",
     "nodejs": "^0.0.0",
+    "ts-audio": "^0.7.9",
     "webgl-gltf": "^0.3.3"
   }
 }

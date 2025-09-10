@@ -5,6 +5,7 @@ import { Project } from "./project";
 import '../index.css'
 import { TransformComponent } from "../components/transform-component";
 import { quat, vec3 } from "gl-matrix";
+import { Audio } from 'ts-audio';
 
  
 export class LavaEngine
@@ -47,11 +48,22 @@ export class LavaEngine
         this.fpsTarget = 240;
 
         this.ResizeCanvases();
+
+        // Audio
+        const audio = Audio({
+            file: '../../audio/music/gates.mp3',
+            volume: 0.03,
+            loop: true,
+            preload: true
+        });
+
         window.addEventListener("resize", () => LavaEngine.ResizeCanvases());
         this.canvas.addEventListener('click', () => {
+            audio.play();
             this.canvas?.requestPointerLock();
             this.isPointerLock = true;
         });
+
         
         this.StartEngine();
     }

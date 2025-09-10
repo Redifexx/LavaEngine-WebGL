@@ -129,28 +129,34 @@ export class EngineDemo extends Project
         const sdr_skybox = new Shader(this.GL_CONTEXT, skyboxVertSdrSourceCode, skyboxFragSdrSourceCode);
 
         // Create material to render model with
+        const mat_skybox = new Material(sdr_skybox, true);
+        this.MAIN_SCENE.skybox = mat_skybox.getTex(0);
+
         const mat_grass = new Material(sdr_standard);
         mat_grass.setTex(0, loadTexture(this.GL_CONTEXT, "textures/grass.png"));
         
         const mat_stone = new Material(sdr_standard);
-        mat_stone.setTex(0, loadTexture(this.GL_CONTEXT, "textures/stone.png")); 
+        mat_stone.setTex(0, loadTexture(this.GL_CONTEXT, "textures/stone.png"));
     
         const mat_brick = new Material(sdr_standard);
         mat_brick.setTex(0, loadTexture(this.GL_CONTEXT, "textures/brick.png")); 
 
         const mat_face = new Material(sdr_standard);
         mat_face.setTex(0, loadTexture(this.GL_CONTEXT, "textures/me.jpg")); 
+        mat_face.specularFactor = 0.5;
+        mat_face.roughnessFactor = 0.5;
 
         const mat_gata = new Material(sdr_standard);
         mat_gata.setTex(0, loadTexture(this.GL_CONTEXT, "textures/geoff.jpg")); 
-
-        const mat_skybox = new Material(sdr_skybox, true);
 
         const mat_tiles = new Material(sdr_standard);
         mat_tiles.setTex(0, loadTexture(this.GL_CONTEXT, "textures/tiles_diff.jpg")); 
         mat_tiles.setTex(1, loadTexture(this.GL_CONTEXT, "textures/tiles_spec.png")); 
         mat_tiles.setTex(2, loadTexture(this.GL_CONTEXT, "textures/tiles_norm.jpg")); 
         mat_tiles.setTex(3, loadTexture(this.GL_CONTEXT, "textures/tiles_emis.jpg")); 
+        mat_tiles.specularFactor = 1.0;
+        mat_tiles.roughnessFactor = 0.5;
+        mat_tiles.emissiveFactor = 1.0;
 
         // Create models from meshs (make modelcomponent house materials)
         const mod_plane = new Model(mat_grass, msh_plane);

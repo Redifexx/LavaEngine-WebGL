@@ -15,6 +15,7 @@ export class Scene
     entities: Entity[] = [];
     entityMap: Map<string, Entity> = new Map();
     mainCamera: CameraComponent | null;
+    skybox: WebGLTexture | null = null;
 
     // efficient rendering
     modelsByMaterial: Map<Material, ModelComponent[]> = new Map();

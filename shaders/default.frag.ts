@@ -11,6 +11,7 @@ uniform vec3 viewPosition;
 uniform sampler2D tex0;
 uniform sampler2D tex1;
 uniform sampler2D tex3;
+uniform samplerCube skybox;
 
 // LIGHT DEFINITION
 struct DirectionalLight
@@ -37,6 +38,22 @@ struct SpotLight
     float outerCutOff;
 };
 
+struct Material
+{
+    //diffuse
+    vec3 diffuseTint;
+
+    //specular
+    float specularFactor;
+    
+    //emission
+    vec3 emissiveTint;
+    float emissiveFactor;
+
+    //environment
+    float roughnessFactor;
+};
+
 // Uniform arrays for light
 
 const int MAX_POINT_LIGHTS = 16;
@@ -52,6 +69,13 @@ uniform DirectionalLight dirLights[MAX_DIRECTIONAL_LIGHTS]; // MAX
 uniform int numSpotLights;
 uniform SpotLight spotLights[MAX_SPOT_LIGHTS]; // MAX
 
+uniform Material material;
+
+float fresnelFactor(float cosTheta, float F0)
+{
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
 
 
 vec3 PointLightResult(PointLight light)
@@ -62,16 +86,25 @@ vec3 PointLightResult(PointLight light)
     vec3 lightDir = normalize(light.position - fragmentPosition);
 
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = (diff * vec3(texture(tex0, fragmentTexCoord)) * light.color);
+    vec3 diffuse = (diff * vec3(texture(tex0, fragmentTexCoord)) * light.color * material.diffuseTint);
 
     // Specular (Phong)
     vec3 viewDir = normalize(viewPosition - fragmentPosition);
-    vec3 reflectDir = reflect(-lightDir, norm);
+    vec3 halfwayDir = normalize(lightDir + viewDir);
 
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8.0);
-    vec3 specular = (light.color) * (spec * vec3(texture(tex1, fragmentTexCoord)));
+    float spec = pow(max(dot(fragmentNormal, halfwayDir), 0.0), 8.0);
+    vec3 specularLight = (light.color) * (spec * vec3(texture(tex1, fragmentTexCoord))) * material.specularFactor;
 
-    vec3 emissive = vec3(texture(tex3, fragmentTexCoord));
+    vec3 I = -viewDir;
+    vec3 R = reflect(I, norm);
+    vec3 envSpecular = texture(skybox, R).rgb * material.specularFactor * vec3(texture(tex1, fragmentTexCoord));
+
+    float cosTheta = max(dot(viewDir, norm), 0.0);
+    float F0 = 0.04;
+    float reflectivity = fresnelFactor(cosTheta, F0);
+    vec3 specular = specularLight + envSpecular * reflectivity * (1.0 - material.roughnessFactor);
+
+    vec3 emissive = vec3(texture(tex3, fragmentTexCoord)) * material.emissiveTint * material.emissiveFactor;
 
     // Light Falloff
     float distance = length(light.position - fragmentPosition);
@@ -89,16 +122,25 @@ vec3 DirectionalLightResult(DirectionalLight light)
     vec3 lightDir = normalize(-light.direction);
 
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = (diff * vec3(texture(tex0, fragmentTexCoord)) * light.color);
+    vec3 diffuse = (diff * vec3(texture(tex0, fragmentTexCoord)) * light.color * material.diffuseTint);
 
     // Specular (Phong)
     vec3 viewDir = normalize(viewPosition - fragmentPosition);
-    vec3 reflectDir = reflect(-lightDir, norm);
+    vec3 halfwayDir = normalize(lightDir + viewDir);
 
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
-    vec3 specular = (light.color) * (spec * vec3(texture(tex1, fragmentTexCoord)));
+    float spec = pow(max(dot(fragmentNormal, halfwayDir), 0.0), 8.0);
+    vec3 specularLight = (light.color) * (spec * vec3(texture(tex1, fragmentTexCoord))) * material.specularFactor;
 
-    vec3 emissive = vec3(texture(tex3, fragmentTexCoord));
+    vec3 I = -viewDir;
+    vec3 R = reflect(I, norm);
+    vec3 envSpecular = texture(skybox, R).rgb * material.specularFactor * vec3(texture(tex1, fragmentTexCoord));
+
+    float cosTheta = max(dot(viewDir, norm), 0.0);
+    float F0 = 0.04;
+    float reflectivity = fresnelFactor(cosTheta, F0);
+    vec3 specular = specularLight + envSpecular * reflectivity * (1.0 - material.roughnessFactor);
+
+    vec3 emissive = vec3(texture(tex3, fragmentTexCoord)) * material.emissiveTint * material.emissiveFactor;
 
     vec3 result = (light.intensity * (diffuse + specular));
     return result + emissive;
@@ -115,16 +157,25 @@ vec3 SpotLightResult(SpotLight light)
     vec3 result = vec3(0.0);
     //Diffuse
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = (diff * vec3(texture(tex0, fragmentTexCoord))) * light.color;
+    vec3 diffuse = (diff * vec3(texture(tex0, fragmentTexCoord))) * light.color * material.diffuseTint;
 
     // Specular (Phong)
     vec3 viewDir = normalize(viewPosition - fragmentPosition);
-    vec3 reflectDir = reflect(-lightDir, norm);
+    vec3 halfwayDir = normalize(lightDir + viewDir);
 
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
-    vec3 specular = (light.color) * (spec * vec3(texture(tex1, fragmentTexCoord)));
+    float spec = pow(max(dot(fragmentNormal, halfwayDir), 0.0), 8.0);
+    vec3 specularLight = (light.color) * (spec * vec3(texture(tex1, fragmentTexCoord))) * material.specularFactor;
 
-    vec3 emissive = vec3(texture(tex3, fragmentTexCoord));
+    vec3 I = -viewDir;
+    vec3 R = reflect(I, norm);
+    vec3 envSpecular = texture(skybox, R).rgb * material.specularFactor * vec3(texture(tex1, fragmentTexCoord));
+
+    float cosTheta = max(dot(viewDir, norm), 0.0);
+    float F0 = 0.04;
+    float reflectivity = fresnelFactor(cosTheta, F0);
+    vec3 specular = specularLight + envSpecular * reflectivity * (1.0 - material.roughnessFactor);
+
+    vec3 emissive = vec3(texture(tex3, fragmentTexCoord)) * material.emissiveTint * material.emissiveFactor;
 
     float theta = dot(lightDir, normalize(-light.direction));
     float epsilon = light.innerCutOff - light.outerCutOff;

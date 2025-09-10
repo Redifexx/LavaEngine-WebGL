@@ -1,5 +1,7 @@
 import { Shader } from "./shader";
 import { loadCubemap, loadTexture, showError } from "../gl-utils";
+import { LavaEngine } from "../engine/lava-engine";
+import { vec3 } from "gl-matrix";
 
 export class Material
 {
@@ -18,12 +20,22 @@ export class Material
 
     textures: (WebGLTexture | null) [] = new Array(6);
     texUniformLocations: (WebGLUniformLocation | null)[] = new Array(5);
+    materialSettingUniformLocations: (WebGLUniformLocation | null)[] = new Array(5); // mat settings
     modelMatrixUniformLocation: WebGLUniformLocation | null;
     viewProjMatrixUniformLocation: WebGLUniformLocation | null;
     viewPosMatrixUniformLocation: WebGLUniformLocation  | null;
     viewMatrixUniformLocation: WebGLUniformLocation | null;
     projMatrixUniformLocation: WebGLUniformLocation | null;
+
     isCubemap: boolean = false; // once initialized as cubemap, can't be changed
+
+    // ---- MATERIAL SETTINGS -------
+    diffuseTint: vec3 = vec3.fromValues(1.0, 1.0, 1.0);
+    specularFactor: number = 0.0;
+    emissiveTint: vec3 = vec3.fromValues(1.0, 1.0, 1.0);
+    emissiveFactor: number = 0.0;
+    roughnessFactor: number = 1.0;
+
 
     posAttrib: number = -1;
     texAttrib: number = -1;
@@ -45,9 +57,13 @@ export class Material
         this.texUniformLocations[1] = (shader.gl.getUniformLocation(shader.shaderProgram, 'tex1'));
         this.texUniformLocations[2] = (shader.gl.getUniformLocation(shader.shaderProgram, 'tex2'));
         this.texUniformLocations[3] = (shader.gl.getUniformLocation(shader.shaderProgram, 'tex3'));
-
         this.texUniformLocations[4] = (shader.gl.getUniformLocation(shader.shaderProgram, 'skybox'));
-        console.log(isCubemap);
+        
+        this.materialSettingUniformLocations[0] = (shader.gl.getUniformLocation(shader.shaderProgram, 'material.diffuseTint'));
+        this.materialSettingUniformLocations[1] = (shader.gl.getUniformLocation(shader.shaderProgram, 'material.specularFactor'));
+        this.materialSettingUniformLocations[2] = (shader.gl.getUniformLocation(shader.shaderProgram, 'material.emissiveTint'));
+        this.materialSettingUniformLocations[3] = (shader.gl.getUniformLocation(shader.shaderProgram, 'material.emissiveFactor'));
+        this.materialSettingUniformLocations[4] = (shader.gl.getUniformLocation(shader.shaderProgram, 'material.roughnessFactor'));
 
         this.modelMatrixUniformLocation = shader.gl.getUniformLocation(shader.shaderProgram, 'modelMatrix');
         
@@ -130,7 +146,7 @@ export class Material
         else
         {
             this.setTex(0, loadTexture(this.gl, "textures/default_diffuse.png"));
-            this.setTex(1, loadTexture(this.gl, "textures/default_spec.png"));
+            this.setTex(1, loadTexture(this.gl, "textures/default_diffuse.png"));
             this.setTex(3, loadTexture(this.gl, "textures/default_emis.png"));
         }
     }
@@ -145,6 +161,13 @@ export class Material
         }
         else
         {
+            // Apply material settings
+            this.shader.gl.uniform3fv(this.materialSettingUniformLocations[0], this.diffuseTint);
+            this.shader.gl.uniform1f(this.materialSettingUniformLocations[1], this.specularFactor);
+            this.shader.gl.uniform3fv(this.materialSettingUniformLocations[2], this.emissiveTint);
+            this.shader.gl.uniform1f(this.materialSettingUniformLocations[3], this.emissiveFactor);
+            this.shader.gl.uniform1f(this.materialSettingUniformLocations[4], this.roughnessFactor);
+
             // Tex 0
             if (this.texUniformLocations[0] && this.textures[0])
             {
@@ -176,6 +199,14 @@ export class Material
                 this.shader.gl.bindTexture(this.shader.gl.TEXTURE_2D, this.textures[3]);
                 this.shader.gl.uniform1i(this.texUniformLocations[3], 3);
             }
+
+            //Skybox
+            if (this.texUniformLocations[4] && LavaEngine.project.MAIN_SCENE.skybox)
+            {
+                this.shader.gl.activeTexture(this.shader.gl.TEXTURE4);
+                this.shader.gl.bindTexture(this.shader.gl.TEXTURE_CUBE_MAP, LavaEngine.project.MAIN_SCENE.skybox);
+                this.shader.gl.uniform1i(this.texUniformLocations[4], 4);
+            }
         }
     }
 
@@ -188,5 +219,16 @@ export class Material
         }
 
         this.textures[texIndex] = texMap;
+    }
+
+    getTex(texIndex: number): WebGLTexture | null
+    {
+        if (texIndex >= this.textures.length || texIndex < 0)
+        {
+            showError('Texture index doesnt exist');
+            return null;
+        }
+
+        return this.textures[texIndex];
     }
 };
