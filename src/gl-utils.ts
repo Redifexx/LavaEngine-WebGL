@@ -136,7 +136,7 @@ export function createTexture(gl: WebGL2RenderingContext,
     texWidth: number = 512,
     texHeight: number = 512,
     mipLevel: number = 0,
-    internalFormat: number = gl.RGBA,
+    internalFormat: number = gl.RGBA8,
     srcFormat: number = gl.RGBA,
     border: number = 0,
     srcType: number = gl.UNSIGNED_BYTE,
@@ -180,11 +180,10 @@ export function createTexture(gl: WebGL2RenderingContext,
     return texture;
 }
 
-export function loadTexture(gl: WebGL2RenderingContext, url: string, texType: number = gl.TEXTURE_2D)
+export function loadTexture(gl: WebGL2RenderingContext, url: string, internalFormat: number = gl.RGBA8, texType: number = gl.TEXTURE_2D)
 {
     // Temp pixel to fill item while image is loading
     const level = 0;
-    const internalFormat = gl.RGBA;
     const width = 1;
     const height = 1;
     const border = 0;
