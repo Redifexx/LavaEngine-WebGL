@@ -166,14 +166,14 @@ export function createTexture(gl: WebGL2RenderingContext,
         gl.generateMipmap(texType);
         gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
         gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
         gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     }
     else
     {
         gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
         gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     }
 
@@ -213,14 +213,14 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string, texType: nu
             gl.generateMipmap(texType);
             gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
             gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
-            gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
             gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         }
         else
         {
             gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
             gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
-            gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         }
     };

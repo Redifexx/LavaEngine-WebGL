@@ -51,7 +51,7 @@ export class EngineDemo extends Project
 
         const e_redlight = this.MAIN_SCENE.addEntity(
             "RedLight",
-            vec3.fromValues(2.0, 5.0, -5.0),
+            vec3.fromValues(10.0, 5.0, -15.0),
             vec3.fromValues(-90.0, -10.0, -10.0)
         );
 
@@ -63,12 +63,12 @@ export class EngineDemo extends Project
 
         const e_bluelight = this.MAIN_SCENE.addEntity(
             "BlueLight",
-            vec3.fromValues(6.0, 2, 1.0)
+            vec3.fromValues(6.0, 3, 1.0)
         );
 
         const e_purplelight = this.MAIN_SCENE.addEntity(
             "PurpleLight",
-            vec3.fromValues(0.0, 5, 10.0)
+            vec3.fromValues(0.0, 5, 15.0)
         );
 
         const e_yellowlight = this.MAIN_SCENE.addEntity(
@@ -82,11 +82,17 @@ export class EngineDemo extends Project
             vec3.fromValues(7.0, 4, 10.0)
         );
 
+        const e_whitePtlight = this.MAIN_SCENE.addEntity(
+            "WhitePtLight",
+            vec3.fromValues(32.0, 4.0, 32.0)
+        );
+
         const e_flashlight = this.MAIN_SCENE.addEntity(
             "FlashLight",
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.0, 0.0, 0.0)
         );
+        e_flashlight.setActive(false);
 
         const e_cube_1 = this.MAIN_SCENE.addEntity(
             "Cube1",
@@ -133,7 +139,10 @@ export class EngineDemo extends Project
         this.MAIN_SCENE.skybox = mat_skybox.getTex(0);
 
         const mat_grass = new Material(sdr_standard);
-        mat_grass.setTex(0, loadTexture(this.GL_CONTEXT, "textures/grass.png"));
+        mat_grass.setTex(0, loadTexture(this.GL_CONTEXT, "textures/meadow_diffuse.png"));
+        mat_grass.setTex(1, loadTexture(this.GL_CONTEXT, "textures/meadow_spec.png"));
+        mat_grass.specularFactor = 1.0;
+        mat_grass.roughnessFactor = 0.5;
         
         const mat_stone = new Material(sdr_standard);
         mat_stone.setTex(0, loadTexture(this.GL_CONTEXT, "textures/stone.png"));
@@ -189,13 +198,14 @@ export class EngineDemo extends Project
         e_camera.addScript(new CameraController());
     
         e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 0.2)); // default light
-        e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.0, 0.0), 5.0));
-        e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 5.0));
-        e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.0, 1.0), 5.0));
-        e_purplelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.5, 0.0, 1.0), 5.0));
-        e_yellowlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 0.0), 5.0));
+        e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.0, 0.0), 4.0));
+        e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 3.0));
+        e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.3, 1.0), 2.0));
+        e_purplelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.5, 0.0, 1.0), 4.0));
+        e_yellowlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 0.0), 3.0));
         e_whitelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 1.0));
-        e_flashlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 1.0), 5.0));
+        e_flashlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 1.0), 3.0));
+        e_whitePtlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 1.0));
         e_camera.addChildEntity(e_flashlight);
     }
 

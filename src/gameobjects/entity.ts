@@ -84,11 +84,30 @@ export class Entity
    getGlobalPosition(): vec3
    {
         const transformComponent = this.getComponentOrThrow(TransformComponent);
+        const localPos = transformComponent.transform.position;
 
         if (this.parentEntity) {
             const parentPos = this.parentEntity.getGlobalPosition();
+            const parentScale = this.parentEntity.getGlobalTransform().scale;
+            const scaledLocal = vec3.create();
+            vec3.multiply(scaledLocal, localPos, parentScale);
             const result = vec3.create();
-            vec3.add(result, transformComponent.transform.position, parentPos);
+            vec3.add(result, parentPos, scaledLocal);
+
+            /* NEED TO FIX
+            const parentRot = this.parentEntity.getGlobalRotationQuat();
+
+            const rotatedLocal = vec3.create();
+            if (vec3.length(localPos) > 0.0001) {
+                vec3.transformQuat(rotatedLocal, scaledLocal, parentRot);
+            } else {
+                vec3.copy(rotatedLocal, scaledLocal); 
+            }
+            
+            const result = vec3.create();
+            vec3.add(result, parentPos, rotatedLocal);
+            */
+           
             if (this.name === "Camera" && Input.GetKeyHeld("e"))
             {
                 console.log(result);
@@ -96,7 +115,7 @@ export class Entity
             return result;
         }
 
-        return vec3.clone(transformComponent.transform.position);
+        return vec3.clone(localPos);
     }
 
     getGlobalRotation(): vec3

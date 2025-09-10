@@ -163,21 +163,38 @@ p {
     width: 70vw;
     border-radius: 10px;
     padding: 5px;
+    padding-top: 10px;
+    padding-bottom: 10px;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     gap: 10px;
     margin-bottom: 25px;
 }
 
-#update-box-control
+#update-box-control,
+#update-box-control-b
 {
     display: flex;
     flex-direction: row;
+    padding-left: 5px;
+}
+
+#update-box-control-b
+{
+    background-color: #2a2a2a;
+    border-radius: 5px;
 }
 
 #update-box-highlight
 {
     color: rgb(0, 187, 255);
+    width: 7rem;
+}
+
+#update-box-highlight-main
+{
+    color: rgb(255, 225, 0);
+    width: 7rem;
 }
 
 #update-box-content
