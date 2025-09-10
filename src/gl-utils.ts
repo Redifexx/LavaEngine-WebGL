@@ -74,17 +74,21 @@ export function allocateRenderBufferStorage(gl: WebGL2RenderingContext, rb: WebG
 {
     gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
     gl.renderbufferStorage(gl.RENDERBUFFER, attachmentType, width, height);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
 }
 
 
-export function setFrameBufferColorAttachment(gl: WebGL2RenderingContext, framebuffer: WebGLFramebuffer, width: number = 512, height: number = 512, colorAttachmentIndex: number = 0): void
+export function setFrameBufferColorAttachment(gl: WebGL2RenderingContext, framebuffer: WebGLFramebuffer, width: number = 512, height: number = 512, colorAttachmentIndex: number = 0)
 {
     const texture = createTexture(gl, width, height, 0, gl.RGBA8, gl.RGBA, 0, gl.UNSIGNED_BYTE, null, gl.TEXTURE_2D);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + colorAttachmentIndex, gl.TEXTURE_2D, texture, 0);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    if(gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE)
+        showError("FRAMEBUFFER INCOMPLETE!");
+
+    
+    return texture;
 }
 
 // Use this if planning to sample from framebuffer
@@ -94,14 +98,18 @@ export function setFrameBufferDepthStencilAttachment(gl: WebGL2RenderingContext,
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, texture, 0);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    if(gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE)
+        showError("FRAMEBUFFER INCOMPLETE!");
 }
 
 export function attachRenderBufferToFrameBuffer(gl: WebGL2RenderingContext, fb: WebGLFramebuffer, rb: WebGLRenderbuffer, attachmentType: number)
 {
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachmentType, gl.RENDERBUFFER, rb);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    if(gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE)
+        showError("FRAMEBUFFER INCOMPLETE!");
 }
 
 export function createProgram(gl: WebGL2RenderingContext, vertexShaderSource: string, fragmentShaderSource: string)

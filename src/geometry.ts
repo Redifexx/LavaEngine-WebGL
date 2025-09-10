@@ -79,6 +79,18 @@ export const PLANE_INDICES = new Uint16Array([
     0,  2,  3,   // top
 ]);
 
+// Screen Quad (NDC)
+export const quadVertices = new Float32Array([
+    // positions   // texCoords
+    -1.0,  1.0,  0.0, 1.0,
+    -1.0, -1.0,  0.0, 0.0,
+     1.0, -1.0,  1.0, 0.0,
+
+    -1.0,  1.0,  0.0, 1.0,
+     1.0, -1.0,  1.0, 0.0,
+     1.0,  1.0,  1.0, 1.0
+]);	
+
 
 export function create3dInterleavedVao(
     gl: WebGL2RenderingContext,

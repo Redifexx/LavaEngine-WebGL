@@ -7,7 +7,7 @@ export class Mesh
 {
     gl: WebGL2RenderingContext;
     vertices: Float32Array<ArrayBuffer>;
-    indices: Uint16Array<ArrayBuffer>;
+    indices: Uint16Array<ArrayBuffer> | null;
     vertexBuffer: WebGLBuffer | null;
     indexBuffer: WebGLBuffer | null;
     vertexArrayObject: WebGLVertexArrayObject;
@@ -15,13 +15,16 @@ export class Mesh
 
     constructor(gl: WebGL2RenderingContext,
         meshVertices: Float32Array<ArrayBuffer>,
-        meshIndices: Uint16Array<ArrayBuffer>) 
+        meshIndices: Uint16Array<ArrayBuffer> | null = null) 
     {
         this.gl = gl;
         this.vertices = meshVertices;
-        this.indices = meshIndices;
         this.vertexBuffer = createStaticVertexBuffer(gl, this.vertices);
-        this.indexBuffer = createStaticIndexBuffer(gl, this.indices);
+        if (meshIndices)
+        {
+            this.indices = meshIndices;
+            this.indexBuffer = createStaticIndexBuffer(gl, this.indices);
+        }
     }
 
     setVAO()
@@ -72,10 +75,13 @@ export class Mesh
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
 
-        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        if (this.indices)
+            this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+
         this.gl.bindVertexArray(null);
 
-        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
+        if (this.indices)
+            this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
     }
 
     draw(transform: Transform)
@@ -97,15 +103,31 @@ export class Mesh
         this.material.bindTextures();
 
         this.gl.bindVertexArray(this.vertexArrayObject);
-        this.gl.drawElements(this.gl.TRIANGLES, this.indices.length, this.gl.UNSIGNED_SHORT, 0);
+        if (this.indices)
+        {
+            this.gl.drawElements(this.gl.TRIANGLES, this.indices.length, this.gl.UNSIGNED_SHORT, 0);
+        }
+        else
+        {
+            this.gl.drawArrays(this.gl.TRIANGLES, 0, this.vertices.length);
+        }
         this.gl.bindVertexArray(null);
     }
 
     clone(): Mesh {
         // deep copy the data so it's not shared :)
-        return new Mesh(this.gl,
+        if (this.indices)
+        {
+            return new Mesh(this.gl,
             new Float32Array(this.vertices),
             new Uint16Array(this.indices)
+            );
+        }
+        else
+        {
+            return new Mesh(this.gl,
+            new Float32Array(this.vertices)
         );
+        }
     }
 }

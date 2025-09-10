@@ -7,6 +7,7 @@ import { eulerToDirection, showError } from "../gl-utils";
 import { Material } from "../datatypes/material";
 import { Camera } from "../datatypes/camera";
 import { CameraComponent } from "../components/camera-component";
+import { LavaEngine } from "../engine/lava-engine";
 
 
 export class Scene 
@@ -106,6 +107,7 @@ export class Scene
 
     render(width: number, height: number)
     {
+        LavaEngine.BindFramebuffer(LavaEngine.screenFramebuffer!); // custom frame buffer
         this.gl.clearColor(0.478, 0.365, 0.298, 1.0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
         this.gl.enable(this.gl.DEPTH_TEST);
@@ -190,7 +192,9 @@ export class Scene
                 modelComp.model.draw(modelComp.parentEntity.getGlobalTransform());
             }
         }
-        
+
+        // To Screen Quad
+        LavaEngine.RenderScreenTexture();
     }
 
     useProgram(currentProgram: WebGLProgram | null, program: WebGLProgram)
