@@ -45,6 +45,65 @@ export function createStaticVertexBuffer(gl: WebGL2RenderingContext, data: Array
     return buffer;
 }
 
+export function createFrameBuffer(gl: WebGL2RenderingContext)
+{
+    const framebuffer = gl.createFramebuffer();
+    if (!framebuffer)
+    {
+        showError('Failed to allocate framebuffer');
+        return null;
+    }
+
+    return framebuffer;
+}
+
+export function createRenderBuffer(gl: WebGL2RenderingContext)
+{
+    const renderbuffer = gl.createRenderbuffer();
+    if (!renderbuffer)
+    {
+        showError('Failed to allocate framebuffer');
+        return null;
+    }
+
+    return renderbuffer;
+}
+
+// Use this if making an attachment without needing to sample (depth/stencil)
+export function allocateRenderBufferStorage(gl: WebGL2RenderingContext, rb: WebGLRenderbuffer, attachmentType: number, width: number = 512, height: number = 512): void
+{
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+    gl.renderbufferStorage(gl.RENDERBUFFER, attachmentType, width, height);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+}
+
+
+export function setFrameBufferColorAttachment(gl: WebGL2RenderingContext, framebuffer: WebGLFramebuffer, width: number = 512, height: number = 512, colorAttachmentIndex: number = 0): void
+{
+    const texture = createTexture(gl, width, height, 0, gl.RGBA8, gl.RGBA, 0, gl.UNSIGNED_BYTE, null, gl.TEXTURE_2D);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + colorAttachmentIndex, gl.TEXTURE_2D, texture, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
+// Use this if planning to sample from framebuffer
+export function setFrameBufferDepthStencilAttachment(gl: WebGL2RenderingContext, framebuffer: WebGLFramebuffer, width: number = 512, height: number = 512): void
+{
+    const texture = createTexture(gl, width, height, 0, gl.DEPTH24_STENCIL8, gl.DEPTH_STENCIL, 0, gl.UNSIGNED_INT_24_8, null, gl.TEXTURE_2D);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, texture, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
+export function attachRenderBufferToFrameBuffer(gl: WebGL2RenderingContext, fb: WebGLFramebuffer, rb: WebGLRenderbuffer, attachmentType: number)
+{
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachmentType, gl.RENDERBUFFER, rb);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
 export function createProgram(gl: WebGL2RenderingContext, vertexShaderSource: string, fragmentShaderSource: string)
 {
     const vertexShader = gl.createShader(gl.VERTEX_SHADER);
