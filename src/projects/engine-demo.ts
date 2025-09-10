@@ -139,30 +139,30 @@ export class EngineDemo extends Project
         this.MAIN_SCENE.skybox = mat_skybox.getTex(0);
 
         const mat_grass = new Material(sdr_standard);
-        mat_grass.setTex(0, loadTexture(this.GL_CONTEXT, "textures/meadow_diffuse.png"));
+        mat_grass.setTex(0, loadTexture(this.GL_CONTEXT, "textures/meadow_diffuse.png", this.GL_CONTEXT.SRGB8_ALPHA8));
         mat_grass.setTex(1, loadTexture(this.GL_CONTEXT, "textures/meadow_spec.png"));
         mat_grass.specularFactor = 1.0;
-        mat_grass.roughnessFactor = 0.5;
+        mat_grass.roughnessFactor = 0.9;
         
         const mat_stone = new Material(sdr_standard);
-        mat_stone.setTex(0, loadTexture(this.GL_CONTEXT, "textures/stone.png"));
+        mat_stone.setTex(0, loadTexture(this.GL_CONTEXT, "textures/stone.png", this.GL_CONTEXT.SRGB8_ALPHA8));
     
         const mat_brick = new Material(sdr_standard);
-        mat_brick.setTex(0, loadTexture(this.GL_CONTEXT, "textures/brick.png")); 
+        mat_brick.setTex(0, loadTexture(this.GL_CONTEXT, "textures/brick.png", this.GL_CONTEXT.SRGB8_ALPHA8)); 
 
         const mat_face = new Material(sdr_standard);
-        mat_face.setTex(0, loadTexture(this.GL_CONTEXT, "textures/me.jpg")); 
+        mat_face.setTex(0, loadTexture(this.GL_CONTEXT, "textures/me.jpg", this.GL_CONTEXT.SRGB8_ALPHA8)); 
         mat_face.specularFactor = 0.5;
         mat_face.roughnessFactor = 0.5;
 
         const mat_gata = new Material(sdr_standard);
-        mat_gata.setTex(0, loadTexture(this.GL_CONTEXT, "textures/geoff.jpg")); 
+        mat_gata.setTex(0, loadTexture(this.GL_CONTEXT, "textures/geoff.jpg", this.GL_CONTEXT.SRGB8_ALPHA8)); 
 
         const mat_tiles = new Material(sdr_standard);
-        mat_tiles.setTex(0, loadTexture(this.GL_CONTEXT, "textures/tiles_diff.jpg")); 
+        mat_tiles.setTex(0, loadTexture(this.GL_CONTEXT, "textures/tiles_diff.jpg", this.GL_CONTEXT.SRGB8_ALPHA8)); 
         mat_tiles.setTex(1, loadTexture(this.GL_CONTEXT, "textures/tiles_spec.png")); 
         mat_tiles.setTex(2, loadTexture(this.GL_CONTEXT, "textures/tiles_norm.jpg")); 
-        mat_tiles.setTex(3, loadTexture(this.GL_CONTEXT, "textures/tiles_emis.jpg")); 
+        mat_tiles.setTex(3, loadTexture(this.GL_CONTEXT, "textures/tiles_emis.jpg", this.GL_CONTEXT.SRGB8_ALPHA8)); 
         mat_tiles.specularFactor = 1.0;
         mat_tiles.roughnessFactor = 0.5;
         mat_tiles.emissiveFactor = 1.0;
@@ -197,7 +197,7 @@ export class EngineDemo extends Project
         (e_player.getScript("PlayerMovement") as PlayerMovement).flashlight = e_flashlight;
         e_camera.addScript(new CameraController());
     
-        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 0.2)); // default light
+        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 0.1)); // default light
         e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.0, 0.0), 4.0));
         e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 3.0));
         e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.3, 1.0), 2.0));

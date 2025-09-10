@@ -43,6 +43,10 @@ export class LavaEngine
         }
 
         this.gl_context = getContext(this.canvas);
+        const ext = this.gl_context.getExtension("EXT_sRGB");
+        if (!ext) {
+            console.warn("EXT_sRGB not supported, falling back to RGBA");
+        }
         this.canvasWidth = (this.canvas.clientWidth * devicePixelRatio) / 1;
         this.canvasHeight = (this.canvas.clientHeight * devicePixelRatio) / 1;
         this.fpsTarget = 240;

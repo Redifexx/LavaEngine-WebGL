@@ -197,7 +197,7 @@ vec3 SpotLightResult(SpotLight light)
 
 void main()
 {
-    vec3 ambient = vec3(1.0) * 0.25 * vec3(texture(tex0, fragmentTexCoord));
+    vec3 ambient = vec3(1.0) * 0.1 * vec3(texture(tex0, fragmentTexCoord));
     vec3 result = vec3(0.0);
 
     for (int i = 0; i < MAX_POINT_LIGHTS; i++)
@@ -219,6 +219,7 @@ void main()
     }
         
     result += ambient;
-
-    outputColor = vec4(result, 1.0);
+    float gamma = 2.2;
+    outputColor = vec4(pow(result, vec3(1.0/gamma)), 1.0);
+    //outputColor = vec4(result, 1.0);
 }`;
