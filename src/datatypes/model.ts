@@ -34,11 +34,11 @@ export class Model
         this.meshCollection.push(mesh);
     }
     
-    draw(transform: Transform)
+    draw(transform: Transform, uniformLocation: WebGLUniformLocation = this.material.modelMatrixUniformLocation!, depthOnly: boolean = false)
     {
         for (const mesh of this.meshCollection)
         {
-            mesh.draw(transform);
+            mesh.draw(transform, uniformLocation, depthOnly);
         }
     }
 }

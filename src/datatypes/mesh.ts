@@ -84,7 +84,7 @@ export class Mesh
             this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
     }
 
-    draw(transform: Transform)
+    draw(transform: Transform, uniformLocation: WebGLUniformLocation, depthOnly: boolean)
     {
         const modelMatrix = mat4.create();
 
@@ -98,9 +98,12 @@ export class Mesh
             transform.scale
         );
 
-        this.gl.uniformMatrix4fv(this.material.modelMatrixUniformLocation, false, modelMatrix);
+        this.gl.uniformMatrix4fv(uniformLocation, false, modelMatrix);
 
-        this.material.bindTextures();
+         if (!depthOnly)
+        {
+            this.material.bindTextures();
+        }
 
         this.gl.bindVertexArray(this.vertexArrayObject);
         if (this.indices)

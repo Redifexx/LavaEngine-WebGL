@@ -38,7 +38,6 @@ export class EngineDemo extends Project
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(50.0, 50.0, 50.0)
         );
-        console.log("CHECKPOINT");
 
         const e_player = this.MAIN_SCENE.addEntity("Player", vec3.fromValues(0.0, 0.0, 0.0));
         const e_camera = this.MAIN_SCENE.addEntity("Camera", vec3.fromValues(0.0, 2.0, 0.0));

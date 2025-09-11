@@ -1,4 +1,4 @@
-import { allocateRenderBufferStorage, attachRenderBufferToFrameBuffer, createFrameBuffer, createRenderBuffer, eulerToQuat, getContext, quatToEuler, setFrameBufferColorAttachment, showError } from "../gl-utils";
+import { allocateRenderBufferStorage, attachRenderBufferToFrameBuffer, createFrameBuffer, createRenderBuffer, createTexture, eulerToQuat, getContext, logFramebufferStatus, quatToEuler, setFrameBufferColorAttachment, showError } from "../gl-utils";
 import { EngineDemo } from "../projects/engine-demo";
 import { Input } from "./input";
 import { Project } from "./project";
@@ -11,6 +11,8 @@ import { quadVertices } from "../geometry";
 import { Shader } from "../datatypes/shader";
 import { screenTextureVertSdrSourceCode } from "../../shaders/screenTexture/screenTexture.vert";
 import { screenTextureFragSdrSourceCode } from "../../shaders/screenTexture/screenTexture.frag";
+import { depthMapVertSdrSourceCode } from "../../shaders/depthMap/depthMap.vert";
+import { depthMapFragSdrSourceCode } from "../../shaders/depthMap/depthMap.frag";
 
  
 export class LavaEngine
@@ -40,6 +42,11 @@ export class LavaEngine
     static screenShader: Shader | null;
     static screenTexture: WebGLTexture | null;
 
+    static shadowMapResolution: number = 1024;
+    static depthMap: WebGLTexture | null;
+    static depthMapFB: WebGLRenderbuffer | null;
+    static depthShader:  Shader | null;
+
     static CreateEngineWindow()
     {
         this.canvas = document.getElementById('demo-canvas') as HTMLCanvasElement | null;
@@ -57,10 +64,6 @@ export class LavaEngine
         }
 
         this.gl_context = getContext(this.canvas);
-        const ext = this.gl_context.getExtension("EXT_sRGB");
-        if (!ext) {
-            console.warn("EXT_sRGB not supported, falling back to RGBA");
-        }
 
         this.internalResolutionScale = 1.0;
         this.canvasWidth = (this.canvas.clientWidth * devicePixelRatio) / 1;
@@ -70,6 +73,7 @@ export class LavaEngine
         this.fpsTarget = 240;
 
         this.ResizeCanvases();
+        this.SetupShadowMap();
 
         // Audio
         const audio = Audio({
@@ -136,8 +140,12 @@ export class LavaEngine
                 
                 LavaEngine.UpdateEngine();
                 Input.ValidateInputs();
-                
+
+
+                LavaEngine.ShadowPass();
+                LavaEngine.BindFramebuffer(LavaEngine.screenFramebuffer!); // custom frame buffer
                 LavaEngine.project.MAIN_SCENE.render(LavaEngine.internalWidth, LavaEngine.internalHeight);
+                LavaEngine.RenderScreenTexture(); // To Screen Quad
             }
 
             
@@ -254,6 +262,7 @@ export class LavaEngine
 
         gl.bindTexture(gl.TEXTURE_2D, null);
         gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+        logFramebufferStatus(gl, "screenQuadFB");
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     } 
 
@@ -304,12 +313,60 @@ export class LavaEngine
         this.gl_context.bindBuffer(this.gl_context.ARRAY_BUFFER, null);
         this.gl_context.bindVertexArray(null);
     }
+
+    static SetupShadowMap()
+    {
+        const gl = this.gl_context;
+        this.depthShader = new Shader(gl, depthMapVertSdrSourceCode, depthMapFragSdrSourceCode);
+        const depthMapFB = createFrameBuffer(gl);
+        const depthMap = createTexture(
+            gl,
+            this.shadowMapResolution,
+            this.shadowMapResolution,
+            0,
+            gl.DEPTH_COMPONENT32F,
+            gl.DEPTH_COMPONENT,
+            0,
+            gl.FLOAT,
+            null,
+            gl.TEXTURE_2D,
+            false
+        );
+
+        gl.bindTexture(gl.TEXTURE_2D, depthMap);
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+        gl.bindTexture(gl.TEXTURE_2D, null);
+
+        this.BindFramebuffer(depthMapFB!);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthMap, 0);
+        gl.drawBuffers([gl.NONE]);
+        gl.readBuffer(gl.NONE);
+        logFramebufferStatus(gl, "depthMapFB");
+        this.BindFramebuffer(null);
+
+        this.depthMap = depthMap;
+        this.depthMapFB = depthMapFB;
+    }
+
+    static ShadowPass()
+    {
+        const gl = this.gl_context;
+        gl.viewport(0, 0, this.shadowMapResolution, this.shadowMapResolution);
+        this.BindFramebuffer(this.depthMapFB!);
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+        LavaEngine.project.MAIN_SCENE.renderShadow(this.depthShader!.shaderProgram);
+        this.BindFramebuffer(null);
+    }
     
-    static BindFramebuffer(framebuffer: WebGLFramebuffer)
+    static BindFramebuffer(framebuffer: WebGLFramebuffer | null)
     {
         this.gl_context.bindFramebuffer(LavaEngine.gl_context.FRAMEBUFFER, framebuffer);
-        if(this.gl_context.checkFramebufferStatus(this.gl_context.FRAMEBUFFER) != this.gl_context.FRAMEBUFFER_COMPLETE)
-            showError("FRAMEBUFFER INCOMPLETE!");
+        logFramebufferStatus(this.gl_context, "BindFrameBuffer");
         return true;
     }
 }

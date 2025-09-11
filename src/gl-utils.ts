@@ -83,11 +83,7 @@ export function setFrameBufferColorAttachment(gl: WebGL2RenderingContext, frameb
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + colorAttachmentIndex, gl.TEXTURE_2D, texture, 0);
-
-    if(gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE)
-        showError("FRAMEBUFFER INCOMPLETE!");
-
-    
+    logFramebufferStatus(gl, "setFrameBufferColorAttachment");
     return texture;
 }
 
@@ -98,18 +94,14 @@ export function setFrameBufferDepthStencilAttachment(gl: WebGL2RenderingContext,
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, texture, 0);
-
-    if(gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE)
-        showError("FRAMEBUFFER INCOMPLETE!");
+    logFramebufferStatus(gl, "setFrameBufferDepthStencilAttachment");
 }
 
 export function attachRenderBufferToFrameBuffer(gl: WebGL2RenderingContext, fb: WebGLFramebuffer, rb: WebGLRenderbuffer, attachmentType: number)
 {
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachmentType, gl.RENDERBUFFER, rb);
-
-    if(gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE)
-        showError("FRAMEBUFFER INCOMPLETE!");
+    logFramebufferStatus(gl, "attachRenderBufferToFrameBuffer");
 }
 
 export function createProgram(gl: WebGL2RenderingContext, vertexShaderSource: string, fragmentShaderSource: string)
@@ -199,7 +191,8 @@ function isPowerOf2(value: number)
     return (value & (value - 1)) === 0;
 }
 
-export function createTexture(gl: WebGL2RenderingContext,
+export function createTexture(
+    gl: WebGL2RenderingContext,
     texWidth: number = 512,
     texHeight: number = 512,
     mipLevel: number = 0,
@@ -208,7 +201,8 @@ export function createTexture(gl: WebGL2RenderingContext,
     border: number = 0,
     srcType: number = gl.UNSIGNED_BYTE,
     data: Uint8Array | null = null,
-    texType: number = gl.TEXTURE_2D
+    texType: number = gl.TEXTURE_2D,
+    hasMipmaps: boolean = true
 )
 {
     const texture = gl.createTexture();
@@ -227,13 +221,24 @@ export function createTexture(gl: WebGL2RenderingContext,
         data,
     );
     
+
+    
     // WebGL1 has different requirements for power of 2 images
     if (isPowerOf2(texWidth) && isPowerOf2(texHeight))
     {
-        gl.generateMipmap(texType);
         gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
         gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+
+        if (hasMipmaps)
+        {
+            gl.generateMipmap(texType);
+            gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        }
+        else
+        {
+            gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        }
+
         gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     }
     else
@@ -244,10 +249,11 @@ export function createTexture(gl: WebGL2RenderingContext,
         gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     }
 
+    gl.bindTexture(texType, null);
     return texture;
 }
 
-export function loadTexture(gl: WebGL2RenderingContext, url: string, internalFormat: number = gl.RGBA8, texType: number = gl.TEXTURE_2D)
+export function loadTexture(gl: WebGL2RenderingContext, url: string, internalFormat: number = gl.RGBA8, texType: number = gl.TEXTURE_2D, hasMipmaps: boolean = true)
 {
     // Temp pixel to fill item while image is loading
     const level = 0;
@@ -276,10 +282,17 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string, internalFor
         // WebGL1 has different requirements for power of 2 images
         if (isPowerOf2(image.width) && isPowerOf2(image.height))
         {
-            gl.generateMipmap(texType);
             gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
             gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
-            gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+            if (hasMipmaps)
+            {
+                gl.generateMipmap(texType);
+                gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+            }
+            else
+            {
+                gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            }
             gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         }
         else
@@ -292,7 +305,7 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string, internalFor
     };
 
     image.src = url;
-
+    gl.bindTexture(texType, null);
     return texture;
 }
 
@@ -340,12 +353,6 @@ export function loadCubemap(
             gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
             gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
             gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, level, internalFormat, srcFormat, srcType, image);
-
-            // mipmaps
-            if (i === 5)
-            {
-                gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
-            }
         };
         image.src = url;
     });
@@ -414,4 +421,23 @@ export function quatToEuler(q: quat): vec3
     out[1] =  Math.atan2(siny_cosp, cosy_cosp) * 180/Math.PI;
 
     return out;
+}
+
+export function logFramebufferStatus(gl: WebGL2RenderingContext, label: string) {
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    let msg = "UNKNOWN";
+    switch (status) {
+        case gl.FRAMEBUFFER_COMPLETE: msg = "FRAMEBUFFER_COMPLETE"; break;
+        case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT: msg = "INCOMPLETE_ATTACHMENT"; break;
+        case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: msg = "MISSING_ATTACHMENT"; break;
+        case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS: msg = "INCOMPLETE_DIMENSIONS (deprecated)"; break;
+        case gl.FRAMEBUFFER_UNSUPPORTED: msg = "UNSUPPORTED"; break;
+        case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: msg = "INCOMPLETE_MULTISAMPLE"; break;
+        default: msg = `Unknown status: ${status}`;
+    }
+    if (msg !== "FRAMEBUFFER_COMPLETE")
+    {
+        console.warn(`[FBO status] ${label}: ${msg} (${status})`);
+    }
+    return status;
 }

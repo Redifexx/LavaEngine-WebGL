@@ -22,7 +22,6 @@ export class Camera
         this.Right = vec3.fromValues(1.0, 0.0, 0.0);
         this.Up = vec3.fromValues(0.0, 1.0, 0.0);
         this.WorldUp = this.Up;
-        console.log(this.WorldUp[0] + " " + this.WorldUp[1] + " " + this.WorldUp[2]);
     }
 
     draw(
