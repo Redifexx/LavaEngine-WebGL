@@ -5,18 +5,21 @@ in vec3 vertexPosition;
 in vec2 vertexTexCoord;
 in vec3 vertexNormal;
 
-out vec3 fragmentPosition;
-out vec2 fragmentTexCoord;
-out vec3 fragmentNormal;
+out vec3 FragPos;
+out vec3 Normal;
+out vec2 TexCoords;
+out vec4 FragPosLightSpace;
 
 uniform mat4 modelMatrix;
 uniform mat4 viewProjMatrix;
+uniform mat4 lightSpaceMatrix;
 
 void main()
 {
-    gl_Position = viewProjMatrix * modelMatrix * vec4(vertexPosition, 1.0);
-    
-    fragmentPosition = vec3(modelMatrix * vec4(vertexPosition, 1.0));
-    fragmentTexCoord = vertexTexCoord;
-    fragmentNormal = mat3(transpose(inverse(modelMatrix))) * vertexNormal;
+    FragPos = vec3(modelMatrix * vec4(vertexPosition, 1.0));
+    Normal = (transpose(inverse(mat3(modelMatrix))) * vertexNormal);
+    TexCoords = vertexTexCoord;
+    FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);
+
+    gl_Position = viewProjMatrix * vec4(FragPos, 1.0);
 }`;

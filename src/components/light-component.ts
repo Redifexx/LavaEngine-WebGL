@@ -23,9 +23,9 @@ export class LightComponent extends Component
         lightType: number = LightType.DIRECTIONAL,
         color: vec3 = vec3.fromValues(1.0, 1.0, 1.0),
         intensity: number = 1.0,
+        hasShadows: boolean = false,
         innerCutOff: number = Math.cos(glMatrix.toRadian(12.5)),
         outerCutOff: number = Math.cos(glMatrix.toRadian(30.5)),
-        hasShadows: boolean = false
     )
     {
         super();

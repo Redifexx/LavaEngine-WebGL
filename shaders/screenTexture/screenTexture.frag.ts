@@ -50,6 +50,7 @@ void main()
         FragColor = vec4(col, 1.0);
         FragColor = texture(screenTexture, TexCoords);
     */
-
+    //float d = texture(screenTexture, TexCoords).r;
+    //FragColor = vec4(vec3(d), 1.0);
     FragColor = texture(screenTexture, TexCoords);
 }`;

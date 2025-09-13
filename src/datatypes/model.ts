@@ -23,6 +23,7 @@ export class Model
         this.material = material;
         for(let i = 0; i < this.meshCollection.length; i++)
         {
+            this.meshCollection[i].material = this.material;
             this.meshCollection[i].setVAO();
         }
     }
@@ -34,7 +35,7 @@ export class Model
         this.meshCollection.push(mesh);
     }
     
-    draw(transform: Transform, uniformLocation: WebGLUniformLocation = this.material.modelMatrixUniformLocation!, depthOnly: boolean = false)
+    draw(transform: Transform, depthOnly: boolean = false, uniformLocation: WebGLUniformLocation = this.material.modelMatrixUniformLocation!)
     {
         for (const mesh of this.meshCollection)
         {

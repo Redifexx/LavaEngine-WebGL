@@ -155,6 +155,12 @@ export class Scene
         {
 
             this.useProgram(currentShaderProgram, material.shader.shaderProgram);
+
+            // bind depth map for shadow
+            this.gl.activeTexture(this.gl.TEXTURE5);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, LavaEngine.depthMap);
+            this.gl.uniform1i(this.gl.getUniformLocation(material.shader.shaderProgram, "shadowMap"), 5);
+
             this.setLights(material.shader.shaderProgram, this.lightList);
             if (this.mainCamera === null)
             {
@@ -196,14 +202,15 @@ export class Scene
         this.gl.useProgram(currentShaderProgram);
         this.setLights(currentShaderProgram, this.lightList, true);
 
-        const modelMatrixLoc = this.gl.getUniformLocation(currentShaderProgram, "modelMatrix")
-
         // --- RENDER REST OF SCENE ---
         for (const [material, models] of this.modelsByMaterial.entries())
         {
             for (const modelComp of models)
             {
-                modelComp.model.draw(modelComp.parentEntity.getGlobalTransform(), modelMatrixLoc!, true);
+                const oldMat = modelComp.model.material;
+                modelComp.model.setMaterial(LavaEngine.shadowMat!);
+                modelComp.model.draw(modelComp.parentEntity.getGlobalTransform(), true);
+                modelComp.model.setMaterial(oldMat);
             }
         }
     }
@@ -270,36 +277,43 @@ export class Scene
                 this.gl.uniform1i(this.gl.getUniformLocation(program, "numDirLights"), numDir);
                 this.gl.uniform1i(this.gl.getUniformLocation(program, "numSpotLights"), numSpot);
             }
-            else if (light.hasShadows)
+
+            if (light.hasShadows)
             {
                 if (light.lightType === LightType.DIRECTIONAL)
                 {
                     const nearPlane = 1.0;
-                    const farPlane = 7.5;
+                    const farPlane = 50.0;
 
-                    let lightProjection = mat4.create();
-                    mat4.ortho(
-                        lightProjection,
-                        -10.0, 10.0, -10.0, 10.0,
-                        nearPlane, farPlane
-                    );
+                    const lightTransform = light.parentEntity.getGlobalTransform();
+                    const lightDir = eulerToDirection(
+                        lightTransform.rotation[0],
+                        lightTransform.rotation[1],
+                        lightTransform.rotation[2]);
+
+                    const lightPos = vec3.create();
+                    vec3.scale(lightPos, lightDir, -20.0);
 
                     let lightView = mat4.create();
                     mat4.lookAt(
                         lightView,
-                        vec3.fromValues(0.0, 0.0, 0.0),
+                        lightPos,
                         vec3.fromValues(0.0, 0.0, 0.0),
                         vec3.fromValues(0.0, 1.0, 0.0)
                     );
+
+                    let lightProjection = mat4.create();
+                    mat4.ortho(
+                        lightProjection,
+                        -20.0, 20.0, -20.0, 20.0,
+                        nearPlane, farPlane
+                    );
+
 
                     let lightSpaceMatrix = mat4.create();
                     mat4.multiply(lightSpaceMatrix, lightProjection, lightView);
 
                     this.gl.uniformMatrix4fv(this.gl.getUniformLocation(program, "lightSpaceMatrix"), false, lightSpaceMatrix);
-                }
-                else if (light.lightType === LightType.DIRECTIONAL)
-                {
-                    //
                 }
             }
         }

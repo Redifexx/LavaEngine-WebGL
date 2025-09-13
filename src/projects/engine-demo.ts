@@ -196,7 +196,7 @@ export class EngineDemo extends Project
         (e_player.getScript("PlayerMovement") as PlayerMovement).flashlight = e_flashlight;
         e_camera.addScript(new CameraController());
     
-        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 0.1)); // default light
+        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 0.1, true)); // default light
         e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.0, 0.0), 4.0));
         e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 3.0));
         e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.3, 1.0), 2.0));

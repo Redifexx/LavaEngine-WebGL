@@ -66,17 +66,25 @@ export class Material
         this.materialSettingUniformLocations[4] = (shader.gl.getUniformLocation(shader.shaderProgram, 'material.roughnessFactor'));
 
         this.modelMatrixUniformLocation = shader.gl.getUniformLocation(shader.shaderProgram, 'modelMatrix');
+        if (!this.modelMatrixUniformLocation && !isCubemap)
+        {
+            console.log("missing model matrix");
+        }
         
         let location: WebGLUniformLocation | null;
 
         this.posAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'vertexPosition');
-
+        if (this.posAttrib < 0)
+        {
+            console.log("NO POS ATTRIB");
+        }
+        
         if (!isCubemap)
         {
             location = shader.gl.getUniformLocation(shader.shaderProgram, 'viewProjMatrix')
             if (location === null)
             {
-                throw new Error('Missing projection view matrix');
+                
             }
             else
             {
@@ -85,7 +93,7 @@ export class Material
             location = shader.gl.getUniformLocation(shader.shaderProgram, 'viewPosition')
             if (location === null)
             {
-                throw new Error('Missing view position matrix');
+                
             }
             else
             {

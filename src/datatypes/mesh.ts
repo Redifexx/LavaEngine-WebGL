@@ -49,6 +49,11 @@ export class Mesh
                 8 * Float32Array.BYTES_PER_ELEMENT, 0
             );
         }
+        else
+        {
+            console.log("no pos attrib");
+        }
+        
         
         if (!this.material.isCubemap)
         {
@@ -76,12 +81,16 @@ export class Mesh
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
 
         if (this.indices)
+        {
             this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        }
 
         this.gl.bindVertexArray(null);
 
         if (this.indices)
             this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
+
+        
     }
 
     draw(transform: Transform, uniformLocation: WebGLUniformLocation, depthOnly: boolean)
@@ -100,7 +109,7 @@ export class Mesh
 
         this.gl.uniformMatrix4fv(uniformLocation, false, modelMatrix);
 
-         if (!depthOnly)
+        if (!depthOnly)
         {
             this.material.bindTextures();
         }

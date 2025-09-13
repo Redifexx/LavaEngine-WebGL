@@ -1,18 +1,22 @@
-import { allocateRenderBufferStorage, attachRenderBufferToFrameBuffer, createFrameBuffer, createRenderBuffer, createTexture, eulerToQuat, getContext, logFramebufferStatus, quatToEuler, setFrameBufferColorAttachment, showError } from "../gl-utils";
+import { allocateRenderBufferStorage, attachRenderBufferToFrameBuffer, createFrameBuffer, createProgram, createRenderBuffer, createTexture, eulerToDirection, eulerToQuat, getContext, logFramebufferStatus, quatToEuler, setFrameBufferColorAttachment, showError } from "../gl-utils";
 import { EngineDemo } from "../projects/engine-demo";
 import { Input } from "./input";
 import { Project } from "./project";
 import '../index.css'
-import { TransformComponent } from "../components/transform-component";
-import { quat, vec2, vec3 } from "gl-matrix";
+import { Transform, TransformComponent } from "../components/transform-component";
+import { mat4, quat, vec2, vec3 } from "gl-matrix";
 import { Audio } from 'ts-audio';
 import { Mesh } from "../datatypes/mesh";
-import { quadVertices } from "../geometry";
+import { CUBE_INDICES, CUBE_VERTICES, quadVertices } from "../geometry";
 import { Shader } from "../datatypes/shader";
 import { screenTextureVertSdrSourceCode } from "../../shaders/screenTexture/screenTexture.vert";
 import { screenTextureFragSdrSourceCode } from "../../shaders/screenTexture/screenTexture.frag";
 import { depthMapVertSdrSourceCode } from "../../shaders/depthMap/depthMap.vert";
 import { depthMapFragSdrSourceCode } from "../../shaders/depthMap/depthMap.frag";
+import { depthDebugFragSdrSourceCode } from "../../shaders/debug/depthDebug.frag";
+import { Material } from "../datatypes/material";
+import { simpleVertSdrSourceCode } from "../../shaders/simple/simple.vert";
+import { simpleFragSdrSourceCode } from "../../shaders/simple/simple.frag";
 
  
 export class LavaEngine
@@ -44,8 +48,12 @@ export class LavaEngine
 
     static shadowMapResolution: number = 1024;
     static depthMap: WebGLTexture | null;
-    static depthMapFB: WebGLRenderbuffer | null;
+    static depthMapFB: WebGLFramebuffer | null;
     static depthShader:  Shader | null;
+    static shadowMat: Material | null;
+    static debugCube: Mesh | null;
+    static triVAO: WebGLVertexArrayObject;
+    static simpleProgram: WebGLProgram;
 
     static CreateEngineWindow()
     {
@@ -71,6 +79,8 @@ export class LavaEngine
         this.internalWidth = this.canvasWidth * this.internalResolutionScale;
         this.internalHeight = this.canvasHeight * this.internalResolutionScale;
         this.fpsTarget = 240;
+
+        this.debugCube = new Mesh(this.gl_context, CUBE_VERTICES, CUBE_INDICES);
 
         this.ResizeCanvases();
         this.SetupShadowMap();
@@ -109,7 +119,7 @@ export class LavaEngine
         this.ResizeFramebuffer();
 
         LavaEngine.screenQuad = new Mesh(this.gl_context, quadVertices);
-        LavaEngine.screenShader = new Shader(this.gl_context, screenTextureVertSdrSourceCode, screenTextureFragSdrSourceCode);
+        LavaEngine.screenShader = new Shader(this.gl_context, screenTextureVertSdrSourceCode, depthDebugFragSdrSourceCode);
 
 
         // ----- RENDER LOOP -------
@@ -141,10 +151,10 @@ export class LavaEngine
                 LavaEngine.UpdateEngine();
                 Input.ValidateInputs();
 
-
                 LavaEngine.ShadowPass();
-                LavaEngine.BindFramebuffer(LavaEngine.screenFramebuffer!); // custom frame buffer
-                LavaEngine.project.MAIN_SCENE.render(LavaEngine.internalWidth, LavaEngine.internalHeight);
+
+                //LavaEngine.BindFramebuffer(LavaEngine.screenFramebuffer!); // custom frame buffer
+                //LavaEngine.project.MAIN_SCENE.render(LavaEngine.internalWidth, LavaEngine.internalHeight);
                 LavaEngine.RenderScreenTexture(); // To Screen Quad
             }
 
@@ -297,70 +307,223 @@ export class LavaEngine
         );
 
         this.gl_context.activeTexture(this.gl_context.TEXTURE0);
-        this.gl_context.bindTexture(this.gl_context.TEXTURE_2D, this.screenTexture);
+        this.gl_context.bindTexture(this.gl_context.TEXTURE_2D, this.depthMap);
 
         this.gl_context.texParameteri(this.gl_context.TEXTURE_2D, this.gl_context.TEXTURE_WRAP_S, this.gl_context.CLAMP_TO_EDGE);
         this.gl_context.texParameteri(this.gl_context.TEXTURE_2D, this.gl_context.TEXTURE_WRAP_T, this.gl_context.CLAMP_TO_EDGE);
         this.gl_context.texParameteri(this.gl_context.TEXTURE_2D, this.gl_context.TEXTURE_MIN_FILTER, this.gl_context.LINEAR);
         this.gl_context.texParameteri(this.gl_context.TEXTURE_2D, this.gl_context.TEXTURE_MAG_FILTER, this.gl_context.LINEAR);
 
-        this.gl_context.uniform1i(this.gl_context.getUniformLocation(this.screenShader!.shaderProgram, "screenTexture"), 0);
-        this.gl_context.uniform2fv(this.gl_context.getUniformLocation(this.screenShader!.shaderProgram, "screenSize"), vec2.fromValues(LavaEngine.internalWidth, LavaEngine.internalHeight));
+        this.gl_context.uniform1i(this.gl_context.getUniformLocation(this.screenShader!.shaderProgram, "depthDebug"), 0);
+        //this.gl_context.uniform2fv(this.gl_context.getUniformLocation(this.screenShader!.shaderProgram, "screenSize"), vec2.fromValues(LavaEngine.internalWidth, LavaEngine.internalHeight));
 
-        this.gl_context.bindTexture(this.gl_context.TEXTURE_2D, this.screenTexture);
+        //this.gl_context.bindTexture(this.gl_context.TEXTURE_2D, this.depthMap);
         this.gl_context.drawArrays(this.gl_context.TRIANGLES, 0, 6);
 
         this.gl_context.bindBuffer(this.gl_context.ARRAY_BUFFER, null);
         this.gl_context.bindVertexArray(null);
+        this.gl_context.bindTexture(this.gl_context.TEXTURE_2D, null);
     }
 
     static SetupShadowMap()
     {
         const gl = this.gl_context;
+        this.triVAO = this.TriVAO();
         this.depthShader = new Shader(gl, depthMapVertSdrSourceCode, depthMapFragSdrSourceCode);
+        this.simpleProgram = createProgram(gl, simpleVertSdrSourceCode, simpleFragSdrSourceCode);
         const depthMapFB = createFrameBuffer(gl);
-        const depthMap = createTexture(
-            gl,
-            this.shadowMapResolution,
-            this.shadowMapResolution,
+        const depthMap = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, depthMap);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
             0,
             gl.DEPTH_COMPONENT32F,
-            gl.DEPTH_COMPONENT,
+            1024,
+            1024,
             0,
+            gl.DEPTH_COMPONENT,
             gl.FLOAT,
             null,
-            gl.TEXTURE_2D,
-            false
         );
+        console.log('EXT_color_buffer_float:', !!gl.getExtension('EXT_color_buffer_float'));
+        console.log('WEBGL_depth_texture:', !!gl.getExtension('WEBGL_depth_texture')); // may be null on WebGL2
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        
+
+        console.log(gl.checkFramebufferStatus(gl.FRAMEBUFFER));
+
+        this.shadowMat = new Material(this.depthShader!);
+        this.debugCube!.material = this.shadowMat;
+        this.debugCube!.setVAO();
 
         gl.bindTexture(gl.TEXTURE_2D, depthMap);
 
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.NONE);
+
+
         gl.bindTexture(gl.TEXTURE_2D, null);
 
-        this.BindFramebuffer(depthMapFB!);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFB!);
+        console.log('GL error after attach0000:', gl.getError());
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthMap, 0);
+        console.log('GL error after attach1111:', gl.getError());
+        logFramebufferStatus(this.gl_context, "fb text");
         gl.drawBuffers([gl.NONE]);
         gl.readBuffer(gl.NONE);
         logFramebufferStatus(gl, "depthMapFB");
-        this.BindFramebuffer(null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFB!);
+        console.log('GL error after attac3333:', gl.getError());
 
-        this.depthMap = depthMap;
-        this.depthMapFB = depthMapFB;
+        this.depthMap = depthMap!;
+        this.depthMapFB = depthMapFB!;
     }
 
     static ShadowPass()
     {
+        this.gl_context.bindFramebuffer(this.gl_context.FRAMEBUFFER, null);
         const gl = this.gl_context;
-        gl.viewport(0, 0, this.shadowMapResolution, this.shadowMapResolution);
-        this.BindFramebuffer(this.depthMapFB!);
+        //gl.viewport(0, 0, this.shadowMapResolution, this.shadowMapResolution);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.depthMapFB!);
+        console.log('GL error after attach2222:', gl.getError());
+        gl.viewport(0,0,1024,1024);
+        gl.enable(gl.DEPTH_TEST);
+        gl.clearDepth(0.25);
         gl.clear(gl.DEPTH_BUFFER_BIT);
-        LavaEngine.project.MAIN_SCENE.renderShadow(this.depthShader!.shaderProgram);
+        const depthValue = new Uint32Array(1);  // or Uint16Array if you switch to DEPTH_COMPONENT16
+        gl.readPixels(
+            512, 512,
+            1, 1,
+            gl.DEPTH_COMPONENT,
+            gl.UNSIGNED_INT,
+            depthValue
+        );
+        console.log('Raw depth bits:', depthValue[0]);
+
+        // Convert to normalized depth in [0,1]
+        const normalized = depthValue[0] / 0xFFFFFFFF;
+        console.log('Normalized depth:', normalized);
+        gl.depthFunc(gl.ALWAYS);          // ensure it writes regardless of current content
+        gl.colorMask(false, false, false, false); // avoid touching any color (depth-only FBO)
+        gl.bindVertexArray(this.triVAO);
+        gl.useProgram(this.simpleProgram);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        gl.bindVertexArray(null);
+        gl.colorMask(true, true, true, true);
+    
+
+        /*
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL); // safer than default LESS when writing from light POV
+        gl.clearDepth(0.25);
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+        const depthValue = new Uint32Array(1);  // or Uint16Array if you switch to DEPTH_COMPONENT16
+        gl.readPixels(
+            512, 512,
+            1, 1,
+            gl.DEPTH_COMPONENT,
+            gl.UNSIGNED_INT,
+            depthValue
+        );
+        console.log('Raw depth bits:', depthValue[0]);
+
+        // Convert to normalized depth in [0,1]
+        const normalized = depthValue[0] / 0xFFFFFFFF;
+        console.log('Normalized depth:', normalized);
+        //LavaEngine.project.MAIN_SCENE.renderShadow(this.depthShader!.shaderProgram);
+        logFramebufferStatus(this.gl_context, "shadow");
         this.BindFramebuffer(null);
+        */
+    }
+
+    static RenderDebugCube(shader: WebGLProgram) {
+        
+        const gl = this.gl_context;
+        
+        gl.useProgram(shader);
+        const cubeTransform = new Transform();
+        cubeTransform.position = vec3.fromValues(0.0, 0.0, 0.0);
+        cubeTransform.rotation = vec3.fromValues(0.0, 45.0, 0.0);
+        cubeTransform.scale = vec3.fromValues(1.0, 1.0, 1.0);
+
+        const modelMatrix = mat4.create();
+        
+        const rotationQuat = quat.create();
+        quat.fromEuler(rotationQuat, cubeTransform.rotation[0], cubeTransform.rotation[1], cubeTransform.rotation[2]);
+        
+        mat4.fromRotationTranslationScale(
+            modelMatrix,
+            rotationQuat,
+            cubeTransform.position,
+            cubeTransform.scale
+        );
+
+        const modelMatrixUniformLocation = gl.getUniformLocation(shader, 'modelMatrix');
+        gl.uniformMatrix4fv(modelMatrixUniformLocation, false, modelMatrix);
+
+        const nearPlane = 1.0;
+        const farPlane = 100.0;
+
+        const lightTransform = new Transform();
+        lightTransform.rotation = vec3.fromValues(-90, 0, 0);
+
+        const lightDir = eulerToDirection(
+            lightTransform.rotation[0],
+            lightTransform.rotation[1],
+            lightTransform.rotation[2]);
+
+        const lightPos = vec3.create();
+        vec3.scale(lightPos, lightDir, -20.0);
+
+        let lightView = mat4.create();
+        mat4.lookAt(
+            lightView,
+            lightPos,
+            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(0.0, 1.0, 0.0)
+        );
+
+        let lightProjection = mat4.create();
+        mat4.ortho(
+            lightProjection,
+            -50.0, 50.0, -50.0, 50.0,
+            nearPlane, farPlane
+        );
+
+
+        let lightSpaceMatrix = mat4.create();
+        mat4.multiply(lightSpaceMatrix, lightProjection, lightView);
+
+        gl.uniformMatrix4fv(gl.getUniformLocation(shader, "lightSpaceMatrix"), false, lightSpaceMatrix);
+        gl.disable(gl.CULL_FACE);
+        gl.bindVertexArray(this.debugCube!.vertexArrayObject);
+        gl.drawElements(gl.TRIANGLES, this.debugCube!.indices!.length, gl.UNSIGNED_SHORT, 0);
+        gl.bindVertexArray(null);
+    }
+
+    static TriVAO(): WebGLVertexArrayObject
+    {
+        const gl = this.gl_context;
+        // create a small VAO for a single triangle (do this once in init)
+        const triVAO = gl.createVertexArray();
+        gl.bindVertexArray(triVAO);
+        const vb = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vb);
+        const tri = new Float32Array([
+            -0.01, -0.01,
+            0.01, -0.01,
+            0.0,   0.01
+        ]);
+        gl.bufferData(gl.ARRAY_BUFFER, tri, gl.STATIC_DRAW);
+        const posLoc = 0; // we'll use location 0 in shader with layout(location = 0)
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+        gl.bindVertexArray(null);
+        return triVAO;
     }
     
     static BindFramebuffer(framebuffer: WebGLFramebuffer | null)
