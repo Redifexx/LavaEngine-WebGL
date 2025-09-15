@@ -11,9 +11,13 @@ out vec4 outputColor;
 uniform vec3 viewPosition;
 uniform sampler2D tex0;
 uniform sampler2D tex1;
+uniform sampler2D tex2;
 uniform sampler2D tex3;
 uniform sampler2D shadowMap;
 uniform samplerCube skybox;
+
+uniform float nearPlane;
+uniform float farPlane;
 
 // LIGHT DEFINITION
 struct DirectionalLight
@@ -80,18 +84,41 @@ float fresnelFactor(float cosTheta, float F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-float ShadowCalculation(vec4 fragPosLightSpace)
+float ShadowCalculation(vec4 fragPosLightSpace, out vec3 coords)
 {
     // perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
+    coords = projCoords;
+    
 
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
+    float bias = 0.0001;
+    //float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+    float shadow = 0.0;
+    if(projCoords.z > 1.0)
+        shadow = 0.0;
 
-    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
+    vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {   
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+        }
+    }
+    
+    shadow /= 9.0;
 
     return shadow;    
+}
+
+float LinearizeDepth(float depth)
+{
+    float z = depth * 2.0 - 1.0; // Back to NDC 
+    return (2.0 * nearPlane * farPlane) / (farPlane + nearPlane - z * (farPlane - nearPlane));
 }
 
 
@@ -128,7 +155,7 @@ vec3 PointLightResult(PointLight light)
     float distance = length(light.position - FragPos);
     float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.01 * distance * distance); //possible optimazation
 
-    vec3 result = ((attenuation * light.intensity * (diffuse + specular))) + ambient;
+    vec3 result = ((attenuation * light.intensity * (diffuse + specular)));
 
     return result + emissive;
 }
@@ -161,9 +188,10 @@ vec3 DirectionalLightResult(DirectionalLight light)
     vec3 specular = specularLight + envSpecular * reflectivity * (1.0 - material.roughnessFactor);
 
     vec3 emissive = vec3(texture(tex3, TexCoords)) * material.emissiveTint * material.emissiveFactor;
-    float shadow = ShadowCalculation(FragPosLightSpace); 
+    vec3 lightCoords;
+    float shadow = ShadowCalculation(FragPosLightSpace, lightCoords); 
 
-    vec3 result = ((light.intensity * (diffuse + specular)) * (1.0 - shadow)) + ambient;
+    vec3 result = ((light.intensity * (diffuse + specular)) * (1.0 - shadow));
     return result + emissive;
 }
 
@@ -210,7 +238,7 @@ vec3 SpotLightResult(SpotLight light)
     diffuse *= intensity;
     specular *= intensity;
 
-    result = ((attenuation * light.intensity * (diffuse + specular))) + ambient;
+    result = ((attenuation * light.intensity * (diffuse + specular)));
 
     return result + emissive;
 }
@@ -219,7 +247,8 @@ vec3 SpotLightResult(SpotLight light)
 void main()
 {
     vec3 result = vec3(0.0);
-
+    vec3 ambient = vec3(1.0) * 0.1 * vec3(texture(tex0, TexCoords));
+    result += ambient;
     for (int i = 0; i < MAX_POINT_LIGHTS; i++)
     {
         if (i >= numPointLights) break;
@@ -240,5 +269,6 @@ void main()
     
     float gamma = 2.2;
     outputColor = vec4(pow(result, vec3(1.0/gamma)), 1.0);
+    //outputColor = vec4(vec3(result.z), 1.0);
     //outputColor = vec4(result, 1.0);
 }`;

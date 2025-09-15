@@ -7,10 +7,12 @@ export class ModelComponent extends Component
     static typeId: symbol = Symbol.for("ModelComponent");
 
     model: Model;
+    hasShadows: boolean;
 
-    constructor(model: Model)
+    constructor(model: Model, hasShadows: boolean = true)
     {
         super();
         this.model = model;
+        this.hasShadows = hasShadows;
     }
 }

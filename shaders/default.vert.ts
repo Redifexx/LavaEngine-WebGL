@@ -1,5 +1,5 @@
 export const vertexShaderSourceCode = `#version 300 es
-precision mediump float;
+precision highp float;
 
 in vec3 vertexPosition;
 in vec2 vertexTexCoord;
@@ -16,10 +16,18 @@ uniform mat4 lightSpaceMatrix;
 
 void main()
 {
-    FragPos = vec3(modelMatrix * vec4(vertexPosition, 1.0));
-    Normal = (transpose(inverse(mat3(modelMatrix))) * vertexNormal);
-    TexCoords = vertexTexCoord;
-    FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);
+     // World position
+    vec4 worldPos = modelMatrix * vec4(vertexPosition, 1.0);
+    FragPos = worldPos.xyz;
 
-    gl_Position = viewProjMatrix * vec4(FragPos, 1.0);
+    // Correct normal transform
+    Normal = normalize(mat3(transpose(inverse(modelMatrix))) * vertexNormal);
+
+    TexCoords = vertexTexCoord;
+
+    // Position in light’s clip space
+    FragPosLightSpace = lightSpaceMatrix * worldPos;
+
+    // Final clip-space position for the camera
+    gl_Position = viewProjMatrix * worldPos;
 }`;

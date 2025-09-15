@@ -138,7 +138,7 @@ export class EngineDemo extends Project
         this.MAIN_SCENE.skybox = mat_skybox.getTex(0);
 
         const mat_grass = new Material(sdr_standard);
-        mat_grass.setTex(0, loadTexture(this.GL_CONTEXT, "textures/meadow_diffuse.png", this.GL_CONTEXT.SRGB8_ALPHA8));
+        mat_grass.setTex(0, loadTexture(this.GL_CONTEXT, "textures/meadow_diffuse.png", this.GL_CONTEXT.SRGB8_ALPHA8, this.GL_CONTEXT.TEXTURE_2D, true));
         mat_grass.setTex(1, loadTexture(this.GL_CONTEXT, "textures/meadow_spec.png"));
         mat_grass.specularFactor = 1.0;
         mat_grass.roughnessFactor = 0.9;
@@ -182,7 +182,7 @@ export class EngineDemo extends Project
         e_cube_3.addComponent(ModelComponent, new ModelComponent(mod_cube_3));
         e_cube_4.addComponent(ModelComponent, new ModelComponent(mod_cube_4));
         e_cube_5.addComponent(ModelComponent, new ModelComponent(mod_cube_5));
-        e_skybox.addComponent(ModelComponent, new ModelComponent(mod_skybox));
+        e_skybox.addComponent(ModelComponent, new ModelComponent(mod_skybox, false));
 
         e_cube_1.addScript(new MeshRotate());
         e_cube_2.addScript(new MeshRotate());
@@ -196,7 +196,7 @@ export class EngineDemo extends Project
         (e_player.getScript("PlayerMovement") as PlayerMovement).flashlight = e_flashlight;
         e_camera.addScript(new CameraController());
     
-        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 0.1, true)); // default light
+        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 1.0, true)); // default light
         e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.0, 0.0), 4.0));
         e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 3.0));
         e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.3, 1.0), 2.0));

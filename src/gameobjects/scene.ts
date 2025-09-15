@@ -207,10 +207,13 @@ export class Scene
         {
             for (const modelComp of models)
             {
-                const oldMat = modelComp.model.material;
-                modelComp.model.setMaterial(LavaEngine.shadowMat!);
-                modelComp.model.draw(modelComp.parentEntity.getGlobalTransform(), true);
-                modelComp.model.setMaterial(oldMat);
+                if (modelComp.hasShadows)
+                {
+                    const oldMat = modelComp.model.material;
+                    modelComp.model.setMaterial(LavaEngine.shadowMat!);
+                    modelComp.model.draw(modelComp.parentEntity.getGlobalTransform(), true);
+                    modelComp.model.setMaterial(oldMat);
+                }
             }
         }
     }
@@ -282,8 +285,8 @@ export class Scene
             {
                 if (light.lightType === LightType.DIRECTIONAL)
                 {
-                    const nearPlane = 1.0;
-                    const farPlane = 50.0;
+                    const nearPlane = 10.0;
+                    const farPlane = 100.0;
 
                     const lightTransform = light.parentEntity.getGlobalTransform();
                     const lightDir = eulerToDirection(
@@ -292,7 +295,7 @@ export class Scene
                         lightTransform.rotation[2]);
 
                     const lightPos = vec3.create();
-                    vec3.scale(lightPos, lightDir, -20.0);
+                    vec3.scale(lightPos, lightDir, -50.0);
 
                     let lightView = mat4.create();
                     mat4.lookAt(
@@ -305,7 +308,7 @@ export class Scene
                     let lightProjection = mat4.create();
                     mat4.ortho(
                         lightProjection,
-                        -20.0, 20.0, -20.0, 20.0,
+                        -15.0, 15.0, -15.0, 15.0,
                         nearPlane, farPlane
                     );
 

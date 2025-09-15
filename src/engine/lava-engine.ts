@@ -119,13 +119,14 @@ export class LavaEngine
         this.ResizeFramebuffer();
 
         LavaEngine.screenQuad = new Mesh(this.gl_context, quadVertices);
-        LavaEngine.screenShader = new Shader(this.gl_context, screenTextureVertSdrSourceCode, depthDebugFragSdrSourceCode);
+        LavaEngine.screenShader = new Shader(this.gl_context, screenTextureVertSdrSourceCode, screenTextureFragSdrSourceCode);
 
 
         // ----- RENDER LOOP -------
         const frameDuration = 1000 / this.fpsTarget;
         LavaEngine.deltaTime = 0.0;
         let lastFrameTime = performance.now();
+
 
         const frame = function ()
         {
@@ -136,6 +137,7 @@ export class LavaEngine
             {
                 LavaEngine.deltaTime = delta / 1000;
                 lastFrameTime = thisFrameTime;
+                //console.log("FRAME: " + lastFrameTime);
                 const currentFps = 1.0 / LavaEngine.deltaTime;
                 LavaEngine.fpsHistory.push(currentFps);
                 if (LavaEngine.fpsHistory.length > 60) {
@@ -153,8 +155,8 @@ export class LavaEngine
 
                 LavaEngine.ShadowPass();
 
-                //LavaEngine.BindFramebuffer(LavaEngine.screenFramebuffer!); // custom frame buffer
-                //LavaEngine.project.MAIN_SCENE.render(LavaEngine.internalWidth, LavaEngine.internalHeight);
+                LavaEngine.BindFramebuffer(LavaEngine.screenFramebuffer!); // custom frame buffer
+                LavaEngine.project.MAIN_SCENE.render(LavaEngine.internalWidth, LavaEngine.internalHeight);
                 LavaEngine.RenderScreenTexture(); // To Screen Quad
             }
 
@@ -280,9 +282,9 @@ export class LavaEngine
     static RenderScreenTexture() 
     {
         this.gl_context.bindFramebuffer(this.gl_context.FRAMEBUFFER, null);
-        this.gl_context.viewport(0.0, 0.0, this.canvas!.width, this.canvas!.height);
-        this.gl_context.clearColor(1.0, 1.0, 1.0, 1.0);
-        this.gl_context.clear(this.gl_context.COLOR_BUFFER_BIT);
+        this.gl_context.viewport(0.0, 0.0, this.canvas!.width, this.canvas!.height); 
+        this.gl_context.clearColor(1.0, 0.0, 1.0, 1.0);
+        this.gl_context.clear(this.gl_context.COLOR_BUFFER_BIT | this.gl_context.DEPTH_BUFFER_BIT);
 
         this.gl_context.useProgram(this.screenShader!.shaderProgram);
         this.gl_context.bindVertexArray(this.screenQuad!.vertexArrayObject);
@@ -307,17 +309,11 @@ export class LavaEngine
         );
 
         this.gl_context.activeTexture(this.gl_context.TEXTURE0);
-        this.gl_context.bindTexture(this.gl_context.TEXTURE_2D, this.depthMap);
+        this.gl_context.bindTexture(this.gl_context.TEXTURE_2D, this.screenTexture);
 
-        this.gl_context.texParameteri(this.gl_context.TEXTURE_2D, this.gl_context.TEXTURE_WRAP_S, this.gl_context.CLAMP_TO_EDGE);
-        this.gl_context.texParameteri(this.gl_context.TEXTURE_2D, this.gl_context.TEXTURE_WRAP_T, this.gl_context.CLAMP_TO_EDGE);
-        this.gl_context.texParameteri(this.gl_context.TEXTURE_2D, this.gl_context.TEXTURE_MIN_FILTER, this.gl_context.LINEAR);
-        this.gl_context.texParameteri(this.gl_context.TEXTURE_2D, this.gl_context.TEXTURE_MAG_FILTER, this.gl_context.LINEAR);
+        this.gl_context.uniform1i(this.gl_context.getUniformLocation(this.screenShader!.shaderProgram, "screenTexture"), 0);
+        this.gl_context.uniform2fv(this.gl_context.getUniformLocation(this.screenShader!.shaderProgram, "screenSize"), vec2.fromValues(LavaEngine.internalWidth, LavaEngine.internalHeight));
 
-        this.gl_context.uniform1i(this.gl_context.getUniformLocation(this.screenShader!.shaderProgram, "depthDebug"), 0);
-        //this.gl_context.uniform2fv(this.gl_context.getUniformLocation(this.screenShader!.shaderProgram, "screenSize"), vec2.fromValues(LavaEngine.internalWidth, LavaEngine.internalHeight));
-
-        //this.gl_context.bindTexture(this.gl_context.TEXTURE_2D, this.depthMap);
         this.gl_context.drawArrays(this.gl_context.TRIANGLES, 0, 6);
 
         this.gl_context.bindBuffer(this.gl_context.ARRAY_BUFFER, null);
@@ -328,56 +324,37 @@ export class LavaEngine
     static SetupShadowMap()
     {
         const gl = this.gl_context;
-        this.triVAO = this.TriVAO();
         this.depthShader = new Shader(gl, depthMapVertSdrSourceCode, depthMapFragSdrSourceCode);
-        this.simpleProgram = createProgram(gl, simpleVertSdrSourceCode, simpleFragSdrSourceCode);
-        const depthMapFB = createFrameBuffer(gl);
+
         const depthMap = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, depthMap);
         gl.texImage2D(
             gl.TEXTURE_2D,
             0,
             gl.DEPTH_COMPONENT32F,
-            1024,
-            1024,
+            this.canvasWidth * 3,
+            this.canvasWidth * 3,
             0,
             gl.DEPTH_COMPONENT,
             gl.FLOAT,
             null,
         );
-        console.log('EXT_color_buffer_float:', !!gl.getExtension('EXT_color_buffer_float'));
-        console.log('WEBGL_depth_texture:', !!gl.getExtension('WEBGL_depth_texture')); // may be null on WebGL2
-        gl.bindTexture(gl.TEXTURE_2D, null);
-        
-
-        console.log(gl.checkFramebufferStatus(gl.FRAMEBUFFER));
-
-        this.shadowMat = new Material(this.depthShader!);
-        this.debugCube!.material = this.shadowMat;
-        this.debugCube!.setVAO();
-
-        gl.bindTexture(gl.TEXTURE_2D, depthMap);
-
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.NONE);
-
-
         gl.bindTexture(gl.TEXTURE_2D, null);
+        
 
+        this.shadowMat = new Material(this.depthShader!);
+
+        const depthMapFB = createFrameBuffer(gl);
         gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFB!);
-        console.log('GL error after attach0000:', gl.getError());
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthMap, 0);
-        console.log('GL error after attach1111:', gl.getError());
         logFramebufferStatus(this.gl_context, "fb text");
         gl.drawBuffers([gl.NONE]);
         gl.readBuffer(gl.NONE);
-        logFramebufferStatus(gl, "depthMapFB");
         gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFB!);
-        console.log('GL error after attac3333:', gl.getError());
 
         this.depthMap = depthMap!;
         this.depthMapFB = depthMapFB!;
@@ -385,59 +362,20 @@ export class LavaEngine
 
     static ShadowPass()
     {
-        this.gl_context.bindFramebuffer(this.gl_context.FRAMEBUFFER, null);
         const gl = this.gl_context;
-        //gl.viewport(0, 0, this.shadowMapResolution, this.shadowMapResolution);
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.depthMapFB!);
-        console.log('GL error after attach2222:', gl.getError());
-        gl.viewport(0,0,1024,1024);
+        logFramebufferStatus(gl, "Shadow Pass Bind");
+        gl.viewport(0, 0, this.canvasWidth * 3, this.canvasWidth * 3);
         gl.enable(gl.DEPTH_TEST);
-        gl.clearDepth(0.25);
         gl.clear(gl.DEPTH_BUFFER_BIT);
-        const depthValue = new Uint32Array(1);  // or Uint16Array if you switch to DEPTH_COMPONENT16
-        gl.readPixels(
-            512, 512,
-            1, 1,
-            gl.DEPTH_COMPONENT,
-            gl.UNSIGNED_INT,
-            depthValue
-        );
-        console.log('Raw depth bits:', depthValue[0]);
 
-        // Convert to normalized depth in [0,1]
-        const normalized = depthValue[0] / 0xFFFFFFFF;
-        console.log('Normalized depth:', normalized);
-        gl.depthFunc(gl.ALWAYS);          // ensure it writes regardless of current content
-        gl.colorMask(false, false, false, false); // avoid touching any color (depth-only FBO)
-        gl.bindVertexArray(this.triVAO);
-        gl.useProgram(this.simpleProgram);
-        gl.drawArrays(gl.TRIANGLES, 0, 3);
-        gl.bindVertexArray(null);
-        gl.colorMask(true, true, true, true);
-    
-
-        /*
-        gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.LEQUAL); // safer than default LESS when writing from light POV
-        gl.clearDepth(0.25);
-        gl.clear(gl.DEPTH_BUFFER_BIT);
-        const depthValue = new Uint32Array(1);  // or Uint16Array if you switch to DEPTH_COMPONENT16
-        gl.readPixels(
-            512, 512,
-            1, 1,
-            gl.DEPTH_COMPONENT,
-            gl.UNSIGNED_INT,
-            depthValue
-        );
-        console.log('Raw depth bits:', depthValue[0]);
-
-        // Convert to normalized depth in [0,1]
-        const normalized = depthValue[0] / 0xFFFFFFFF;
-        console.log('Normalized depth:', normalized);
+        //this.RenderDebugCube(this.shadowMat!.shader.shaderProgram);
+        gl.cullFace(gl.FRONT);
+        LavaEngine.project.MAIN_SCENE.renderShadow(this.depthShader!.shaderProgram);
+        gl.cullFace(gl.BACK);
         //LavaEngine.project.MAIN_SCENE.renderShadow(this.depthShader!.shaderProgram);
-        logFramebufferStatus(this.gl_context, "shadow");
-        this.BindFramebuffer(null);
-        */
+        //logFramebufferStatus(this.gl_context, "shadow");
+        //this.BindFramebuffer(null);
     }
 
     static RenderDebugCube(shader: WebGLProgram) {
@@ -466,7 +404,7 @@ export class LavaEngine
         gl.uniformMatrix4fv(modelMatrixUniformLocation, false, modelMatrix);
 
         const nearPlane = 1.0;
-        const farPlane = 100.0;
+        const farPlane = 50.0;
 
         const lightTransform = new Transform();
         lightTransform.rotation = vec3.fromValues(-90, 0, 0);
@@ -490,7 +428,7 @@ export class LavaEngine
         let lightProjection = mat4.create();
         mat4.ortho(
             lightProjection,
-            -50.0, 50.0, -50.0, 50.0,
+            -20.0, 20.0, -20.0, 20.0,
             nearPlane, farPlane
         );
 
@@ -501,7 +439,7 @@ export class LavaEngine
         gl.uniformMatrix4fv(gl.getUniformLocation(shader, "lightSpaceMatrix"), false, lightSpaceMatrix);
         gl.disable(gl.CULL_FACE);
         gl.bindVertexArray(this.debugCube!.vertexArrayObject);
-        gl.drawElements(gl.TRIANGLES, this.debugCube!.indices!.length, gl.UNSIGNED_SHORT, 0);
+        //gl.drawElements(gl.TRIANGLES, this.debugCube!.indices!.length, gl.UNSIGNED_SHORT, 0);
         gl.bindVertexArray(null);
     }
 
