@@ -3,14 +3,6 @@ import { Transform, TransformComponent } from "../components/transform-component
 import { createStaticIndexBuffer, createStaticVertexBuffer, showError } from "../gl-utils";
 import { Material } from "./material";
 
-export class Vertex
-{
-    position: vec3;
-    normal: vec3;
-    texCoords: vec2;
-    tangent: vec3;
-    bitTangent: vec3;
-}
 
 export class Mesh
 {
@@ -26,16 +18,19 @@ export class Mesh
 
     constructor(gl: WebGL2RenderingContext,
         meshVertices: Float32Array<ArrayBuffer>,
-        meshIndices: Uint16Array<ArrayBuffer> | null = null) 
+        meshIndices: Uint16Array<ArrayBuffer> | null) 
     {
         this.gl = gl;
-        this.vertices = meshVertices;
+
+        this.vertices = meshVertices!;
+
         this.vertexBuffer = createStaticVertexBuffer(gl, this.vertices);
         if (meshIndices)
         {
             this.indices = meshIndices;
             this.indexBuffer = createStaticIndexBuffer(gl, this.indices);
         }
+
     }
 
     setVAO()
@@ -50,43 +45,55 @@ export class Mesh
         this.gl.bindVertexArray(this.vertexArrayObject);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
 
-
-        // Interleaved format: (x, y, z, u, v, xn, yn, zn) (all f32)
+        //console.log("SEETTING VAO" + this.material.posAttrib);
+        // Interleaved format: (x, y, z, xn, yn, zn, u, v, tx, ty, tz, bx, by, bz) (all f32)
         if (this.material.posAttrib >= 0)
         {
             this.gl.enableVertexAttribArray(this.material.posAttrib);
             this.gl.vertexAttribPointer(
                 this.material.posAttrib, 3, this.gl.FLOAT, false,
-                8 * Float32Array.BYTES_PER_ELEMENT, 0
+                14 * Float32Array.BYTES_PER_ELEMENT, 0
+            );
+        } 
+        
+        if (this.material.normAttrib >= 0)
+        {
+            this.gl.enableVertexAttribArray(this.material.normAttrib);
+            this.gl.vertexAttribPointer(
+                this.material.normAttrib, 3, this.gl.FLOAT, false,
+                14 * Float32Array.BYTES_PER_ELEMENT,
+                3 * Float32Array.BYTES_PER_ELEMENT
             );
         }
-        else
-        {
-            console.log("no pos attrib");
-        }
-        
-        
-        if (!this.material.isCubemap)
-        {
-            if (this.material.texAttrib >= 0)
-            {
-                this.gl.enableVertexAttribArray(this.material.texAttrib);
-                this.gl.vertexAttribPointer(
-                this.material.texAttrib, 2, this.gl.FLOAT, false,
-                8 * Float32Array.BYTES_PER_ELEMENT,
-                3 * Float32Array.BYTES_PER_ELEMENT
-                );
-            }
 
-            if (this.material.normAttrib >= 0)
-            {
-                this.gl.enableVertexAttribArray(this.material.normAttrib);
-                this.gl.vertexAttribPointer(
-                    this.material.normAttrib, 3, this.gl.FLOAT, false,
-                    8 * Float32Array.BYTES_PER_ELEMENT,
-                    5 * Float32Array.BYTES_PER_ELEMENT
-                );
-            }
+        if (this.material.texAttrib >= 0)
+        {
+            this.gl.enableVertexAttribArray(this.material.texAttrib);
+            this.gl.vertexAttribPointer(
+                this.material.texAttrib, 2, this.gl.FLOAT, false,
+                14 * Float32Array.BYTES_PER_ELEMENT,
+                6 * Float32Array.BYTES_PER_ELEMENT
+            );
+        }
+
+        if (this.material.tanAttrib >= 0)
+        {
+            this.gl.enableVertexAttribArray(this.material.tanAttrib);
+            this.gl.vertexAttribPointer(
+                this.material.texAttrib, 3, this.gl.FLOAT, false,
+                14 * Float32Array.BYTES_PER_ELEMENT,
+                8 * Float32Array.BYTES_PER_ELEMENT
+            );
+        }
+
+        if (this.material.bitAttrib >= 0)
+        {
+            this.gl.enableVertexAttribArray(this.material.bitAttrib);
+            this.gl.vertexAttribPointer(
+                this.material.texAttrib, 3, this.gl.FLOAT, false,
+                14 * Float32Array.BYTES_PER_ELEMENT,
+                11 * Float32Array.BYTES_PER_ELEMENT
+            );
         }
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
@@ -138,19 +145,12 @@ export class Mesh
     }
 
     clone(): Mesh {
-        // deep copy the data so it's not shared :)
-        if (this.indices)
-        {
-            return new Mesh(this.gl,
+        const clonedIndices  = this.indices ? new Uint16Array(this.indices) : null;
+        return new Mesh(
+            this.gl,
             new Float32Array(this.vertices),
-            new Uint16Array(this.indices)
-            );
-        }
-        else
-        {
-            return new Mesh(this.gl,
-            new Float32Array(this.vertices)
+            clonedIndices
         );
-        }
     }
+
 }

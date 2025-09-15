@@ -17,6 +17,7 @@ import { CameraController } from "../scripts/cameraController";
 import { MeshRotate } from "../scripts/meshRotate";
 import { skyboxVertSdrSourceCode } from "../../shaders/skybox/skybox.vert";
 import { skyboxFragSdrSourceCode } from "../../shaders/skybox/skybox.frag";
+import { LookAtPlayer } from "../scripts/lookAtPlayer";
 
 export class EngineDemo extends Project
 {
@@ -35,7 +36,7 @@ export class EngineDemo extends Project
         const e_plane = this.MAIN_SCENE.addEntity(
             "Plane",
             vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(-90.0, 0.0, 0.0),
             vec3.fromValues(50.0, 50.0, 50.0)
         );
 
@@ -86,6 +87,10 @@ export class EngineDemo extends Project
             vec3.fromValues(32.0, 4.0, 32.0)
         );
 
+        const e_skullLight = this.MAIN_SCENE.addEntity(
+            "SkullLight"
+        );
+
         const e_flashlight = this.MAIN_SCENE.addEntity(
             "FlashLight",
             vec3.fromValues(0.0, 0.0, 0.0),
@@ -96,7 +101,7 @@ export class EngineDemo extends Project
         const e_cube_1 = this.MAIN_SCENE.addEntity(
             "Cube1",
             vec3.fromValues(0.0, 1.0, -10.0), 
-            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(-90.0, 0.0, 0.0),
             vec3.fromValues(1.0, 1.0, 1.0)
         );
         const e_cube_2 = this.MAIN_SCENE.addEntity(
@@ -108,21 +113,28 @@ export class EngineDemo extends Project
         const e_cube_3 = this.MAIN_SCENE.addEntity(
             "Cube3",
             vec3.fromValues(3.0, 0.4, -2.5), 
-            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(-90.0, 0.0, 0.0),
             vec3.fromValues(0.4, 0.4, 0.4)
         );
         const e_cube_4 = this.MAIN_SCENE.addEntity(
             "Cube4",
             vec3.fromValues(-5.0, 0.7, 2.0), 
-            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(-90.0, 0.0, 0.0),
             vec3.fromValues(0.7, 0.7, 0.7)
         );
 
         const e_cube_5 = this.MAIN_SCENE.addEntity(
             "Cube5",
             vec3.fromValues(0.0, 2.0, 10.0), 
-            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(-90.0, 0.0, 0.0),
             vec3.fromValues(1.5, 1.5, 1.5)
+        );
+
+        const e_skull = this.MAIN_SCENE.addEntity(
+            "Skull",
+            vec3.fromValues(0.0, 20.0, -25.0), 
+            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(12.0, 12.0, 12.0)
         );
 
         // Create meshs from vert/ind
@@ -166,14 +178,25 @@ export class EngineDemo extends Project
         mat_tiles.roughnessFactor = 0.5;
         mat_tiles.emissiveFactor = 1.0;
 
+        const mat_skull = new Material(sdr_standard);
+        mat_skull.setTex(0, loadTexture(this.GL_CONTEXT, "textures/skull/skull_diff.png", this.GL_CONTEXT.SRGB8_ALPHA8)); 
+        mat_skull.setTex(1, loadTexture(this.GL_CONTEXT, "textures/skull/skull_spec.png")); 
+        mat_skull.setTex(2, loadTexture(this.GL_CONTEXT, "textures/skull/skull_norm.png")); 
+        mat_skull.setTex(3, loadTexture(this.GL_CONTEXT, "textures/skull/skull_emis.png", this.GL_CONTEXT.SRGB8_ALPHA8)); 
+        mat_skull.specularFactor = 1.0;
+        mat_skull.roughnessFactor = 0.2;
+        mat_skull.emissiveFactor = 1.0;
+
         // Create models from meshs (make modelcomponent house materials)
-        const mod_plane = new Model(mat_grass, msh_plane);
-        const mod_cube_1 = new Model(mat_face, msh_cube);
-        const mod_cube_2 = new Model(mat_stone, msh_cube);
-        const mod_cube_3 = new Model(mat_gata, msh_cube);
-        const mod_cube_4 = new Model(mat_brick, msh_cube);
-        const mod_cube_5 = new Model(mat_tiles, msh_cube);
-        const mod_skybox = new Model(mat_skybox, msh_cube);
+        //const mod_plane = new Model(null, mat_grass, msh_plane);
+        const mod_plane = new Model("models/plane.json", mat_grass, null);
+        const mod_cube_1 = new Model("models/cube.json", mat_face, null);
+        const mod_cube_2 = new Model("models/Monkey.json", mat_stone, null);
+        const mod_cube_3 = new Model("models/cube.json", mat_gata, null);
+        const mod_cube_4 = new Model("models/cube.json", mat_brick, null);
+        const mod_cube_5 = new Model("models/cube.json", mat_tiles, null);
+        const mod_skull = new Model("models/skull.json", mat_skull, null);
+        const mod_skybox = new Model("models/cube.json", mat_skybox, null);
 
         // Add model components to entities (trying to maintain ECS-ish)
         e_plane.addComponent(ModelComponent, new ModelComponent(mod_plane));
@@ -182,6 +205,7 @@ export class EngineDemo extends Project
         e_cube_3.addComponent(ModelComponent, new ModelComponent(mod_cube_3));
         e_cube_4.addComponent(ModelComponent, new ModelComponent(mod_cube_4));
         e_cube_5.addComponent(ModelComponent, new ModelComponent(mod_cube_5));
+        e_skull.addComponent(ModelComponent, new ModelComponent(mod_skull));
         e_skybox.addComponent(ModelComponent, new ModelComponent(mod_skybox, false));
 
         e_cube_1.addScript(new MeshRotate());
@@ -191,10 +215,17 @@ export class EngineDemo extends Project
         e_cube_5.addScript(new MeshRotate());
     
         e_camera.addComponent(CameraComponent, new CameraComponent());
+
         e_player.addChildEntity(e_camera);
-        e_player.addScript(new PlayerMovement());
+        const playerMoveScript = new PlayerMovement();
+        e_player.addScript(playerMoveScript);
         (e_player.getScript("PlayerMovement") as PlayerMovement).flashlight = e_flashlight;
         e_camera.addScript(new CameraController());
+
+
+        const lookAtScript = new LookAtPlayer(e_player.getGlobalTransform());
+        lookAtScript.player = e_player;
+        e_skull.addScript(lookAtScript);
     
         e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 1.0, true)); // default light
         e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.0, 0.0), 4.0));
@@ -205,6 +236,7 @@ export class EngineDemo extends Project
         e_whitelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 1.0));
         e_flashlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 1.0), 3.0));
         e_whitePtlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 1.0));
+        e_skullLight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.5, 0.0, 1.0), 10.0));
         e_camera.addChildEntity(e_flashlight);
     }
 

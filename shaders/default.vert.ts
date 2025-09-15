@@ -1,9 +1,11 @@
 export const vertexShaderSourceCode = `#version 300 es
 precision highp float;
 
-in vec3 vertexPosition;
-in vec2 vertexTexCoord;
-in vec3 vertexNormal;
+in vec3 aPos;
+in vec3 aNormal;
+in vec2 aTexCoord;
+in vec3 aTangent;
+in vec3 aBitangent;
 
 out vec3 FragPos;
 out vec3 Normal;
@@ -17,13 +19,13 @@ uniform mat4 lightSpaceMatrix;
 void main()
 {
      // World position
-    vec4 worldPos = modelMatrix * vec4(vertexPosition, 1.0);
+    vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
     FragPos = worldPos.xyz;
 
     // Correct normal transform
-    Normal = normalize(mat3(transpose(inverse(modelMatrix))) * vertexNormal);
+    Normal = normalize(mat3(transpose(inverse(modelMatrix))) * aNormal);
 
-    TexCoords = vertexTexCoord;
+    TexCoords = aTexCoord;
 
     // Position in light’s clip space
     FragPosLightSpace = lightSpaceMatrix * worldPos;

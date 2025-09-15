@@ -16,6 +16,7 @@ export class PlayerMovement extends ScriptableBehavior
     moveSpeed = 1.3;
     walkSpeed = 0.3;
     airSpeed = 0.3;
+    isMoving: boolean;
 
     constructor()
     {
@@ -25,6 +26,7 @@ export class PlayerMovement extends ScriptableBehavior
     override Start(): void
     {
         this.playerTransform = this.parentEntity!.getComponentOrThrow(TransformComponent).transform;
+        this.isMoving = false;
     }
 
     override Update(): void
@@ -43,26 +45,32 @@ export class PlayerMovement extends ScriptableBehavior
             this.SpeedCheck();
 
             const acceleration = vec3.create();
+            
+            this.isMoving = false;
 
             if (Input.GetKeyHeld("w"))
             {
                 vec3.add(acceleration, acceleration, this.playerTransform.GetForward());
+                this.isMoving = true;
             }
             if (Input.GetKeyHeld("s"))
             {
                 const backward = vec3.create();
                 vec3.scale(backward, this.playerTransform.GetForward(), -1);
                 vec3.add(acceleration, acceleration, backward);
+                this.isMoving = true;
             }
             if (Input.GetKeyHeld("d"))
             {
                 vec3.add(acceleration, acceleration, this.playerTransform.GetRight());
+                this.isMoving = true;
             }
             if (Input.GetKeyHeld("a"))
             {
                 const left = vec3.create();
                 vec3.scale(left, this.playerTransform.GetRight(), -1);
                 vec3.add(acceleration, acceleration, left);
+                this.isMoving = true;
             }
 
             if (Input.GetKeyPressed("escape"))

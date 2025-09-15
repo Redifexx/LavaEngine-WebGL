@@ -118,7 +118,7 @@ export class LavaEngine
         this.screenFramebuffer = createFrameBuffer(this.gl_context);
         this.ResizeFramebuffer();
 
-        LavaEngine.screenQuad = new Mesh(this.gl_context, quadVertices);
+        LavaEngine.screenQuad = new Mesh(this.gl_context, quadVertices, null);
         LavaEngine.screenShader = new Shader(this.gl_context, screenTextureVertSdrSourceCode, screenTextureFragSdrSourceCode);
 
 

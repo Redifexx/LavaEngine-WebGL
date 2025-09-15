@@ -41,6 +41,24 @@ export class Scene
         return newEntity;
     }
 
+    /*
+    addModel(
+        url: string,
+        name: string | null = null,
+        pos: vec3 = vec3.fromValues(0.0, 0.0, 0.0),
+        rotation: vec3 = vec3.fromValues(0.0, 0.0, 0.0),
+        scale: vec3 = vec3.fromValues(1.0, 1.0, 1.0)
+    )
+    {
+
+        const newEntity = new Entity(this.entities.length, name, this, pos, rotation, scale);
+        this.entities.push(newEntity);
+        this.entityMap.set(name, newEntity);
+        this.updateEntity(newEntity);
+        return newEntity;
+    }
+        */
+
     getEntityByName(name: string): Entity | undefined
     {
         return this.entityMap.get(name);

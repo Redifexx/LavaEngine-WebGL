@@ -38,8 +38,10 @@ export class Material
 
 
     posAttrib: number = -1;
-    texAttrib: number = -1;
     normAttrib: number = -1;
+    texAttrib: number = -1;
+    tanAttrib: number = -1;
+    bitAttrib: number = -1;
 
     constructor
     (
@@ -73,12 +75,8 @@ export class Material
         
         let location: WebGLUniformLocation | null;
 
-        this.posAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'vertexPosition');
-        if (this.posAttrib < 0)
-        {
-            console.log("NO POS ATTRIB");
-        }
-        
+        this.posAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'aPos');
+
         if (!isCubemap)
         {
             location = shader.gl.getUniformLocation(shader.shaderProgram, 'viewProjMatrix')
@@ -99,9 +97,10 @@ export class Material
             {
                 this.viewPosMatrixUniformLocation = location;
             }
-
-            this.texAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'vertexTexCoord');
-            this.normAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'vertexNormal');
+            this.normAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'aNormal');
+            this.texAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'aTexCoord');
+            this.tanAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'aTangent');
+            this.bitAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'aBitangent');
         }
         else
         {
