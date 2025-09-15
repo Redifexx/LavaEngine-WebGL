@@ -161,9 +161,11 @@ export class LavaEngine
             }
 
             
-            requestAnimationFrame(frame);
+            //requestAnimationFrame(frame);
+            setTimeout(frame, 0);
         }
-        requestAnimationFrame(frame);
+        frame();
+        //requestAnimationFrame(frame);
     }
 
     static UpdateEngine()

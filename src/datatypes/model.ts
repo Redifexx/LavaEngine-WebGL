@@ -34,6 +34,28 @@ export class Model
         mesh.setVAO();
         this.meshCollection.push(mesh);
     }
+
+    // parse from json
+    async loadModel(url: string)
+    {
+        let rootURL = '../../' + url;
+
+        // Fetch the file
+        const response = await fetch(rootURL);
+        if (!response.ok) {
+            throw new Error(`Failed to load model: ${response.status} ${response.statusText}`);
+        }
+
+         // Parse the JSON into a JavaScript object
+        const modelData = await response.json(); // automatically parses JSON
+
+        
+        for (const meshData of modelData.meshes)
+        {
+            let mesh = new Mesh(meshData.vertices, meshData.faces);
+        }
+
+    }
     
     draw(transform: Transform, depthOnly: boolean = false, uniformLocation: WebGLUniformLocation = this.material.modelMatrixUniformLocation!)
     {

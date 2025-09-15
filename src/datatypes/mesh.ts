@@ -1,13 +1,24 @@
-import { mat4, quat, vec3 } from "gl-matrix";
+import { mat4, quat, vec2, vec3 } from "gl-matrix";
 import { Transform, TransformComponent } from "../components/transform-component";
 import { createStaticIndexBuffer, createStaticVertexBuffer, showError } from "../gl-utils";
 import { Material } from "./material";
 
+export class Vertex
+{
+    position: vec3;
+    normal: vec3;
+    texCoords: vec2;
+    tangent: vec3;
+    bitTangent: vec3;
+}
+
 export class Mesh
 {
     gl: WebGL2RenderingContext;
+
     vertices: Float32Array<ArrayBuffer>;
     indices: Uint16Array<ArrayBuffer> | null;
+
     vertexBuffer: WebGLBuffer | null;
     indexBuffer: WebGLBuffer | null;
     vertexArrayObject: WebGLVertexArrayObject;
