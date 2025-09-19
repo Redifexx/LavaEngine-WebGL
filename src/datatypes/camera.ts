@@ -2,6 +2,7 @@ import { glMatrix, mat3, mat4, quat, vec3 } from 'gl-matrix';
 import { CameraType } from '../components/camera-component';
 import { Input } from '../engine/input';
 import { Transform } from '../components/transform-component';
+import { getQuatForward, getQuatUp } from '../gl-utils';
 
 export class Camera
 {
@@ -122,8 +123,8 @@ export class Camera
     {
         const viewMat = mat4.create();
         const posForward = vec3.create();
-        const up = transform.GetUp();
-        vec3.add(posForward, transform.position, transform.GetForward());
+        const up = getQuatUp(transform.rotation);
+        vec3.add(posForward, transform.position, getQuatForward(transform.rotation));
         mat4.lookAt(viewMat, transform.position, posForward, up);
         return viewMat;
     }

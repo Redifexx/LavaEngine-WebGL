@@ -115,12 +115,9 @@ export class Mesh
     {
         const modelMatrix = mat4.create();
 
-        const rotationQuat = quat.create();
-        quat.fromEuler(rotationQuat, transform.rotation[0], transform.rotation[1], transform.rotation[2]);
-        
         mat4.fromRotationTranslationScale(
             modelMatrix,
-            rotationQuat,
+            transform.rotation,
             transform.position,
             transform.scale
         );

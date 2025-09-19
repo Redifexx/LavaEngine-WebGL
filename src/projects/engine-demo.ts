@@ -36,9 +36,15 @@ export class EngineDemo extends Project
         const e_plane = this.MAIN_SCENE.addEntity(
             "Plane",
             vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0),
+            vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(50.0, 50.0, 50.0)
         );
+        const e_plane_mesh = this.MAIN_SCENE.addEntity(
+            "PlaneMesh",
+            vec3.fromValues(0.0, 0.0, 0.0), 
+            vec3.fromValues(-90.0, 0.0, 0.0)
+        );
+        e_plane.addChildEntity(e_plane_mesh);
 
         const e_player = this.MAIN_SCENE.addEntity("Player", vec3.fromValues(0.0, 0.0, 0.0));
         const e_camera = this.MAIN_SCENE.addEntity("Camera", vec3.fromValues(0.0, 2.0, 0.0));
@@ -98,48 +104,84 @@ export class EngineDemo extends Project
         );
         e_flashlight.setActive(false);
 
+        const e_cube_1_mesh = this.MAIN_SCENE.addEntity(
+            "Cube1Mesh",
+            vec3.fromValues(0.0, 0.0, 0.0), 
+            vec3.fromValues(-90.0, 0.0, 0.0)
+        );
+        const e_cube_2_mesh = this.MAIN_SCENE.addEntity(
+            "Cube2Mesh",
+            vec3.fromValues(0.0, 0.0, 0.0), 
+            vec3.fromValues(-90.0, 0.0, 0.0)
+        );
+        const e_cube_3_mesh = this.MAIN_SCENE.addEntity(
+            "Cube3Mesh",
+            vec3.fromValues(0.0, 0.0, 0.0), 
+            vec3.fromValues(-90.0, 0.0, 0.0)
+        );
+        const e_cube_4_mesh = this.MAIN_SCENE.addEntity(
+            "Cube4Mesh",
+            vec3.fromValues(0.0, 0.0, 0.0), 
+            vec3.fromValues(-90.0, 0.0, 0.0)
+        );
+        const e_cube_5_mesh = this.MAIN_SCENE.addEntity(
+            "Cube5Mesh",
+            vec3.fromValues(0.0, 0.0, 0.0), 
+            vec3.fromValues(-90.0, 0.0, 0.0)
+        );
+        const e_skull_mesh = this.MAIN_SCENE.addEntity(
+            "SkullMesh",
+            vec3.fromValues(0.0, 0.0, 0.0), 
+            vec3.fromValues(0.0, 0.0, 0.0)
+        );
+        
         const e_cube_1 = this.MAIN_SCENE.addEntity(
             "Cube1",
             vec3.fromValues(0.0, 1.0, -10.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0),
+            vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(1.0, 1.0, 1.0)
         );
+        e_cube_1.addChildEntity(e_cube_1_mesh);
+
         const e_cube_2 = this.MAIN_SCENE.addEntity(
             "Cube2",
             vec3.fromValues(4.0, 0.2, 3.0), 
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.2, 0.2, 0.2)
         );
+        e_cube_2.addChildEntity(e_cube_2_mesh);
+
         const e_cube_3 = this.MAIN_SCENE.addEntity(
             "Cube3",
             vec3.fromValues(3.0, 0.4, -2.5), 
-            vec3.fromValues(-90.0, 0.0, 0.0),
+            vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.4, 0.4, 0.4)
         );
+        e_cube_3.addChildEntity(e_cube_3_mesh);
+
         const e_cube_4 = this.MAIN_SCENE.addEntity(
             "Cube4",
             vec3.fromValues(-5.0, 0.7, 2.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0),
+            vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.7, 0.7, 0.7)
         );
+        e_cube_4.addChildEntity(e_cube_4_mesh);
 
         const e_cube_5 = this.MAIN_SCENE.addEntity(
             "Cube5",
             vec3.fromValues(0.0, 2.0, 10.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0),
+            vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(1.5, 1.5, 1.5)
         );
+        e_cube_5.addChildEntity(e_cube_5_mesh);
 
         const e_skull = this.MAIN_SCENE.addEntity(
             "Skull",
-            vec3.fromValues(0.0, 20.0, -25.0), 
+            vec3.fromValues(0.0, 2.0, 0.0), 
             vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(12.0, 12.0, 12.0)
+            vec3.fromValues(1.0, 1.0, 1.0)
         );
-
-        // Create meshs from vert/ind
-        const msh_plane = new Mesh(this.GL_CONTEXT, PLANE_VERTICES, PLANE_INDICES);
-        const msh_cube = new Mesh(this.GL_CONTEXT, CUBE_VERTICES, CUBE_INDICES);
+        e_skull.addChildEntity(e_skull_mesh);
 
         // Create shader to render material with
         const sdr_standard = new Shader(this.GL_CONTEXT, vertexShaderSourceCode, fragmentShaderSourceCode);
@@ -199,13 +241,13 @@ export class EngineDemo extends Project
         const mod_skybox = new Model("models/cube.json", mat_skybox, null);
 
         // Add model components to entities (trying to maintain ECS-ish)
-        e_plane.addComponent(ModelComponent, new ModelComponent(mod_plane));
-        e_cube_1.addComponent(ModelComponent, new ModelComponent(mod_cube_1));
-        e_cube_2.addComponent(ModelComponent, new ModelComponent(mod_cube_2));
-        e_cube_3.addComponent(ModelComponent, new ModelComponent(mod_cube_3));
-        e_cube_4.addComponent(ModelComponent, new ModelComponent(mod_cube_4));
-        e_cube_5.addComponent(ModelComponent, new ModelComponent(mod_cube_5));
-        e_skull.addComponent(ModelComponent, new ModelComponent(mod_skull));
+        e_plane_mesh.addComponent(ModelComponent, new ModelComponent(mod_plane));
+        e_cube_1_mesh.addComponent(ModelComponent, new ModelComponent(mod_cube_1));
+        e_cube_2_mesh.addComponent(ModelComponent, new ModelComponent(mod_cube_2));
+        e_cube_3_mesh.addComponent(ModelComponent, new ModelComponent(mod_cube_3));
+        e_cube_4_mesh.addComponent(ModelComponent, new ModelComponent(mod_cube_4));
+        e_cube_5_mesh.addComponent(ModelComponent, new ModelComponent(mod_cube_5));
+        e_skull_mesh.addComponent(ModelComponent, new ModelComponent(mod_skull));
         e_skybox.addComponent(ModelComponent, new ModelComponent(mod_skybox, false));
 
         e_cube_1.addScript(new MeshRotate());
@@ -225,7 +267,7 @@ export class EngineDemo extends Project
 
         const lookAtScript = new LookAtPlayer(e_player.getGlobalTransform());
         lookAtScript.player = e_player;
-        e_skull.addScript(lookAtScript);
+        //e_skull.addScript(lookAtScript);
     
         e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 1.0, true)); // default light
         e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.0, 0.0), 4.0));

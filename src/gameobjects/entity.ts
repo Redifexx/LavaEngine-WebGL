@@ -4,7 +4,7 @@ import { Component, ComponentConstructor } from "./component"
 import { Scene } from "./scene";
 import { ScriptableBehavior } from "./scriptable-behavior";
 import { Input } from "../engine/input";
-import { eulerToQuat, quatToEuler } from "../gl-utils";
+import { eulerToQuatWorld, quatToEuler } from "../gl-utils";
 
 export class Entity
 {
@@ -29,7 +29,7 @@ export class Entity
         this.scene = scene;
         this.id = eID;
         this.name = eName;
-        this.transformComponent = new TransformComponent(pos, rotation, scale);
+        this.transformComponent = new TransformComponent(pos, eulerToQuatWorld(rotation), scale);
         this.addComponent(TransformComponent, this.transformComponent);
         this.isActive = true;
     }
@@ -77,77 +77,63 @@ export class Entity
         let newTransform: Transform = new Transform();
         newTransform.position = this.getGlobalPosition();
         newTransform.rotation = this.getGlobalRotation();
-        newTransform.scale = this.transformComponent.transform.scale;
+        newTransform.scale = this.getGlobalScale();
         return newTransform;
     }
 
    getGlobalPosition(): vec3
    {
-        const transformComponent = this.getComponentOrThrow(TransformComponent);
-        const localPos = transformComponent.transform.position;
+        const { position } = this.transformComponent.transform;
+        let out = vec3.create();
+        vec3.copy(out, position);
 
-        if (this.parentEntity) {
+        if (this.parentEntity)
+        {
             const parentPos = this.parentEntity.getGlobalPosition();
-            const parentScale = this.parentEntity.getGlobalTransform().scale;
-            const scaledLocal = vec3.create();
-            vec3.multiply(scaledLocal, localPos, parentScale);
-            const result = vec3.create();
-            vec3.add(result, parentPos, scaledLocal);
+            const parentRot = this.parentEntity.getGlobalRotation();
+            const parentScale = this.parentEntity.getGlobalScale();
 
-            /* NEED TO FIX
-            const parentRot = this.parentEntity.getGlobalRotationQuat();
-
-            const rotatedLocal = vec3.create();
-            if (vec3.length(localPos) > 0.0001) {
-                vec3.transformQuat(rotatedLocal, scaledLocal, parentRot);
-            } else {
-                vec3.copy(rotatedLocal, scaledLocal); 
-            }
+            const scaled = vec3.create();
+            vec3.multiply(scaled, position, parentScale);
             
-            const result = vec3.create();
-            vec3.add(result, parentPos, rotatedLocal);
-            */
-           
-            if (this.name === "Camera" && Input.GetKeyHeld("e"))
-            {
-                console.log(result);
-            }
-            return result;
+            const rotated = vec3.create();
+            vec3.transformQuat(rotated, scaled, parentRot);
+
+            vec3.add(out, parentPos, rotated);
         }
 
-        return vec3.clone(localPos);
+        return out;
     }
 
-    getGlobalRotation(): vec3
+    getGlobalRotation(): quat
     {
-        const transformComponent = this.getComponentOrThrow(TransformComponent);
-
-        const localQuat = eulerToQuat(transformComponent.transform.rotation);
+        const { rotation } = this.transformComponent.transform;
+        let out = quat.create();
+        quat.copy(out, rotation);
 
         if (this.parentEntity)
         {
-            const parentQuat = this.parentEntity.getGlobalRotationQuat();
-            const globalQuat = quat.create();
-            quat.multiply(globalQuat, parentQuat, localQuat);
-
-            const euler = quatToEuler(globalQuat);
-            return euler;
+            const parentRot = this.parentEntity.getGlobalRotation();
+            quat.multiply(out, parentRot, rotation);
+            quat.normalize(out, out);
         }
-        return vec3.clone(transformComponent.transform.rotation);
+
+        return out;
     }
 
-    getGlobalRotationQuat(): quat
+    getGlobalScale(): vec3
     {
-        const transformComponent = this.getComponentOrThrow(TransformComponent);
-        const localQuat = eulerToQuat(transformComponent.transform.rotation);
+        const { scale } = this.transformComponent.transform;
+        let out = vec3.create();
+        vec3.copy(out, scale);
+
         if (this.parentEntity)
         {
-            const parentQuat = this.parentEntity.getGlobalRotationQuat();
-            const globalQuat = quat.create();
-            quat.multiply(globalQuat, parentQuat, localQuat);
-            return globalQuat;
+            const parentScale = this.parentEntity.getGlobalScale();
+            vec3.multiply(out, parentScale, scale);
         }
-        return localQuat;
+
+        return out;
     }
 
     getActive(): boolean

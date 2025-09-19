@@ -1,3 +1,4 @@
+import { vec3 } from "gl-matrix";
 import { TransformComponent, Transform } from "../components/transform-component";
 import { Input } from "../engine/input";
 import { LavaEngine } from "../engine/lava-engine";
@@ -26,10 +27,11 @@ export class MeshRotate extends ScriptableBehavior
         {
             this.totalTime += LavaEngine.deltaTime;
             this.objTransform.position[1] += 0.005 * Math.sin(this.totalTime);
-            this.objTransform.rotation[1] += 50 * LavaEngine.deltaTime;
+            this.objTransform.Rotate(vec3.fromValues(0, 50 * LavaEngine.deltaTime, 0));
+            //this.objTransform.rotation[1] += 50 * LavaEngine.deltaTime;
             if (this.objTransform.rotation[1] >= 360)
             {
-                this.objTransform.rotation[1] = 0;
+                //this.objTransform.rotation[1] = 0;
             }
         }
         

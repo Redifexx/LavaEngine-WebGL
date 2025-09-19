@@ -1,9 +1,9 @@
-import { mat4, vec3 } from "gl-matrix";
+import { mat4, quat, vec3 } from "gl-matrix";
 import { Entity } from "./entity";
 import { ModelComponent } from "../components/model-component";
 import { TransformComponent, Transform } from "../components/transform-component";
 import { LightComponent, LightType } from "../components/light-component";
-import { eulerToDirection, showError } from "../gl-utils";
+import { eulerToDirection, getQuatForward, showError } from "../gl-utils";
 import { Material } from "../datatypes/material";
 import { Camera } from "../datatypes/camera";
 import { CameraComponent } from "../components/camera-component";
@@ -31,13 +31,26 @@ export class Scene
         name: string,
         pos: vec3 = vec3.fromValues(0.0, 0.0, 0.0),
         rotation: vec3 = vec3.fromValues(0.0, 0.0, 0.0),
-        scale: vec3 = vec3.fromValues(1.0, 1.0, 1.0)
+        scale: vec3 = vec3.fromValues(1.0, 1.0, 1.0),
+        rotCorrection: boolean = false
     )
     {
         const newEntity = new Entity(this.entities.length, name, this, pos, rotation, scale);
         this.entities.push(newEntity);
         this.entityMap.set(name, newEntity);
         this.updateEntity(newEntity);
+
+        if (rotCorrection)
+        {
+            const cor = quat.create();
+            quat.rotateX(cor, cor, Math.PI/2);
+            quat.multiply(
+                newEntity.transformComponent.transform.rotation,
+                cor,
+                newEntity.transformComponent.transform.rotation
+            );
+        }
+
         return newEntity;
     }
 
@@ -267,8 +280,8 @@ export class Scene
             {
                 if (light.lightType === LightType.POINT)
                 {
-                    const base = `ptLights[${numPoint}]`;
-                    this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".position"), light.parentEntity.getGlobalTransform().position);
+                    const base = `ptLights[${numPoint}]`
+                    this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".position"), light.parentEntity.getGlobalPosition());
                     this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".color"), light.color);
                     this.gl.uniform1f(this.gl.getUniformLocation(program, base + ".intensity"), light.intensity);
                     numPoint++;
@@ -276,7 +289,8 @@ export class Scene
                 else if (light.lightType === LightType.DIRECTIONAL)
                 {
                     const base = `dirLights[${numDir}]`;
-                    const lightDirection = eulerToDirection(light.parentEntity.getGlobalTransform().rotation[0], light.parentEntity.getGlobalTransform().rotation[1], light.parentEntity.getGlobalTransform().rotation[2]);
+                    const lightTransform = light.parentEntity.getGlobalTransform();
+                    const lightDirection = getQuatForward(lightTransform.rotation);
                     this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".direction"), lightDirection);
                     this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".color"), light.color);
                     this.gl.uniform1f(this.gl.getUniformLocation(program, base + ".intensity"), light.intensity);
@@ -285,7 +299,8 @@ export class Scene
                 else if (light.lightType === LightType.SPOT)
                 {
                     const base = `spotLights[${numSpot}]`;
-                    const lightDirection = eulerToDirection(light.parentEntity.getGlobalTransform().rotation[0], light.parentEntity.getGlobalTransform().rotation[1], light.parentEntity.getGlobalTransform().rotation[2]);
+                    const lightTransform = light.parentEntity.getGlobalTransform();
+                    const lightDirection = getQuatForward(lightTransform.rotation);
                     this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".position"), light.parentEntity.getGlobalTransform().position);
                     this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".direction"), lightDirection);
                     this.gl.uniform3fv(this.gl.getUniformLocation(program, base + ".color"), light.color);
@@ -307,13 +322,10 @@ export class Scene
                     const farPlane = 100.0;
 
                     const lightTransform = light.parentEntity.getGlobalTransform();
-                    const lightDir = eulerToDirection(
-                        lightTransform.rotation[0],
-                        lightTransform.rotation[1],
-                        lightTransform.rotation[2]);
+                    const lightDirection = getQuatForward(lightTransform.rotation);
 
                     const lightPos = vec3.create();
-                    vec3.scale(lightPos, lightDir, -50.0);
+                    vec3.scale(lightPos, lightDirection, -50.0);
 
                     let lightView = mat4.create();
                     mat4.lookAt(

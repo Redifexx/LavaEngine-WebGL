@@ -1,5 +1,8 @@
 import { glMatrix, quat, vec3 } from "gl-matrix";
 
+export const degToRad = Math.PI / 180;
+export const radToDeg = 180 / Math.PI;
+
 export function showError(errorText: string) 
 {
     console.log(errorText);
@@ -380,47 +383,93 @@ export function eulerToDirection(pitch_: number, yaw_: number, roll_: number)
 }
 
 // thanks to stefnotch from github
-export function eulerToQuat(r: vec3): quat
+export function eulerToQuatLocal(r: vec3): quat
 {
-    const roll = r[2] * Math.PI/180;
-    const pitch = r[0] * Math.PI/180;
-    const yaw = r[1] * Math.PI/180;
-    let cr = Math.cos(roll * 0.5);
-    let sr = Math.sin(roll * 0.5);
-    let cp = Math.cos(pitch * 0.5);
-    let sp = Math.sin(pitch * 0.5);
-    let cy = Math.cos(yaw * 0.5);
-    let sy = Math.sin(yaw * 0.5);
-
     let q = quat.create();
-    q[3] = cr * cp * cy + sr * sp * sy;
-    q[0] = sr * cp * cy - cr * sp * sy;
-    q[1] = cr * sp * cy + sr * cp * sy;
-    q[2] = cr * cp * sy - sr * sp * cy;
+    
+    quat.rotateY(q, q, r[1] * degToRad);
+    quat.rotateX(q, q, r[0] * degToRad);
+    quat.rotateZ(q, q, r[2] * degToRad);
+
+    return q;
+}
+
+export function eulerToQuatWorld(r: vec3): quat
+{
+    let q = quat.create();
+    let temp = quat.create();
+
+    quat.setAxisAngle(temp, [0, 1, 0], r[1] * degToRad); // Y
+    quat.multiply(q, q, temp);
+
+    quat.setAxisAngle(temp, [1, 0, 0], r[0] * degToRad); // X
+    quat.multiply(q, q, temp);
+
+    quat.setAxisAngle(temp, [0, 0, -1], r[2] * degToRad); // Z
+    quat.multiply(q, q, temp);
+
+    quat.normalize(q, q);
 
     return q;
 }
 
 export function quatToEuler(q: quat): vec3
 {
-    let out = vec3.create();
+    const out = vec3.create();
 
-    // roll (z-axis rotation)
-    let sinr_cosp = 2 * (q[3] * q[0] + q[1] * q[2]);
-    let cosr_cosp = 1 - 2 * (q[0] * q[0] + q[1] * q[1]);
-    out[2] = Math.atan2(sinr_cosp, cosr_cosp) * 180/Math.PI;
+    // extract matrix elements
+    const x = q[0], y = q[1], z = q[2], w = q[3];
 
-    // pitch (x-axis rotation)
-    let sinp = Math.sqrt(1 + 2 * (q[3] * q[1] - q[0] * q[2]));
-    let cosp = Math.sqrt(1 - 2 * (q[3] * q[1] - q[0] * q[2]));
-    out[0] = (2 *  Math.atan2(sinp, cosp) - Math.PI / 2) * 180/Math.PI;
+    // yaw (Y)
+    const sinYaw = 2 * (w * y + x * z);
+    const cosYaw = 1 - 2 * (y * y + z * z);
+    out[1] = Math.atan2(sinYaw, cosYaw);
 
-    // yaw (y-axis rotation)
-    let siny_cosp = 2 * (q[3] * q[2] + q[0] * q[1]);
-    let cosy_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2]);
-    out[1] =  Math.atan2(siny_cosp, cosy_cosp) * 180/Math.PI;
+    // pitch (X)
+    const sinPitch = 2 * (w * x - y * z);
+    // clamp to handle numerical errors
+    out[0] = Math.abs(sinPitch) >= 1
+        ? Math.sign(sinPitch) * Math.PI / 2
+        : Math.asin(sinPitch);
 
+    // roll (Z)
+    const sinRoll = 2 * (w * z + x * y);
+    const cosRoll = 1 - 2 * (x * x + z * z);
+    out[2] = Math.atan2(sinRoll, cosRoll);
+
+    // convert to degrees if you want
+    vec3.scale(out, out, 180 / Math.PI);
     return out;
+}
+
+export function getQuatForward(q: quat): vec3
+{
+    const forward = vec3.fromValues(0, 0, -1);
+
+    quat.normalize(q, q);
+    vec3.transformQuat(forward, forward, q);
+
+    return forward;
+}
+
+export function getQuatRight(q: quat): vec3
+{
+    const right = vec3.fromValues(1, 0, 0);
+
+    quat.normalize(q, q);
+    vec3.transformQuat(right, right, q);
+
+    return right;
+}
+
+export function getQuatUp(q: quat): vec3
+{
+    const up = vec3.fromValues(0, 1, 0);
+
+    quat.normalize(q, q);
+    vec3.transformQuat(up, up, q);
+
+    return up;
 }
 
 export function logFramebufferStatus(gl: WebGL2RenderingContext, label: string) {

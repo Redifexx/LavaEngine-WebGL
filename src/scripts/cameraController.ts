@@ -1,9 +1,10 @@
-import { vec3 } from "gl-matrix";
+import { quat, vec3 } from "gl-matrix";
 import { TransformComponent, Transform } from "../components/transform-component";
 import { Input } from "../engine/input";
 import { LavaEngine } from "../engine/lava-engine";
 import { Entity } from "../gameobjects/entity";
 import { ScriptableBehavior } from "../gameobjects/scriptable-behavior";
+import { eulerToQuatWorld } from "../gl-utils";
 
 export class CameraController extends ScriptableBehavior
 {
@@ -19,7 +20,8 @@ export class CameraController extends ScriptableBehavior
 
     override Start(): void
     {
-        this.pitch = this.parentEntity!.getComponentOrThrow(TransformComponent).transform.rotation[0];
+        this.pitch = 0;
+        this.yaw = 0;
     }
 
     override Update(): void
@@ -32,26 +34,28 @@ export class CameraController extends ScriptableBehavior
             let yOffset: number = Input.GetMouseMovementY();
             yOffset *= this.sensitivity;
 
-            //YAW
-            let transformRotation = this.parentEntity!.parentEntity!.getComponentOrThrow(TransformComponent).transform.rotation;
-            transformRotation[1] += xOffset;
-            if (transformRotation[1] >= 360 || transformRotation[1] <= -360)
-            {
-                transformRotation[1] = 0;
-            }
-
+            this.yaw -= xOffset;
             this.pitch -= yOffset;
 
-            if (this.pitch > 89.0)
-            {
-                this.pitch = 89.0;
-            }
-            if (this.pitch < -89.0)
-            {
-                this.pitch = -89.0;
-            }
+            this.pitch = Math.max(-89, Math.min(89, this.pitch));
+            
+            const transformYaw = vec3.fromValues(0, this.yaw, 0);
+            const transformPitch = vec3.fromValues(this.pitch, 0, 0);
 
-            this.parentEntity!.getComponentOrThrow(TransformComponent).transform.rotation[0] = this.pitch;
+            const yawQuat = eulerToQuatWorld(transformYaw);
+            const pitchQuat = eulerToQuatWorld(transformPitch);
+
+            // yaw on player
+            quat.copy(
+                this.parentEntity!.parentEntity!.transformComponent.transform.rotation,
+                yawQuat
+            );
+
+            // pitch on camera
+            quat.copy(
+                this.parentEntity!.transformComponent.transform.rotation,
+                pitchQuat
+            );
         }
     }
 

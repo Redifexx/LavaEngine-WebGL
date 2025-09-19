@@ -1,4 +1,4 @@
-import { allocateRenderBufferStorage, attachRenderBufferToFrameBuffer, createFrameBuffer, createProgram, createRenderBuffer, createTexture, eulerToDirection, eulerToQuat, getContext, logFramebufferStatus, quatToEuler, setFrameBufferColorAttachment, showError } from "../gl-utils";
+import { allocateRenderBufferStorage, attachRenderBufferToFrameBuffer, createFrameBuffer, createProgram, createRenderBuffer, createTexture, eulerToDirection, eulerToQuatWorld, getContext, getQuatForward, logFramebufferStatus, quatToEuler, setFrameBufferColorAttachment, showError } from "../gl-utils";
 import { EngineDemo } from "../projects/engine-demo";
 import { Input } from "./input";
 import { Project } from "./project";
@@ -109,6 +109,11 @@ export class LavaEngine
         this.project = new EngineDemo(this.gl_context);
         this.project.Start();
 
+        const q = eulerToQuatWorld([0, 0, 0]);
+        const forward = vec3.create();
+        vec3.transformQuat(forward, [0, 0, -1], q);
+        console.log(forward); // -> [0, 0, -1]
+
         
         // ---- INPUT LISTENING ----
         Input.InitInputEvents();
@@ -177,8 +182,10 @@ export class LavaEngine
     static DrawDebugui()
     {
         this.ui!.clearRect(0, 0, this.ui_canvas!.width, this.ui_canvas!.height);
-        let playerTransform = this.project.MAIN_SCENE.getEntityByName("Player")!.getComponentOrThrow(TransformComponent)!.transform;
+        let playerTransform = this.project.MAIN_SCENE.getEntityByName("Player")!.getGlobalTransform();
+        let cameraTransform = this.project.MAIN_SCENE.getEntityByName("Camera")!.getGlobalTransform();
 
+        const cameraRot = quatToEuler(cameraTransform.rotation);
         this.ui!.font = "20px Quantico"; 
         this.ui!.fillStyle = "white";
         this.ui!.shadowColor = "rgba(0, 0, 0, 0.7)";
@@ -187,8 +194,8 @@ export class LavaEngine
         this.ui!.shadowOffsetY = 3;
         this.ui!.fillText(`FPS: ${this.fps.toFixed(1)} (${this.frameTime.toFixed(1)} ms)`, 50, 50);
         this.ui!.fillText(`X: ${playerTransform.position[0].toFixed(2)} Y: ${playerTransform.position[1].toFixed(2)} Z: ${playerTransform.position[2].toFixed(2)}`, 50, 75);
-        this.ui!.fillText(`RX: ${playerTransform.rotation[0].toFixed(2)} RY: ${playerTransform.rotation[1].toFixed(2)} RZ: ${playerTransform.rotation[2].toFixed(2)}`, 50, 100);
-        const forward = playerTransform.GetForward();
+        this.ui!.fillText(`RX: ${cameraRot[0].toFixed(2)} RY: ${cameraRot[1].toFixed(2)} RZ: ${cameraRot[2].toFixed(2)}`, 50, 100);
+        const forward = getQuatForward(playerTransform.rotation);
         this.ui!.fillText(`VDX: ${forward[0].toFixed(2)} VDY: ${forward[1].toFixed(2)} VDZ: ${forward[2].toFixed(2)}`, 50, 125);
     }
 
@@ -371,100 +378,11 @@ export class LavaEngine
         gl.enable(gl.DEPTH_TEST);
         gl.clear(gl.DEPTH_BUFFER_BIT);
 
-        //this.RenderDebugCube(this.shadowMat!.shader.shaderProgram);
         gl.cullFace(gl.FRONT);
         LavaEngine.project.MAIN_SCENE.renderShadow(this.depthShader!.shaderProgram);
         gl.cullFace(gl.BACK);
-        //LavaEngine.project.MAIN_SCENE.renderShadow(this.depthShader!.shaderProgram);
-        //logFramebufferStatus(this.gl_context, "shadow");
-        //this.BindFramebuffer(null);
     }
 
-    static RenderDebugCube(shader: WebGLProgram) {
-        
-        const gl = this.gl_context;
-        
-        gl.useProgram(shader);
-        const cubeTransform = new Transform();
-        cubeTransform.position = vec3.fromValues(0.0, 0.0, 0.0);
-        cubeTransform.rotation = vec3.fromValues(0.0, 45.0, 0.0);
-        cubeTransform.scale = vec3.fromValues(1.0, 1.0, 1.0);
-
-        const modelMatrix = mat4.create();
-        
-        const rotationQuat = quat.create();
-        quat.fromEuler(rotationQuat, cubeTransform.rotation[0], cubeTransform.rotation[1], cubeTransform.rotation[2]);
-        
-        mat4.fromRotationTranslationScale(
-            modelMatrix,
-            rotationQuat,
-            cubeTransform.position,
-            cubeTransform.scale
-        );
-
-        const modelMatrixUniformLocation = gl.getUniformLocation(shader, 'modelMatrix');
-        gl.uniformMatrix4fv(modelMatrixUniformLocation, false, modelMatrix);
-
-        const nearPlane = 1.0;
-        const farPlane = 50.0;
-
-        const lightTransform = new Transform();
-        lightTransform.rotation = vec3.fromValues(-90, 0, 0);
-
-        const lightDir = eulerToDirection(
-            lightTransform.rotation[0],
-            lightTransform.rotation[1],
-            lightTransform.rotation[2]);
-
-        const lightPos = vec3.create();
-        vec3.scale(lightPos, lightDir, -20.0);
-
-        let lightView = mat4.create();
-        mat4.lookAt(
-            lightView,
-            lightPos,
-            vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(0.0, 1.0, 0.0)
-        );
-
-        let lightProjection = mat4.create();
-        mat4.ortho(
-            lightProjection,
-            -20.0, 20.0, -20.0, 20.0,
-            nearPlane, farPlane
-        );
-
-
-        let lightSpaceMatrix = mat4.create();
-        mat4.multiply(lightSpaceMatrix, lightProjection, lightView);
-
-        gl.uniformMatrix4fv(gl.getUniformLocation(shader, "lightSpaceMatrix"), false, lightSpaceMatrix);
-        gl.disable(gl.CULL_FACE);
-        gl.bindVertexArray(this.debugCube!.vertexArrayObject);
-        //gl.drawElements(gl.TRIANGLES, this.debugCube!.indices!.length, gl.UNSIGNED_SHORT, 0);
-        gl.bindVertexArray(null);
-    }
-
-    static TriVAO(): WebGLVertexArrayObject
-    {
-        const gl = this.gl_context;
-        // create a small VAO for a single triangle (do this once in init)
-        const triVAO = gl.createVertexArray();
-        gl.bindVertexArray(triVAO);
-        const vb = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, vb);
-        const tri = new Float32Array([
-            -0.01, -0.01,
-            0.01, -0.01,
-            0.0,   0.01
-        ]);
-        gl.bufferData(gl.ARRAY_BUFFER, tri, gl.STATIC_DRAW);
-        const posLoc = 0; // we'll use location 0 in shader with layout(location = 0)
-        gl.enableVertexAttribArray(posLoc);
-        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-        gl.bindVertexArray(null);
-        return triVAO;
-    }
     
     static BindFramebuffer(framebuffer: WebGLFramebuffer | null)
     {

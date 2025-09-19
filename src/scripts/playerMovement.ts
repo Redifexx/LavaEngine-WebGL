@@ -4,6 +4,7 @@ import { Input } from "../engine/input";
 import { LavaEngine } from "../engine/lava-engine";
 import { Entity } from "../gameobjects/entity";
 import { ScriptableBehavior } from "../gameobjects/scriptable-behavior";
+import { getQuatForward, getQuatRight } from "../gl-utils";
 
 export class PlayerMovement extends ScriptableBehavior
 {
@@ -50,25 +51,25 @@ export class PlayerMovement extends ScriptableBehavior
 
             if (Input.GetKeyHeld("w"))
             {
-                vec3.add(acceleration, acceleration, this.playerTransform.GetForward());
+                vec3.add(acceleration, acceleration, getQuatForward(this.playerTransform.rotation));
                 this.isMoving = true;
             }
             if (Input.GetKeyHeld("s"))
             {
                 const backward = vec3.create();
-                vec3.scale(backward, this.playerTransform.GetForward(), -1);
+                vec3.scale(backward, getQuatForward(this.playerTransform.rotation), -1);
                 vec3.add(acceleration, acceleration, backward);
                 this.isMoving = true;
             }
             if (Input.GetKeyHeld("d"))
             {
-                vec3.add(acceleration, acceleration, this.playerTransform.GetRight());
+                vec3.add(acceleration, acceleration, getQuatRight(this.playerTransform.rotation));
                 this.isMoving = true;
             }
             if (Input.GetKeyHeld("a"))
             {
                 const left = vec3.create();
-                vec3.scale(left, this.playerTransform.GetRight(), -1);
+                vec3.scale(left, getQuatRight(this.playerTransform.rotation), -1);
                 vec3.add(acceleration, acceleration, left);
                 this.isMoving = true;
             }

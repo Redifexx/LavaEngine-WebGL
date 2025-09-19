@@ -5,6 +5,7 @@ import { LavaEngine } from "../engine/lava-engine";
 import { ScriptableBehavior } from "../gameobjects/scriptable-behavior";
 import { PlayerMovement } from "./playerMovement";
 import { Entity } from "../gameobjects/entity";
+import { getQuatForward } from "../gl-utils";
 
 export class LookAtPlayer extends ScriptableBehavior
 {
@@ -45,12 +46,7 @@ export class LookAtPlayer extends ScriptableBehavior
         if ((this.player.getScript("PlayerMovement")! as PlayerMovement).isMoving)
         {
             const moveSpeed = 5;                    // units per second
-            const forwardDir = this.objTransform.GetForward(); 
-            // or compute manually from rotation:
-            // const forwardDir = eulerToDirection(
-            //     forwardRot[0], forwardRot[1], forwardRot[2]);
-
-            // Scale by speed and deltaTime (from your engine or LavaEngine.deltaTime)
+            const forwardDir = getQuatForward(this.objTransform.rotation); 
             const step = vec3.scale(vec3.create(), forwardDir, -moveSpeed * LavaEngine.deltaTime);
 
             // Add to position
