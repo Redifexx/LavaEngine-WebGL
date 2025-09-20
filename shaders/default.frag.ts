@@ -100,18 +100,18 @@ float ShadowCalculation(vec4 fragPosLightSpace, out vec3 coords, vec3 norm, vec3
 
     if(projCoords.z > 1.0) return 0.0;
 
-    vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
+    vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0)); // optimize
 
-    for(int x = -1; x <= 1; ++x)
+    for(int x = 0; x <= 1; ++x)
     {
-        for(int y = -1; y <= 1; ++y)
+        for(int y = 0; y <= 1; ++y)
         {   
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
             shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
         }
     }
     
-    shadow /= 9.0;
+    shadow /= 4.0;
 
     return shadow;    
 }
@@ -123,7 +123,7 @@ float LinearizeDepth(float depth)
 }
 
 
-vec3 PointLightResult(PointLight light, vec3 norm, vec3 diffuseTex, vec3 specularTex, vec3 emissiveTex)
+vec3 PointLightResult(PointLight light, vec3 norm, vec3 diffuseTex, vec3 specularTex, vec3 emissiveTex, vec3 viewDir, vec3 I, vec3 R, vec3 envSpecular, float cosTheta, float F0, float reflectivity)
 {
     vec3 lightDir = normalize(light.position - FragPos);
 
@@ -131,18 +131,10 @@ vec3 PointLightResult(PointLight light, vec3 norm, vec3 diffuseTex, vec3 specula
     vec3 diffuse = (diff * diffuseTex * light.color * material.diffuseTint);
 
     // Specular (Phong)
-    vec3 viewDir = normalize(viewPosition - FragPos);
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(norm, halfwayDir), 0.0), 8.0);
     vec3 specularLight = light.color * spec * specularTex * material.specularFactor;
 
-    vec3 I = -viewDir;
-    vec3 R = reflect(I, norm);
-    vec3 envSpecular = texture(skybox, R).rgb * material.specularFactor * specularTex;
-
-    float cosTheta = max(dot(viewDir, norm), 0.0);
-    float F0 = 0.04;
-    float reflectivity = fresnelFactor(cosTheta, F0);
     vec3 specular = specularLight + envSpecular * reflectivity * (1.0 - material.roughnessFactor);
 
     vec3 emissive = emissiveTex * material.emissiveTint * material.emissiveFactor;
@@ -156,7 +148,7 @@ vec3 PointLightResult(PointLight light, vec3 norm, vec3 diffuseTex, vec3 specula
     return result + emissive;
 }
 
-vec3 DirectionalLightResult(DirectionalLight light, vec3 norm, vec3 diffuseTex, vec3 specularTex, vec3 emissiveTex)
+vec3 DirectionalLightResult(DirectionalLight light, vec3 norm, vec3 diffuseTex, vec3 specularTex, vec3 emissiveTex, vec3 viewDir, vec3 I, vec3 R, vec3 envSpecular, float cosTheta, float F0, float reflectivity)
 {
     vec3 lightDir = normalize(-light.direction);
 
@@ -164,18 +156,10 @@ vec3 DirectionalLightResult(DirectionalLight light, vec3 norm, vec3 diffuseTex, 
     vec3 diffuse = diff * diffuseTex * light.color * material.diffuseTint;
 
     // Specular (Phong)
-    vec3 viewDir = normalize(viewPosition - FragPos);
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(norm, halfwayDir), 0.0), 8.0);
     vec3 specularLight = light.color * spec * specularTex * material.specularFactor;
 
-    vec3 I = -viewDir;
-    vec3 R = reflect(I, norm);
-    vec3 envSpecular = texture(skybox, R).rgb * material.specularFactor * specularTex;
-
-    float cosTheta = max(dot(viewDir, norm), 0.0);
-    float F0 = 0.04;
-    float reflectivity = fresnelFactor(cosTheta, F0);
     vec3 specular = specularLight + envSpecular * reflectivity * (1.0 - material.roughnessFactor);
 
     vec3 emissive = emissiveTex * material.emissiveTint * material.emissiveFactor;
@@ -190,7 +174,7 @@ vec3 DirectionalLightResult(DirectionalLight light, vec3 norm, vec3 diffuseTex, 
 }
 
 
-vec3 SpotLightResult(SpotLight light, vec3 norm, vec3 diffuseTex, vec3 specularTex, vec3 emissiveTex)
+vec3 SpotLightResult(SpotLight light, vec3 norm, vec3 diffuseTex, vec3 specularTex, vec3 emissiveTex, vec3 viewDir, vec3 I, vec3 R, vec3 envSpecular, float cosTheta, float F0, float reflectivity)
 {
     vec3 lightDir = normalize(light.position - FragPos);
     vec3 result = vec3(0.0);
@@ -200,18 +184,10 @@ vec3 SpotLightResult(SpotLight light, vec3 norm, vec3 diffuseTex, vec3 specularT
     vec3 diffuse = diff * diffuseTex * light.color * material.diffuseTint;
 
     // Specular (Phong)
-    vec3 viewDir = normalize(viewPosition - FragPos);
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(norm, halfwayDir), 0.0), 8.0);
     vec3 specularLight = light.color * spec * specularTex * material.specularFactor;
 
-    vec3 I = -viewDir;
-    vec3 R = reflect(I, norm);
-    vec3 envSpecular = texture(skybox, R).rgb * material.specularFactor * specularTex;
-
-    float cosTheta = max(dot(viewDir, norm), 0.0);
-    float F0 = 0.04;
-    float reflectivity = fresnelFactor(cosTheta, F0);
     vec3 specular = specularLight + envSpecular * reflectivity * (1.0 - material.roughnessFactor);
 
     vec3 emissive = emissiveTex * material.emissiveTint * material.emissiveFactor;
@@ -249,7 +225,13 @@ void main()
     vec3 specularTex = textureGrad(tex1, TexCoords, dx, dy).rgb;
     vec3 emissiveTex = textureGrad(tex3, TexCoords, dx, dy).rgb;
 
-
+    vec3 viewDir = normalize(viewPosition - FragPos);
+    vec3 I = -viewDir;
+    vec3 R = reflect(I, norm);
+    vec3 envSpecular = texture(skybox, R).rgb * material.specularFactor * specularTex;
+    float cosTheta = max(dot(viewDir, norm), 0.0);
+    float F0 = 0.04;
+    float reflectivity = fresnelFactor(cosTheta, F0);
 
     vec3 result = vec3(0.0);
     vec3 ambient = vec3(1.0) * 0.1 * diffuseTex;
@@ -257,19 +239,19 @@ void main()
     for (int i = 0; i < MAX_POINT_LIGHTS; i++)
     {
         if (i >= numPointLights) break;
-        result += PointLightResult(ptLights[i], norm, diffuseTex, specularTex, emissiveTex);
+        result += PointLightResult(ptLights[i], norm, diffuseTex, specularTex, emissiveTex, viewDir, I, R, envSpecular, cosTheta, F0, reflectivity);
     }
 
     for (int i = 0; i < MAX_DIRECTIONAL_LIGHTS; i++)
     {
         if (i >= numDirLights) break;
-        result += DirectionalLightResult(dirLights[i], norm, diffuseTex, specularTex, emissiveTex);
+        result += DirectionalLightResult(dirLights[i], norm, diffuseTex, specularTex, emissiveTex, viewDir, I, R, envSpecular, cosTheta, F0, reflectivity);
     }
 
     for (int i = 0; i < MAX_SPOT_LIGHTS; i++)
     {
         if (i >= numSpotLights) break;
-        result += SpotLightResult(spotLights[i], norm, diffuseTex, specularTex, emissiveTex);
+        result += SpotLightResult(spotLights[i], norm, diffuseTex, specularTex, emissiveTex, viewDir, I, R, envSpecular, cosTheta, F0, reflectivity);
     }
     
     float gamma = 2.2;

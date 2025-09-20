@@ -86,7 +86,7 @@ export function setFrameBufferColorAttachment(gl: WebGL2RenderingContext, frameb
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + colorAttachmentIndex, gl.TEXTURE_2D, texture, 0);
-    logFramebufferStatus(gl, "setFrameBufferColorAttachment");
+    //logFramebufferStatus(gl, "setFrameBufferColorAttachment");
     return texture;
 }
 
@@ -97,14 +97,14 @@ export function setFrameBufferDepthStencilAttachment(gl: WebGL2RenderingContext,
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, texture, 0);
-    logFramebufferStatus(gl, "setFrameBufferDepthStencilAttachment");
+    //logFramebufferStatus(gl, "setFrameBufferDepthStencilAttachment");
 }
 
 export function attachRenderBufferToFrameBuffer(gl: WebGL2RenderingContext, fb: WebGLFramebuffer, rb: WebGLRenderbuffer, attachmentType: number)
 {
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachmentType, gl.RENDERBUFFER, rb);
-    logFramebufferStatus(gl, "attachRenderBufferToFrameBuffer");
+    //logFramebufferStatus(gl, "attachRenderBufferToFrameBuffer");
 }
 
 export function createProgram(gl: WebGL2RenderingContext, vertexShaderSource: string, fragmentShaderSource: string)

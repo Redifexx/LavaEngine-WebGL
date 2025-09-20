@@ -405,7 +405,7 @@ export class LavaEngine
         const depthMapFB = createFrameBuffer(gl);
         gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFB!);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthMap, 0);
-        logFramebufferStatus(this.gl_context, "fb text");
+        //logFramebufferStatus(this.gl_context, "fb text");
         gl.drawBuffers([gl.NONE]);
         gl.readBuffer(gl.NONE);
         gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFB!);
@@ -418,7 +418,7 @@ export class LavaEngine
     {
         const gl = this.gl_context;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.depthMapFB!);
-        logFramebufferStatus(gl, "Shadow Pass Bind");
+        //logFramebufferStatus(gl, "Shadow Pass Bind");
         gl.viewport(0, 0, LavaEngine.shadowMapResolution, LavaEngine.shadowMapResolution);
         gl.enable(gl.DEPTH_TEST);
         gl.clear(gl.DEPTH_BUFFER_BIT);
@@ -432,7 +432,7 @@ export class LavaEngine
     static BindFramebuffer(framebuffer: WebGLFramebuffer | null)
     {
         this.gl_context.bindFramebuffer(LavaEngine.gl_context.FRAMEBUFFER, framebuffer);
-        logFramebufferStatus(this.gl_context, "BindFrameBuffer");
+        //logFramebufferStatus(this.gl_context, "BindFrameBuffer");
         return true;
     }
 }
