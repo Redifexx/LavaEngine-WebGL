@@ -47,18 +47,31 @@ export class EngineDemo extends Project
         );
         e_plane.addChildEntity(e_plane_mesh);
 
+        const e_farm = this.MAIN_SCENE.addEntity(
+            "Plane",
+            vec3.fromValues(30.0, 3.6, -20.0), 
+            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(1.0, 1.0, 1.0)
+        );
+        const e_farm_mesh = this.MAIN_SCENE.addEntity(
+            "PlaneMesh",
+            vec3.fromValues(0.0, 0.0, 0.0), 
+            vec3.fromValues(-90.0, 0.0, 0.0)
+        );
+        e_farm.addChildEntity(e_farm_mesh);
+
         const e_player = this.MAIN_SCENE.addEntity("Player", vec3.fromValues(0.0, 0.0, 0.0));
         const e_camera = this.MAIN_SCENE.addEntity("Camera", vec3.fromValues(0.0, 2.0, 0.0));
         const e_skybox = this.MAIN_SCENE.addEntity("Skybox", vec3.fromValues(0.0, 0.0, 0.0));
         const e_sun = this.MAIN_SCENE.addEntity(
             "Sun",
             vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(-20.0, 170.0, 0.0)
+            vec3.fromValues(-60.0, 5.0, 0.0)
         );
 
         const e_redlight = this.MAIN_SCENE.addEntity(
             "RedLight",
-            vec3.fromValues(10.0, 5.0, -15.0),
+            vec3.fromValues(30.0, 3.0, -25.0),
             vec3.fromValues(-90.0, -10.0, -10.0)
         );
 
@@ -280,6 +293,13 @@ export class EngineDemo extends Project
         mat_flash.roughnessFactor = 0.5;
         mat_flash.emissiveFactor = 1.0;
 
+        const mat_farm = new Material(sdr_standard);
+        mat_farm.setTex(0, loadTexture(this.GL_CONTEXT, "textures/farm/farm_diff.png", this.GL_CONTEXT.SRGB8_ALPHA8)); 
+        mat_farm.setTex(1, loadTexture(this.GL_CONTEXT, "textures/farm/farm_spec.png")); 
+        mat_farm.setTex(2, loadTexture(this.GL_CONTEXT, "textures/farm/farm_norm.png")); 
+        mat_farm.specularFactor = 1.0;
+        mat_farm.roughnessFactor = 0.9;
+
         // Create models from meshs (make modelcomponent house materials)
         //const mod_plane = new Model(null, mat_grass, msh_plane);
         const mod_plane = new Model("models/big_plane.json", mat_grass, null);
@@ -292,6 +312,7 @@ export class EngineDemo extends Project
         const mod_skybox = new Model("models/cube.json", mat_skybox, null);
         const mod_flashlight = new Model("models/flashlight.json", mat_flash, null);
         const mod_pole = new Model("models/POWERPOLES.json", mat_wood, null);
+        const mod_farm = new Model("models/farm.json", mat_farm, null);
 
         // Add model components to entities (trying to maintain ECS-ish)
         e_plane_mesh.addComponent(ModelComponent, new ModelComponent(mod_plane));
@@ -304,6 +325,7 @@ export class EngineDemo extends Project
         e_skull_mesh.addComponent(ModelComponent, new ModelComponent(mod_skull));
         e_flashlight_mesh.addComponent(ModelComponent, new ModelComponent(mod_flashlight));
         e_pole_mesh.addComponent(ModelComponent, new ModelComponent(mod_pole));
+        e_farm_mesh.addComponent(ModelComponent, new ModelComponent(mod_farm));
         e_skybox.addComponent(ModelComponent, new ModelComponent(mod_skybox, false));
 
         e_cube_1.addScript(new MeshRotate());
@@ -325,16 +347,16 @@ export class EngineDemo extends Project
         lookAtScript.player = e_player;
         e_skull.addScript(lookAtScript);
     
-        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 0.5, 0.2), 2.0, true)); // default light
-        e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.0, 0.0), 4.0));
-        e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 3.0));
-        e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.3, 1.0), 2.0));
-        e_purplelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.5, 0.0, 1.0), 4.0));
-        e_yellowlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 0.0), 3.0));
-        e_whitelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 0.0));
-        e_flashlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 0.5), 3.0));
-        e_whitePtlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.0, 1.0), 1.0));
-        e_skullLight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.5, 0.0, 1.0), 10.0));
+        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 0.8, 0.5), 1.3, true)); // default light
+        e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.2, 0.0), 2.0));
+        //e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 0.0));
+        //e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.3, 1.0), 0.0));
+        //e_purplelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.5, 0.0, 1.0), 0.0));
+        //e_yellowlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 0.0), 0.0));
+        //e_whitelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 0.0));
+        e_flashlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 0.5), 1.0));
+        //e_whitePtlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.0, 1.0), 0.0));
+        //e_skullLight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.5, 0.0, 1.0), 0.0));
         e_camera.addChildEntity(e_flashlight_obj);
     }
 

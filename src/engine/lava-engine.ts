@@ -48,6 +48,9 @@ export class LavaEngine
     static screenShader: Shader | null;
     static screenTexture: WebGLTexture | null;
 
+    static ppFramebuffer: WebGLFramebuffer | null; // msaa
+    static ppTexture: WebGLTexture | null; // msaa
+
     static shadowMapResolution: number = 1024;
     static depthMap: WebGLTexture | null;
     static depthMapFB: WebGLFramebuffer | null;
@@ -74,6 +77,8 @@ export class LavaEngine
         }
 
         this.gl_context = getContext(this.canvas);
+        this.gl_context.getExtension("EXT_color_buffer_float");
+        this.gl_context.getExtension("OES_texture_float_linear");
 
         const ext = this.gl_context.getExtension('EXT_texture_filter_anisotropic');
         if (ext) {
@@ -245,6 +250,11 @@ export class LavaEngine
             this.screenFramebuffer = createFrameBuffer(this.gl_context);
         }
 
+        if (!this.ppFramebuffer)
+        {
+            this.ppFramebuffer = createFrameBuffer(this.gl_context);
+        }
+
         if (!this.screenColorFramebuffer)
         {
             this.screenColorFramebuffer = createFrameBuffer(this.gl_context);
@@ -266,7 +276,7 @@ export class LavaEngine
         gl.renderbufferStorageMultisample(
             gl.RENDERBUFFER,
             gl.getParameter(gl.MAX_SAMPLES) / 2,
-            gl.RGBA8,
+            gl.RGBA16F,
             LavaEngine.internalWidth,
             LavaEngine.internalHeight
         );
@@ -294,7 +304,7 @@ export class LavaEngine
             this.screenTexture = null;
         }
 
-        const tex = gl.createTexture();
+        let tex = gl.createTexture();
         if (!tex) {
             showError("Failed to create screen texture");
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -304,7 +314,8 @@ export class LavaEngine
 
         // Allocate storage (null data) using sized internal format (WebGL2)
         // Note: internalFormat = gl.RGBA8, format = gl.RGBA, type = gl.UNSIGNED_BYTE
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.RGBA, gl.FLOAT, null);
 
         // sampling/wrap params
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -318,6 +329,37 @@ export class LavaEngine
         this.BindFramebuffer(this.screenColorFramebuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.screenTexture, 0);
 
+        /*
+        if (this.ppTexture)
+        {
+            try { gl.deleteTexture(this.ppTexture); } catch(e) {}
+            this.screenTexture = null;
+        }
+
+        tex = gl.createTexture();
+        if (!tex) {
+            showError("Failed to create screen texture");
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            return;
+        }
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+
+        // Allocate storage (null data) using sized internal format (WebGL2)
+        // Note: internalFormat = gl.RGBA8, format = gl.RGBA, type = gl.UNSIGNED_BYTE
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.RGBA, gl.FLOAT, null);
+
+        // sampling/wrap params
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        this.ppTexture = tex;
+
+        this.BindFramebuffer(this.ppFramebuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.ppTexture, 0);
+
+        */
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     } 
 
@@ -432,7 +474,6 @@ export class LavaEngine
     static BindFramebuffer(framebuffer: WebGLFramebuffer | null)
     {
         this.gl_context.bindFramebuffer(LavaEngine.gl_context.FRAMEBUFFER, framebuffer);
-        //logFramebufferStatus(this.gl_context, "BindFrameBuffer");
         return true;
     }
 }

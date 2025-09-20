@@ -234,7 +234,7 @@ void main()
     float reflectivity = fresnelFactor(cosTheta, F0);
 
     vec3 result = vec3(0.0);
-    vec3 ambient = vec3(1.0) * 0.1 * diffuseTex;
+    vec3 ambient = vec3(1.0) * 0.3 * diffuseTex;
     result += ambient;
     for (int i = 0; i < MAX_POINT_LIGHTS; i++)
     {
@@ -254,8 +254,8 @@ void main()
         result += SpotLightResult(spotLights[i], norm, diffuseTex, specularTex, emissiveTex, viewDir, I, R, envSpecular, cosTheta, F0, reflectivity);
     }
     
-    float gamma = 2.2;
-    outputColor = vec4(pow(result, vec3(1.0/gamma)), 1.0);
+    //float gamma = 2.2;
+    //outputColor = vec4(pow(result, vec3(1.0/gamma)), 1.0);
     //outputColor = vec4(vec3(result.z), 1.0);
-    //outputColor = vec4(result, 1.0);
+    outputColor = vec4(result, 1.0);
 }`;

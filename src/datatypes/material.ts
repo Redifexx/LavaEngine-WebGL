@@ -142,12 +142,12 @@ export class Material
         if (isCubemap)
         {
             this.textures[0] = loadCubemap(this.gl, [
-                "textures/cubemaps/sunset/sunset_E.png", // right | east
-                "textures/cubemaps/sunset/sunset_W.png", // left | west
-                "textures/cubemaps/sunset/sunset_U.png", // top | up
-                "textures/cubemaps/sunset/sunset_D.png", // bottom | down
-                "textures/cubemaps/sunset/sunset_N.png", // front | north
-                "textures/cubemaps/sunset/sunset_S.png", // back | south
+                "textures/cubemaps/noon/noon_E.png", // right | east
+                "textures/cubemaps/noon/noon_W.png", // left | west
+                "textures/cubemaps/noon/noon_U.png", // top | up
+                "textures/cubemaps/noon/noon_D.png", // bottom | down
+                "textures/cubemaps/noon/noon_N.png", // front | north
+                "textures/cubemaps/noon/noon_S.png", // back | south
             ])
         }
         else
