@@ -1,4 +1,4 @@
-import { vec3 } from "gl-matrix";
+import { mat3, mat4, quat, vec3 } from "gl-matrix";
 import { TransformComponent, Transform } from "../components/transform-component";
 import { Input } from "../engine/input";
 import { LavaEngine } from "../engine/lava-engine";
@@ -9,7 +9,6 @@ import { getQuatForward } from "../gl-utils";
 
 export class LookAtPlayer extends ScriptableBehavior
 {
-    objTransform: Transform;
     playerTransform: Transform;
     player: Entity;
     totalTime: number = 0;
@@ -25,59 +24,55 @@ export class LookAtPlayer extends ScriptableBehavior
 
     override Start(): void
     {
-        this.objTransform = this.parentEntity!.getComponentOrThrow(TransformComponent).transform;
-        this.eye = this.objTransform.position;
+        this.eye = this.parentEntity!.getGlobalPosition();
         this.target = this.player.getGlobalTransform().position;
     }
 
     override Update(): void
     {
-        this.objTransform = this.parentEntity!.getComponentOrThrow(TransformComponent).transform;
-        this.eye = this.objTransform.position;
+        this.eye = this.parentEntity!.getGlobalPosition();
+        vec3.add(this.eye, this.eye, vec3.fromValues(0, -2.0, 0));
 
-        this.target = this.player.getGlobalTransform().position;
+        this.target = this.player.getGlobalPosition();
 
-        console.log(this.target[0]);
+        const targetQuat = this.lookAtQuat(this.eye, this.target);
 
-        const forwardRot = this.lookAtEuler(this.target, this.eye);
+        // SLERP rotation
+        const currentQuat = this.parentEntity!.getComponentOrThrow(TransformComponent).transform.rotation;
+        const slerpSpeed = 5; // adjust this for faster/slower rotation
+        quat.slerp(currentQuat, currentQuat, targetQuat, slerpSpeed * LavaEngine.deltaTime);
 
-        this.objTransform.rotation = vec3.fromValues(forwardRot[0], forwardRot[1] + 180, forwardRot[2]);
+        const vecDiff = vec3.create();
+        vec3.subtract(vecDiff, this.target, this.eye);
+        const distance = vec3.length(vecDiff);
 
-        if ((this.player.getScript("PlayerMovement")! as PlayerMovement).isMoving)
+        if (distance > 0.1)
         {
-            const moveSpeed = 5;                    // units per second
-            const forwardDir = getQuatForward(this.objTransform.rotation); 
-            const step = vec3.scale(vec3.create(), forwardDir, -moveSpeed * LavaEngine.deltaTime);
+            const moveSpeed = 0;            
+            const forwardDir = getQuatForward(this.parentEntity!.getGlobalRotation()); 
+            const step = vec3.scale(vec3.create(), forwardDir, moveSpeed * LavaEngine.deltaTime);
 
             // Add to position
-            vec3.add(this.objTransform.position, this.objTransform.position, step);
+            const transform = this.parentEntity!.getComponentOrThrow(TransformComponent).transform;
+            vec3.add(transform.position, transform.position, step);
         }
 
     }
 
-    lookAtVector(from: vec3, to: vec3): vec3 {
-        const dir = vec3.create();
-        vec3.subtract(dir, to, from);    // dir = to - from
-        vec3.normalize(dir, dir);
-        return dir;
-    }
+    lookAtQuat(eye: vec3, target: vec3, up: vec3 = [0, 1, 0]): quat {
+        const forward = vec3.normalize(vec3.create(), vec3.sub(vec3.create(), target, eye));
+        const right   = vec3.normalize(vec3.create(), vec3.cross(vec3.create(), up, forward));
+        const realUp  = vec3.cross(vec3.create(), forward, right);
 
-    lookAtEuler(from: vec3, to: vec3): vec3
-    {
-        const dir = this.lookAtVector(from, to);
+        const m = mat3.fromValues(
+            right[0],  right[1],  right[2],
+            realUp[0], realUp[1], realUp[2],
+            forward[0],forward[1],forward[2]  // +Z forward
+        );
 
-        // yaw (around Y): atan2(x,z)
-        const yaw   = Math.atan2(dir[0], dir[2]) * 180 / Math.PI;
-
-        // pitch (around X): atan2(-y, horizontal length)
-        const pitch = Math.atan2(-dir[1], Math.sqrt(dir[0] * dir[0] + dir[2] * dir[2])) * 180 / Math.PI;
-
-        // roll is optional (0 if you don't want banking)
-        const roll = 0 * 180 / Math.PI;
-        
-        let rot = vec3.fromValues(-pitch, yaw, roll);
-
-        return rot;
+        const q = quat.create();
+        quat.fromMat3(q, m);
+        return q;
     }
 
 }

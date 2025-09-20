@@ -10,47 +10,41 @@ uniform vec2 screenSize;
 
 void main()
 {
-    /*
-        // Calculate one pixel size in texture coordinates
-        vec2 texelSize = 1.0 / screenSize;
+    vec2 uInverseResolution = vec2(1.0/screenSize[0], 1.0/screenSize[1]);
+    vec3 rgbNW = texture(screenTexture, TexCoords + vec2(-1.0, -1.0) * uInverseResolution).rgb;
+    vec3 rgbNE = texture(screenTexture, TexCoords + vec2( 1.0, -1.0) * uInverseResolution).rgb;
+    vec3 rgbSW = texture(screenTexture, TexCoords + vec2(-1.0,  1.0) * uInverseResolution).rgb;
+    vec3 rgbSE = texture(screenTexture, TexCoords + vec2( 1.0,  1.0) * uInverseResolution).rgb;
+    vec3 rgbM  = texture(screenTexture, TexCoords).rgb;
 
-        float kernel[9] = float[](
-            0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0
-        );
+    // Luma (perceived brightness)
+    float lumaNW = dot(rgbNW, vec3(0.299, 0.587, 0.114));
+    float lumaNE = dot(rgbNE, vec3(0.299, 0.587, 0.114));
+    float lumaSW = dot(rgbSW, vec3(0.299, 0.587, 0.114));
+    float lumaSE = dot(rgbSE, vec3(0.299, 0.587, 0.114));
+    float lumaM  = dot(rgbM , vec3(0.299, 0.587, 0.114));
 
-        // Normalize kernel so weights sum to 1
-        float kernelSum = 16.0;
+    float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+    float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
 
-        // Offsets for 3x3 neighborhood
-        vec2 offsets[9] = vec2[](
-            vec2(-1.0,  1.0), // top-left
-            vec2( 0.0,  1.0), // top-center
-            vec2( 1.0,  1.0), // top-right
-            vec2(-1.0,  0.0), // center-left
-            vec2( 0.0,  0.0), // center
-            vec2( 1.0,  0.0), // center-right
-            vec2(-1.0, -1.0), // bottom-left
-            vec2( 0.0, -1.0), // bottom-center
-            vec2( 1.0, -1.0)  // bottom-right
-        );
+    vec2 dir;
+    dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
+    dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
 
-        vec3 sampleTex[9];
-        for(int i = 0; i < 9; i++)
-        {
-            sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i] * texelSize));
-        }
+    float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) * 0.25 * 0.5, 0.01);
+    float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
 
-        vec3 col = vec3(0.0);
-        for (int i = 0; i < 9; i++) {
-            col += sampleTex[i] * kernel[i];
-        }
+    dir = clamp(dir * rcpDirMin, vec2(-8.0), vec2(8.0)) * uInverseResolution;
 
-        FragColor = vec4(col, 1.0);
-        FragColor = texture(screenTexture, TexCoords);
-    */
-    //float d = texture(screenTexture, TexCoords).r;
-    //FragColor = vec4(vec3(d), 1.0);
+    vec3 rgbA = 0.5 * (
+        texture(screenTexture, TexCoords + dir * (1.0/3.0 - 0.5)).rgb +
+        texture(screenTexture, TexCoords + dir * (2.0/3.0 - 0.5)).rgb);
+    vec3 rgbB = rgbA * 0.5 + 0.25 * (
+        texture(screenTexture, TexCoords + dir * -0.5).rgb +
+        texture(screenTexture, TexCoords + dir * 0.5).rgb);
+
+    float lumaB = dot(rgbB, vec3(0.299, 0.587, 0.114));
+    //FragColor = (lumaB < lumaMin || lumaB > lumaMax) ? vec4(rgbA, 1.0) : vec4(rgbB, 1.0);
+    //FragColor = texture(screenTexture, TexCoords);
     FragColor = texture(screenTexture, TexCoords);
 }`;

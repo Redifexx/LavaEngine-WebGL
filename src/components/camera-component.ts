@@ -23,7 +23,7 @@ export class CameraComponent extends Component
     constructor(
         camera: Camera = new Camera(),
         cameraType: CameraType = CameraType.PERSPECTIVE,
-        fieldOfView: number = 60.0,
+        fieldOfView: number = 80.0,
         nearPlane: number = 0.01,
         farPlane: number = 100.0
     )

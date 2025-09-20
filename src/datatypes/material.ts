@@ -142,18 +142,19 @@ export class Material
         if (isCubemap)
         {
             this.textures[0] = loadCubemap(this.gl, [
-                "textures/cubemaps/darkfantasy/DarkFantasy_E.png", // right | east
-                "textures/cubemaps/darkfantasy/DarkFantasy_W.png", // left | west
-                "textures/cubemaps/darkfantasy/DarkFantasy_U.png", // top | up
-                "textures/cubemaps/darkfantasy/DarkFantasy_D.png", // bottom | down
-                "textures/cubemaps/darkfantasy/DarkFantasy_N.png", // front | north
-                "textures/cubemaps/darkfantasy/DarkFantasy_S.png", // back | south
+                "textures/cubemaps/sunset/sunset_E.png", // right | east
+                "textures/cubemaps/sunset/sunset_W.png", // left | west
+                "textures/cubemaps/sunset/sunset_U.png", // top | up
+                "textures/cubemaps/sunset/sunset_D.png", // bottom | down
+                "textures/cubemaps/sunset/sunset_N.png", // front | north
+                "textures/cubemaps/sunset/sunset_S.png", // back | south
             ])
         }
         else
         {
             this.setTex(0, loadTexture(this.gl, "textures/default_diffuse.png"));
             this.setTex(1, loadTexture(this.gl, "textures/default_diffuse.png"));
+            this.setTex(2, loadTexture(this.gl, "textures/default_norm.png"));
             this.setTex(3, loadTexture(this.gl, "textures/default_emis.png"));
         }
     }

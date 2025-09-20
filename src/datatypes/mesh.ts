@@ -55,6 +55,10 @@ export class Mesh
                 14 * Float32Array.BYTES_PER_ELEMENT, 0
             );
         } 
+        else if (!this.material.isCubemap)
+        {
+            //console.log("NO POS");
+        }
         
         if (this.material.normAttrib >= 0)
         {
@@ -64,6 +68,10 @@ export class Mesh
                 14 * Float32Array.BYTES_PER_ELEMENT,
                 3 * Float32Array.BYTES_PER_ELEMENT
             );
+        }
+        else if (!this.material.isCubemap)
+        {
+           // console.log("NO NORM");
         }
 
         if (this.material.texAttrib >= 0)
@@ -75,25 +83,37 @@ export class Mesh
                 6 * Float32Array.BYTES_PER_ELEMENT
             );
         }
+        else if (!this.material.isCubemap)
+        {
+          //  console.log("NO TEX");
+        }
 
         if (this.material.tanAttrib >= 0)
         {
             this.gl.enableVertexAttribArray(this.material.tanAttrib);
             this.gl.vertexAttribPointer(
-                this.material.texAttrib, 3, this.gl.FLOAT, false,
+                this.material.tanAttrib, 3, this.gl.FLOAT, false,
                 14 * Float32Array.BYTES_PER_ELEMENT,
                 8 * Float32Array.BYTES_PER_ELEMENT
             );
+        }
+        else if (!this.material.isCubemap)
+        {
+           // console.log("NO TAN");
         }
 
         if (this.material.bitAttrib >= 0)
         {
             this.gl.enableVertexAttribArray(this.material.bitAttrib);
             this.gl.vertexAttribPointer(
-                this.material.texAttrib, 3, this.gl.FLOAT, false,
+                this.material.bitAttrib, 3, this.gl.FLOAT, false,
                 14 * Float32Array.BYTES_PER_ELEMENT,
                 11 * Float32Array.BYTES_PER_ELEMENT
             );
+        }
+        else if (!this.material.isCubemap)
+        {
+           // console.log("NO BIT");
         }
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);

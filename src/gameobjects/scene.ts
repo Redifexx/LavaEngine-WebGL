@@ -318,7 +318,7 @@ export class Scene
             {
                 if (light.lightType === LightType.DIRECTIONAL)
                 {
-                    const nearPlane = 10.0;
+                    const nearPlane = 5.0;
                     const farPlane = 100.0;
 
                     const lightTransform = light.parentEntity.getGlobalTransform();
@@ -338,7 +338,7 @@ export class Scene
                     let lightProjection = mat4.create();
                     mat4.ortho(
                         lightProjection,
-                        -15.0, 15.0, -15.0, 15.0,
+                        -30.0, 30.0, -30.0, 30.0,
                         nearPlane, farPlane
                     );
 

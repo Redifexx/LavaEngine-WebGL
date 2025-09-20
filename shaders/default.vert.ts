@@ -8,8 +8,9 @@ in vec3 aTangent;
 in vec3 aBitangent;
 
 out vec3 FragPos;
-out vec3 Normal;
 out vec2 TexCoords;
+out mat3 TBN;
+out vec3 Normal;
 out vec4 FragPosLightSpace;
 
 uniform mat4 modelMatrix;
@@ -23,7 +24,17 @@ void main()
     FragPos = worldPos.xyz;
 
     // Correct normal transform
-    Normal = normalize(mat3(transpose(inverse(modelMatrix))) * aNormal);
+    mat3 normalMatrix = mat3(transpose(inverse(modelMatrix)));
+    vec3 N = normalize(normalMatrix * aNormal);
+    vec3 T = normalize(normalMatrix * aTangent);
+    vec3 B = normalize(normalMatrix * aBitangent);
+    T = normalize(T - dot(T, N) * N);
+    B = cross(N, T);
+
+
+    mat3 TBN_ = mat3(T, B, N);
+    TBN = TBN_;
+    Normal = N;
 
     TexCoords = aTexCoord;
 

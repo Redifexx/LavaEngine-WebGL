@@ -225,12 +225,20 @@ export function createTexture(
     );
     
 
+    /*
     
     // WebGL1 has different requirements for power of 2 images
     if (isPowerOf2(texWidth) && isPowerOf2(texHeight))
     {
         gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
         gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
+        const ext = gl.getExtension('EXT_texture_filter_anisotropic');
+        const extRGB = gl.getExtension('EXT_sRGB');
+        if (ext) {
+            const max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+            gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
+        }
 
         if (hasMipmaps)
         {
@@ -246,11 +254,12 @@ export function createTexture(
     }
     else
     {
-        gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     }
+    */
 
     gl.bindTexture(texType, null);
     return texture;
@@ -282,11 +291,27 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string, internalFor
             image,
         );
 
+        gl.generateMipmap(texType);
+
+        const ext = gl.getExtension('EXT_texture_filter_anisotropic');
+        if (ext) {
+            const max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+            gl.texParameterf(texType, ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
+        }
+
         // WebGL1 has different requirements for power of 2 images
-        if (isPowerOf2(image.width) && isPowerOf2(image.height))
+        if (isPowerOf2(width) && isPowerOf2(height))
         {
             gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
             gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
+            const ext = gl.getExtension('EXT_texture_filter_anisotropic');
+            const extRGB = gl.getExtension('EXT_sRGB');
+            if (ext) {
+                const max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+                gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
+            }
+
             if (hasMipmaps)
             {
                 gl.generateMipmap(texType);
@@ -296,14 +321,15 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string, internalFor
             {
                 gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             }
+
             gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         }
         else
         {
-            gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
-            gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
+            gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         }
     };
 

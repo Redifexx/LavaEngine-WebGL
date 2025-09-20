@@ -40,8 +40,10 @@ export class LavaEngine
     static fps: number = 0;
     static frameTime: number = 0;
 
-    static screenFramebuffer: WebGLFramebuffer | null;
-    static screenRenderbuffer: WebGLRenderbuffer | null;
+    static screenFramebuffer: WebGLFramebuffer | null; // msaa
+    static screenDepthRenderbuffer: WebGLRenderbuffer | null;
+    static screenColorFramebuffer: WebGLFramebuffer | null;
+    static screenColorRenderbuffer: WebGLRenderbuffer | null; // multi sample color
     static screenQuad: Mesh | null;
     static screenShader: Shader | null;
     static screenTexture: WebGLTexture | null;
@@ -72,6 +74,11 @@ export class LavaEngine
         }
 
         this.gl_context = getContext(this.canvas);
+
+        const ext = this.gl_context.getExtension('EXT_texture_filter_anisotropic');
+        if (ext) {
+            console.log("yes");
+        }
 
         this.internalResolutionScale = 1.0;
         this.canvasWidth = (this.canvas.clientWidth * devicePixelRatio) / 1;
@@ -114,13 +121,14 @@ export class LavaEngine
         vec3.transformQuat(forward, [0, 0, -1], q);
         console.log(forward); // -> [0, 0, -1]
 
-        
+        console.log(this.gl_context.getContextAttributes()?.antialias); // true or false
+        console.log(this.gl_context.getParameter(this.gl_context.SAMPLES));
+
         // ---- INPUT LISTENING ----
         Input.InitInputEvents();
 
 
         // ---- FRAME / RENDER BUFFERS FOR SCREEN QUAD ----
-        this.screenFramebuffer = createFrameBuffer(this.gl_context);
         this.ResizeFramebuffer();
 
         LavaEngine.screenQuad = new Mesh(this.gl_context, quadVertices, null);
@@ -231,7 +239,53 @@ export class LavaEngine
     {
         const gl = this.gl_context;
 
-        this.BindFramebuffer(this.screenFramebuffer!);
+        if (!this.screenFramebuffer)
+        {
+            this.screenFramebuffer = createFrameBuffer(this.gl_context);
+        }
+
+        if (!this.screenColorFramebuffer)
+        {
+            this.screenColorFramebuffer = createFrameBuffer(this.gl_context);
+        }
+
+        if (!this.screenColorRenderbuffer)
+        {
+            this.screenColorRenderbuffer = createRenderBuffer(this.gl_context);
+        }
+
+        if (!this.screenDepthRenderbuffer)
+        {
+            this.screenDepthRenderbuffer = createRenderBuffer(this.gl_context);
+        }
+        
+
+        //msaa color buffer
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this.screenColorRenderbuffer);
+        gl.renderbufferStorageMultisample(
+            gl.RENDERBUFFER,
+            gl.getParameter(gl.MAX_SAMPLES) / 2,
+            gl.RGBA8,
+            LavaEngine.internalWidth,
+            LavaEngine.internalHeight
+        );
+
+        //depth
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this.screenDepthRenderbuffer);
+        gl.renderbufferStorageMultisample(
+            gl.RENDERBUFFER,
+            gl.getParameter(gl.MAX_SAMPLES) / 2,
+            gl.DEPTH24_STENCIL8,
+            LavaEngine.internalWidth,
+            LavaEngine.internalHeight
+        );
+
+        this.BindFramebuffer(this.screenFramebuffer);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, this.screenColorRenderbuffer);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, this.screenDepthRenderbuffer);
+        console.log('MAX_SAMPLES', gl.getParameter(gl.MAX_SAMPLES));
+        console.log('MAX_COLOR_ATTACHMENTS', gl.getParameter(gl.MAX_COLOR_ATTACHMENTS));
+
 
         if (this.screenTexture)
         {
@@ -259,75 +313,65 @@ export class LavaEngine
 
         this.screenTexture = tex;
 
-        // attach to FBO
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
 
-        if (this.screenRenderbuffer)
-        {
-            try { gl.deleteRenderbuffer(this.screenRenderbuffer); } catch(e) {}
-            this.screenRenderbuffer = null;
-        }
-        // create new renderbuffer
-        const rbo = gl.createRenderbuffer();
-        if (!rbo) {
-            showError("Failed to create renderbuffer");
-            // cleanup and unbind
-            gl.bindTexture(gl.TEXTURE_2D, null);
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            return;
-        }
-        this.screenRenderbuffer = rbo;
-        gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, LavaEngine.internalWidth, LavaEngine.internalHeight);
-        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, rbo);
+        this.BindFramebuffer(this.screenColorFramebuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.screenTexture, 0);
 
-        gl.bindTexture(gl.TEXTURE_2D, null);
-        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-        logFramebufferStatus(gl, "screenQuadFB");
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     } 
 
     // --- Engine Helper ---
     static RenderScreenTexture() 
     {
-        this.gl_context.bindFramebuffer(this.gl_context.FRAMEBUFFER, null);
-        this.gl_context.viewport(0.0, 0.0, this.canvas!.width, this.canvas!.height); 
-        this.gl_context.clearColor(1.0, 0.0, 1.0, 1.0);
-        this.gl_context.clear(this.gl_context.COLOR_BUFFER_BIT | this.gl_context.DEPTH_BUFFER_BIT);
+        const gl = this.gl_context;
 
-        this.gl_context.useProgram(this.screenShader!.shaderProgram);
-        this.gl_context.bindVertexArray(this.screenQuad!.vertexArrayObject);
-        this.gl_context.bindBuffer(this.gl_context.ARRAY_BUFFER, this.screenQuad!.vertexBuffer);
-        this.gl_context.disable(this.gl_context.DEPTH_TEST);
+        //resolve
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.screenFramebuffer);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.screenColorFramebuffer);
+        gl.blitFramebuffer(
+            0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
+            0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
+            gl.COLOR_BUFFER_BIT, gl.LINEAR
+        );
 
+        //---
+        gl.bindFramebuffer(this.gl_context.FRAMEBUFFER, null);
+        gl.viewport(0.0, 0.0, this.canvas!.width, this.canvas!.height); 
+        gl.clearColor(1.0, 0.0, 1.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        const posAttrib = this.gl_context.getAttribLocation(this.screenShader!.shaderProgram, 'vertexPosition');
-        const texAttrib = this.gl_context.getAttribLocation(this.screenShader!.shaderProgram, 'vertexTexCoord');
+        gl.useProgram(this.screenShader!.shaderProgram);
+        gl.bindVertexArray(this.screenQuad!.vertexArrayObject);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.screenQuad!.vertexBuffer);
+        gl.disable(gl.DEPTH_TEST);
 
-        this.gl_context.enableVertexAttribArray(posAttrib);
-        this.gl_context.vertexAttribPointer(
-            posAttrib, 2, this.gl_context.FLOAT, false,
+        const posAttrib = gl.getAttribLocation(this.screenShader!.shaderProgram, 'vertexPosition');
+        const texAttrib = gl.getAttribLocation(this.screenShader!.shaderProgram, 'vertexTexCoord');
+
+        gl.enableVertexAttribArray(posAttrib);
+        gl.vertexAttribPointer(
+            posAttrib, 2, gl.FLOAT, false,
             4 * Float32Array.BYTES_PER_ELEMENT, 0
         );
 
-        this.gl_context.enableVertexAttribArray(texAttrib);
-        this.gl_context.vertexAttribPointer(
-            texAttrib, 2, this.gl_context.FLOAT, false,
+        gl.enableVertexAttribArray(texAttrib);
+        gl.vertexAttribPointer(
+            texAttrib, 2, gl.FLOAT, false,
             4 * Float32Array.BYTES_PER_ELEMENT,
             2 * Float32Array.BYTES_PER_ELEMENT
         );
 
-        this.gl_context.activeTexture(this.gl_context.TEXTURE0);
-        this.gl_context.bindTexture(this.gl_context.TEXTURE_2D, this.screenTexture);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.screenTexture);
 
-        this.gl_context.uniform1i(this.gl_context.getUniformLocation(this.screenShader!.shaderProgram, "screenTexture"), 0);
-        this.gl_context.uniform2fv(this.gl_context.getUniformLocation(this.screenShader!.shaderProgram, "screenSize"), vec2.fromValues(LavaEngine.internalWidth, LavaEngine.internalHeight));
+        gl.uniform1i(gl.getUniformLocation(this.screenShader!.shaderProgram, "screenTexture"), 0);
+        gl.uniform2fv(gl.getUniformLocation(this.screenShader!.shaderProgram, "screenSize"), vec2.fromValues(LavaEngine.internalWidth, LavaEngine.internalHeight));
 
-        this.gl_context.drawArrays(this.gl_context.TRIANGLES, 0, 6);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-        this.gl_context.bindBuffer(this.gl_context.ARRAY_BUFFER, null);
-        this.gl_context.bindVertexArray(null);
-        this.gl_context.bindTexture(this.gl_context.TEXTURE_2D, null);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        gl.bindVertexArray(null);
+        gl.bindTexture(gl.TEXTURE_2D, null);
     }
 
     static SetupShadowMap()
