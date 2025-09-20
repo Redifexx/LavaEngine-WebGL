@@ -86,6 +86,7 @@ export class LavaEngine
         this.internalWidth = this.canvasWidth * this.internalResolutionScale;
         this.internalHeight = this.canvasHeight * this.internalResolutionScale;
         this.fpsTarget = 240;
+        this.shadowMapResolution = this.canvasWidth * 3;
 
         this.debugCube = new Mesh(this.gl_context, CUBE_VERTICES, CUBE_INDICES);
 
@@ -418,7 +419,7 @@ export class LavaEngine
         const gl = this.gl_context;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.depthMapFB!);
         logFramebufferStatus(gl, "Shadow Pass Bind");
-        gl.viewport(0, 0, this.canvasWidth * 3, this.canvasWidth * 3);
+        gl.viewport(0, 0, LavaEngine.shadowMapResolution, LavaEngine.shadowMapResolution);
         gl.enable(gl.DEPTH_TEST);
         gl.clear(gl.DEPTH_BUFFER_BIT);
 

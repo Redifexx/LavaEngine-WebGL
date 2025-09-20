@@ -36,7 +36,7 @@ export class EngineDemo extends Project
 
         const e_plane = this.MAIN_SCENE.addEntity(
             "Plane",
-            vec3.fromValues(0.0, 0.0, -2.0), 
+            vec3.fromValues(0.0, 0.0, 0.0), 
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(1.0, 1.0, 1.0)
         );
@@ -46,45 +46,6 @@ export class EngineDemo extends Project
             vec3.fromValues(-90.0, 0.0, 0.0)
         );
         e_plane.addChildEntity(e_plane_mesh);
-
-        const e_plane1 = this.MAIN_SCENE.addEntity(
-            "Plane1",
-            vec3.fromValues(0.0, 0.0, -4.0), 
-            vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(1.0, 1.0, 1.0)
-        );
-        const e_plane1_mesh = this.MAIN_SCENE.addEntity(
-            "Plane1Mesh",
-            vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0)
-        );
-        e_plane1.addChildEntity(e_plane1_mesh);
-
-        const e_plane2 = this.MAIN_SCENE.addEntity(
-            "Plane2",
-            vec3.fromValues(0.0, 0.0, -6.0), 
-            vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(1.0, 1.0, 1.0)
-        );
-        const e_plane2_mesh = this.MAIN_SCENE.addEntity(
-            "Plane2Mesh",
-            vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0)
-        );
-        e_plane2.addChildEntity(e_plane2_mesh);
-
-        const e_plane3 = this.MAIN_SCENE.addEntity(
-            "Plane3",
-            vec3.fromValues(0.0, 0.0, -8.0), 
-            vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(1.0, 1.0, 1.0)
-        );
-        const e_plane3_mesh = this.MAIN_SCENE.addEntity(
-            "Plane3Mesh",
-            vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0)
-        );
-        e_plane3.addChildEntity(e_plane3_mesh);
 
         const e_player = this.MAIN_SCENE.addEntity("Player", vec3.fromValues(0.0, 0.0, 0.0));
         const e_camera = this.MAIN_SCENE.addEntity("Camera", vec3.fromValues(0.0, 2.0, 0.0));
@@ -321,7 +282,7 @@ export class EngineDemo extends Project
 
         // Create models from meshs (make modelcomponent house materials)
         //const mod_plane = new Model(null, mat_grass, msh_plane);
-        const mod_plane = new Model("models/plane.json", mat_grass, null);
+        const mod_plane = new Model("models/big_plane.json", mat_grass, null);
         const mod_cube_1 = new Model("models/cube.json", mat_wood, null);
         const mod_cube_2 = new Model("models/Monkey.json", mat_stone, null);
         const mod_cube_3 = new Model("models/cube.json", mat_wood, null);
@@ -334,9 +295,6 @@ export class EngineDemo extends Project
 
         // Add model components to entities (trying to maintain ECS-ish)
         e_plane_mesh.addComponent(ModelComponent, new ModelComponent(mod_plane));
-        e_plane1_mesh.addComponent(ModelComponent, new ModelComponent(mod_plane));
-        e_plane2_mesh.addComponent(ModelComponent, new ModelComponent(mod_plane));
-        e_plane3_mesh.addComponent(ModelComponent, new ModelComponent(mod_plane));
 
         e_cube_1_mesh.addComponent(ModelComponent, new ModelComponent(mod_cube_1));
         e_cube_2_mesh.addComponent(ModelComponent, new ModelComponent(mod_cube_2));

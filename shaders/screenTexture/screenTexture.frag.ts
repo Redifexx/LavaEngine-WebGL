@@ -45,6 +45,7 @@ void main()
 
     float lumaB = dot(rgbB, vec3(0.299, 0.587, 0.114));
     //FragColor = (lumaB < lumaMin || lumaB > lumaMax) ? vec4(rgbA, 1.0) : vec4(rgbB, 1.0);
-    //FragColor = texture(screenTexture, TexCoords);
     FragColor = texture(screenTexture, TexCoords);
+    //float d = texture(screenTexture, TexCoords).r;
+    //FragColor = vec4(vec3(d), 1.0);
 }`;

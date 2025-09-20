@@ -1,5 +1,5 @@
 export const fragmentShaderSourceCode = `#version 300 es
-precision mediump float;
+precision highp float;
 
 in vec3 FragPos;
 in vec2 TexCoords;
@@ -85,23 +85,23 @@ float fresnelFactor(float cosTheta, float F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-float ShadowCalculation(vec4 fragPosLightSpace, out vec3 coords)
+float ShadowCalculation(vec4 fragPosLightSpace, out vec3 coords, vec3 norm, vec3 lightDir)
 {
     // perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
     coords = projCoords;
-    
 
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
-    float bias = 0.005;
-    //float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+
+    float bias = max(0.001 * (1.0 - dot(norm, lightDir)), 0.0001);
     float shadow = 0.0;
-    if(projCoords.z > 1.0)
-        shadow = 0.0;
+
+    if(projCoords.z > 1.0) return 0.0;
 
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
+
     for(int x = -1; x <= 1; ++x)
     {
         for(int y = -1; y <= 1; ++y)
@@ -180,7 +180,10 @@ vec3 DirectionalLightResult(DirectionalLight light, vec3 norm, vec3 diffuseTex, 
 
     vec3 emissive = emissiveTex * material.emissiveTint * material.emissiveFactor;
     vec3 lightCoords;
-    float shadow = ShadowCalculation(FragPosLightSpace, lightCoords); 
+    float shadow = ShadowCalculation(FragPosLightSpace, lightCoords, norm, lightDir); 
+    float dist = length(FragPos - viewPosition); 
+    float fade = smoothstep(30.0*0.8, 30.0, dist); // fade near edges
+    shadow *= (1.0 - fade);
 
     vec3 result = ((light.intensity * (diffuse + specular)) * (1.0 - shadow));
     return result + emissive;
