@@ -24,7 +24,7 @@ export class CameraComponent extends Component
         camera: Camera = new Camera(),
         cameraType: CameraType = CameraType.PERSPECTIVE,
         fieldOfView: number = 80.0,
-        nearPlane: number = 0.01,
+        nearPlane: number = 0.1,
         farPlane: number = 100.0
     )
     {

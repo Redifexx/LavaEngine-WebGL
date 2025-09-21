@@ -1,3 +1,4 @@
+import { mat4 } from "gl-matrix";
 import { Transform, TransformComponent } from "../components/transform-component";
 import { LavaEngine } from "../engine/lava-engine";
 import { Material } from "./material";
@@ -48,7 +49,6 @@ export class Model
     // parse from json
     async loadModel(url: string)
     {
-        console.log("LOADING MODEL");
         let rootURL = '../../' + url;
 
         // Fetch the file
@@ -60,9 +60,16 @@ export class Model
          // Parse the JSON into a JavaScript object
         const modelData = await response.json(); // automatically parses JSON
 
-        
+        // later optimize to instance same meshes
+
+        // store the mesh data first
+        const eachMeshVert = new Array(modelData.meshes.length);
+        const eachMeshInd = new Array(modelData.meshes.length);
+
+        let j = 0;
         for (const meshData of modelData.meshes)
         {
+
             // how many vertices the mesh has
             const vertexCount = meshData.vertices.length / 3;
 
@@ -101,9 +108,27 @@ export class Model
             // faces from many importers are often arrays of arrays—flatten if needed
             const indices = new Uint16Array(meshData.faces.flat());
 
-            const mesh = new Mesh(LavaEngine.gl_context, meshVertices, indices);
-            this.addMesh(mesh);
+            eachMeshVert[j] = meshVertices;
+            eachMeshInd[j] = indices;
+            j++;
+        }
 
+
+        // adds the localized transformation
+        for (const childMesh of modelData.rootnode.children)
+        {
+            const meshIndex = childMesh.meshes[0];
+            const meshT = mat4.create();
+            mat4.copy(meshT, childMesh.transformation.flat());
+
+            const curMesh = new Mesh(
+                LavaEngine.gl_context,
+                eachMeshVert[meshIndex],
+                eachMeshInd[meshIndex],
+                meshT
+            );
+
+            this.addMesh(curMesh);
         }
     }
     

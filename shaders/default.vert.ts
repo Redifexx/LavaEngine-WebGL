@@ -13,13 +13,18 @@ out mat3 TBN;
 out vec3 Normal;
 out vec4 FragPosLightSpace;
 
+out float FragDepth;
+
 uniform mat4 modelMatrix;
 uniform mat4 viewProjMatrix;
 uniform mat4 lightSpaceMatrix;
 
+uniform float near;
+uniform float far;
+
 void main()
 {
-     // World position
+    // World position
     vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
     FragPos = worldPos.xyz;
 

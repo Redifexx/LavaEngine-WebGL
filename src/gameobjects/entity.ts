@@ -17,7 +17,7 @@ export class Entity
     isActive: boolean;
 
     parentEntity: Entity | null;
-    childEntities: Entity[] = [];
+    childEntities: Map<string, Entity> = new Map();
     constructor(
         eID: number = 0,
         eName: string,
@@ -36,8 +36,13 @@ export class Entity
 
     addChildEntity(childEntity: Entity)
     {
-        this.childEntities.push(childEntity);
+        this.childEntities.set(childEntity.name, childEntity);
         childEntity.parentEntity = this;
+    }
+
+    getChildEntity(name: string): Entity | undefined
+    {
+        return this.childEntities.get(name) as Entity | undefined;
     }
 
     addComponent<T extends Component>(componentClass: ComponentConstructor<T>, component: T)

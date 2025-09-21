@@ -7,7 +7,11 @@ in mat3 TBN;
 in vec3 Normal;
 in vec4 FragPosLightSpace;
 
-out vec4 outputColor;
+in float FragDepth;
+
+layout(location = 0) out vec4 outputColor;
+layout(location = 1) out float SkyMask;
+layout(location = 2) out vec4 BrightColor;
 
 uniform vec3 viewPosition;
 uniform sampler2D tex0;
@@ -17,8 +21,8 @@ uniform sampler2D tex3;
 uniform sampler2D shadowMap;
 uniform samplerCube skybox;
 
-uniform float nearPlane;
-uniform float farPlane;
+uniform float near;
+uniform float far;
 
 // LIGHT DEFINITION
 struct DirectionalLight
@@ -95,7 +99,7 @@ float ShadowCalculation(vec4 fragPosLightSpace, out vec3 coords, vec3 norm, vec3
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
 
-    float bias = max(0.001 * (1.0 - dot(norm, lightDir)), 0.0001);
+    float bias = max(0.007 * (1.0 - dot(norm, lightDir)), 0.001);
     float shadow = 0.0;
 
     if(projCoords.z > 1.0) return 0.0;
@@ -118,8 +122,8 @@ float ShadowCalculation(vec4 fragPosLightSpace, out vec3 coords, vec3 norm, vec3
 
 float LinearizeDepth(float depth)
 {
-    float z = depth * 2.0 - 1.0; // Back to NDC 
-    return (2.0 * nearPlane * farPlane) / (farPlane + nearPlane - z * (farPlane - nearPlane));
+    float z = depth * 2.0 - 1.0; // back to NDC 
+    return (2.0 * near * far) / (far + near - z * (far - near));	
 }
 
 
@@ -137,15 +141,13 @@ vec3 PointLightResult(PointLight light, vec3 norm, vec3 diffuseTex, vec3 specula
 
     vec3 specular = specularLight + envSpecular * reflectivity * (1.0 - material.roughnessFactor);
 
-    vec3 emissive = emissiveTex * material.emissiveTint * material.emissiveFactor;
-
     // Light Falloff
     float distance = length(light.position - FragPos);
     float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.01 * distance * distance); //possible optimazation
 
     vec3 result = ((attenuation * light.intensity * (diffuse + specular)));
 
-    return result + emissive;
+    return result;
 }
 
 vec3 DirectionalLightResult(DirectionalLight light, vec3 norm, vec3 diffuseTex, vec3 specularTex, vec3 emissiveTex, vec3 viewDir, vec3 I, vec3 R, vec3 envSpecular, float cosTheta, float F0, float reflectivity)
@@ -162,7 +164,6 @@ vec3 DirectionalLightResult(DirectionalLight light, vec3 norm, vec3 diffuseTex, 
 
     vec3 specular = specularLight + envSpecular * reflectivity * (1.0 - material.roughnessFactor);
 
-    vec3 emissive = emissiveTex * material.emissiveTint * material.emissiveFactor;
     vec3 lightCoords;
     float shadow = ShadowCalculation(FragPosLightSpace, lightCoords, norm, lightDir); 
     float dist = length(FragPos - viewPosition); 
@@ -170,7 +171,7 @@ vec3 DirectionalLightResult(DirectionalLight light, vec3 norm, vec3 diffuseTex, 
     shadow *= (1.0 - fade);
 
     vec3 result = ((light.intensity * (diffuse + specular)) * (1.0 - shadow));
-    return result + emissive;
+    return result;
 }
 
 
@@ -190,8 +191,6 @@ vec3 SpotLightResult(SpotLight light, vec3 norm, vec3 diffuseTex, vec3 specularT
 
     vec3 specular = specularLight + envSpecular * reflectivity * (1.0 - material.roughnessFactor);
 
-    vec3 emissive = emissiveTex * material.emissiveTint * material.emissiveFactor;
-
     float theta = dot(lightDir, normalize(-light.direction));
     float epsilon = light.innerCutOff - light.outerCutOff;
     float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
@@ -206,12 +205,13 @@ vec3 SpotLightResult(SpotLight light, vec3 norm, vec3 diffuseTex, vec3 specularT
 
     result = ((attenuation * light.intensity * (diffuse + specular)));
 
-    return result + emissive;
+    return result;
 }
 
 
 void main()
 {
+    SkyMask = 0.0;
     vec2 dx = dFdx(TexCoords);
     vec2 dy = dFdy(TexCoords);
 
@@ -234,8 +234,10 @@ void main()
     float reflectivity = fresnelFactor(cosTheta, F0);
 
     vec3 result = vec3(0.0);
-    vec3 ambient = vec3(1.0) * 0.3 * diffuseTex;
+    vec3 ambient = vec3(1.0) * 0.1 * diffuseTex;
+    vec3 emissive = emissiveTex * material.emissiveTint * material.emissiveFactor;
     result += ambient;
+    result += emissive;
     for (int i = 0; i < MAX_POINT_LIGHTS; i++)
     {
         if (i >= numPointLights) break;
@@ -258,4 +260,14 @@ void main()
     //outputColor = vec4(pow(result, vec3(1.0/gamma)), 1.0);
     //outputColor = vec4(vec3(result.z), 1.0);
     outputColor = vec4(result, 1.0);
+
+    float brightness = dot(outputColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+    if (brightness > 1.0)
+    {   
+        BrightColor = vec4(outputColor.rgb, 1.0);
+    }
+    else
+    {
+        BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
+    }
 }`;

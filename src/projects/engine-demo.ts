@@ -18,6 +18,7 @@ import { MeshRotate } from "../scripts/meshRotate";
 import { skyboxVertSdrSourceCode } from "../../shaders/skybox/skybox.vert";
 import { skyboxFragSdrSourceCode } from "../../shaders/skybox/skybox.frag";
 import { LookAtPlayer } from "../scripts/lookAtPlayer";
+import { Entity } from "../gameobjects/entity";
 
 export class EngineDemo extends Project
 {
@@ -34,31 +35,120 @@ export class EngineDemo extends Project
     {
         this.MAIN_SCENE = this.CreateScene();
 
-        const e_plane = this.MAIN_SCENE.addEntity(
-            "Plane",
-            vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(1.0, 1.0, 1.0)
-        );
-        const e_plane_mesh = this.MAIN_SCENE.addEntity(
-            "PlaneMesh",
-            vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0)
-        );
-        e_plane.addChildEntity(e_plane_mesh);
+        // Setup Materials
+        // Create shader to render material with
+        const sdr_standard = new Shader(this.GL_CONTEXT, vertexShaderSourceCode, fragmentShaderSourceCode);
+        const sdr_skybox = new Shader(this.GL_CONTEXT, skyboxVertSdrSourceCode, skyboxFragSdrSourceCode);
 
-        const e_farm = this.MAIN_SCENE.addEntity(
-            "Plane",
-            vec3.fromValues(30.0, 3.6, -20.0), 
-            vec3.fromValues(0.0, 0.0, 0.0),
+        // Create material to render model with
+        const mat_skybox = new Material(sdr_skybox, true);
+        this.MAIN_SCENE.skybox = mat_skybox.getTex(0);
+
+        const mat_grass = new Material(sdr_standard);
+        mat_grass.setAllTextures(
+            "textures/mud/mud_diff.png",
+            "textures/mud/mud_spec.png",
+            "textures/mud/mud_norm.png",
+            null, 0.5, 0.9
+        );
+
+        const mat_wood = new Material(sdr_standard);
+        mat_wood.setAllTextures(
+            "textures/wood/wood_diff.png",
+            "textures/wood/wood_spec.png",
+            "textures/wood/wood_norm.png",
+            null, 0.5, 0.9
+        );
+        
+        const mat_stone = new Material(sdr_standard);
+        mat_stone.setAllTextures("textures/stone.png");
+    
+        const mat_brick = new Material(sdr_standard);
+        mat_brick.setAllTextures("textures/brick.png");
+
+        const mat_tiles = new Material(sdr_standard);
+        mat_tiles.setAllTextures(
+            "textures/tiles_diff.jpg",
+            "textures/tiles_spec.png",
+            "textures/tiles_norm.jpg",
+            "textures/tiles_emis.jpg",
+            0.5, 0.9, 5.0
+        );
+
+        const mat_skull = new Material(sdr_standard);
+        mat_skull.setAllTextures(
+            "textures/skull/skull_diff.png",
+            "textures/skull/skull_spec.png",
+            "textures/skull/skull_norm.png",
+            "textures/skull/skull_emis.png",
+            1.0, 0.2, 2.0
+        );
+
+        const mat_flash = new Material(sdr_standard);
+        mat_flash.setAllTextures(
+            "textures/flashlight/flashlight_diff.png",
+            "textures/flashlight/flashlight_spec.png",
+            "textures/flashlight/flashlight_norm.png",
+            "textures/flashlight/flashlight_emis.png",
+            1.0, 0.5, 2.0
+        );
+
+        const mat_farm = new Material(sdr_standard);
+        mat_farm.setAllTextures(
+            "textures/farm/farm_diff.png",
+            "textures/farm/farm_spec.png",
+            "textures/farm/farm_norm.png",
+            null, 1.0, 0.9
+        );
+
+        const mat_oldstone = new Material(sdr_standard);
+        mat_oldstone.setAllTextures(
+            "textures/oldstone/oldstone_diff.png",
+            "textures/oldstone/oldstone_spec.png",
+            "textures/oldstone/oldstone_norm.png",
+            null, 1.0, 0.5
+        );
+
+        const mat_emis_red = new Material(sdr_standard);
+        mat_emis_red.setAllTextures(
+            null,
+            null,
+            null,
+            "textures/default_diffuse.png", 0.0, 1.0, 20.0,
             vec3.fromValues(1.0, 1.0, 1.0)
         );
-        const e_farm_mesh = this.MAIN_SCENE.addEntity(
-            "PlaneMesh",
-            vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0)
+
+
+        // Place Entities
+
+        const e_planes: Entity[] = new Array(9);
+        const e_planes_mesh: Entity[] = new Array(9);
+
+        for (let i = 0; i < 3; i++)
+        {
+            const z = -100 + (i * 100);
+            for (let j = 0; j < 3; j++)
+            {
+                const index = i * 3 + j;
+                const x = -100 + (j * 100);
+
+                e_planes[index] = this.MAIN_SCENE.importModel(
+                    `Plane${index}`,
+                    vec3.fromValues(x, 0.0, z), 
+                    vec3.fromValues(0.0, 0.0, 0.0),
+                    vec3.fromValues(1.0, 1.0, 1.0),
+                    mat_grass, "models/big_plane.json"
+                );
+            }
+        }
+
+        const e_farm = this.MAIN_SCENE.importModel(
+            "Farm",
+            vec3.fromValues(30.0, 3.6, -20.0),
+            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(1.0, 1.0, 1.0),
+            mat_farm, "models/farm.json"
         );
-        e_farm.addChildEntity(e_farm_mesh);
 
         const e_player = this.MAIN_SCENE.addEntity("Player", vec3.fromValues(0.0, 0.0, 0.0));
         const e_camera = this.MAIN_SCENE.addEntity("Camera", vec3.fromValues(0.0, 2.0, 0.0));
@@ -71,8 +161,7 @@ export class EngineDemo extends Project
 
         const e_redlight = this.MAIN_SCENE.addEntity(
             "RedLight",
-            vec3.fromValues(30.0, 3.0, -25.0),
-            vec3.fromValues(-90.0, -10.0, -10.0)
+            vec3.fromValues(0.0, 0.0, 0.0)
         );
 
         const e_greenlight = this.MAIN_SCENE.addEntity(
@@ -111,14 +200,12 @@ export class EngineDemo extends Project
             "SkullLight"
         );
 
-        const e_flashlight_obj = this.MAIN_SCENE.addEntity(
+        const e_flashlight_obj = this.MAIN_SCENE.importModel(
             "FlashLightObj",
             vec3.fromValues(0.5, -0.5, -1.0),
-            vec3.fromValues(5.0, 5.0, 0.0)
-        );
-
-        const e_flashlight_mesh = this.MAIN_SCENE.addEntity(
-            "FlashLightMesh",
+            vec3.fromValues(5.0, 5.0, 0.0),
+            vec3.fromValues(1.0, 1.0, 1.0),
+            mat_flash, "models/flashlight.json",
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.0, 180.0, 90.0),
             vec3.fromValues(0.05, 0.05, 0.05)
@@ -130,204 +217,91 @@ export class EngineDemo extends Project
             vec3.fromValues(0.0, 180.0, 0.0)
         );
 
-        e_flashlight_mesh.addChildEntity(e_flashlight);
-        e_flashlight_obj.addChildEntity(e_flashlight_mesh);
-
+        e_flashlight_obj.getChildEntity("FlashLightObjMesh")!.addChildEntity(e_flashlight);
         e_flashlight.setActive(false);
 
-        const e_cube_1_mesh = this.MAIN_SCENE.addEntity(
-            "Cube1Mesh",
-            vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0)
-        );
-        const e_cube_2_mesh = this.MAIN_SCENE.addEntity(
-            "Cube2Mesh",
-            vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0)
-        );
-        const e_cube_3_mesh = this.MAIN_SCENE.addEntity(
-            "Cube3Mesh",
-            vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0)
-        );
-        const e_cube_4_mesh = this.MAIN_SCENE.addEntity(
-            "Cube4Mesh",
-            vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0)
-        );
-        const e_cube_5_mesh = this.MAIN_SCENE.addEntity(
-            "Cube5Mesh",
-            vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(-90.0, 0.0, 0.0)
-        );
-        const e_skull_mesh = this.MAIN_SCENE.addEntity(
-            "SkullMesh",
-            vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(0.0, 0.0, 0.0)
-        );
-        
-        const e_cube_1 = this.MAIN_SCENE.addEntity(
+        const e_cube_1 = this.MAIN_SCENE.importModel(
             "Cube1",
-            vec3.fromValues(10.0, 1.0, -10.0), 
+            vec3.fromValues(10.0, 1.0, -10.0),
             vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(1.0, 1.0, 1.0)
+            vec3.fromValues(1.0, 1.0, 1.0),
+            mat_wood, "models/cube.json"
         );
-        e_cube_1.addChildEntity(e_cube_1_mesh);
 
-        const e_cube_2 = this.MAIN_SCENE.addEntity(
+        const e_cube_2 = this.MAIN_SCENE.importModel(
             "Cube2",
-            vec3.fromValues(4.0, 0.2, 3.0), 
+            vec3.fromValues(4.0, 0.2, 3.0),
             vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(0.2, 0.2, 0.2)
+            vec3.fromValues(0.2, 0.2, 0.2),
+            mat_stone, "models/cube.json"
         );
-        e_cube_2.addChildEntity(e_cube_2_mesh);
 
-        const e_cube_3 = this.MAIN_SCENE.addEntity(
+        const e_cube_3 = this.MAIN_SCENE.importModel(
             "Cube3",
-            vec3.fromValues(3.0, 0.4, -2.5), 
+            vec3.fromValues(3.0, 0.4, -2.5),
             vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(0.4, 0.4, 0.4)
+            vec3.fromValues(0.4, 0.4, 0.4),
+            mat_wood, "models/cube.json"
         );
-        e_cube_3.addChildEntity(e_cube_3_mesh);
 
-        const e_cube_4 = this.MAIN_SCENE.addEntity(
+        const e_cube_4 = this.MAIN_SCENE.importModel(
             "Cube4",
-            vec3.fromValues(-5.0, 0.7, 2.0), 
+            vec3.fromValues(-5.0, 0.7, 2.0),
             vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(0.7, 0.7, 0.7)
+            vec3.fromValues(0.7, 0.7, 0.7),
+            mat_brick, "models/cube.json"
         );
-        e_cube_4.addChildEntity(e_cube_4_mesh);
 
-        const e_cube_5 = this.MAIN_SCENE.addEntity(
+        const e_cube_5 = this.MAIN_SCENE.importModel(
             "Cube5",
             vec3.fromValues(0.0, 2.0, 10.0), 
             vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(1.5, 1.5, 1.5)
+            vec3.fromValues(1.5, 1.5, 1.5),
+            mat_tiles, "models/cube.json"
         );
-        e_cube_5.addChildEntity(e_cube_5_mesh);
 
-        const e_skull = this.MAIN_SCENE.addEntity(
+        const e_skull = this.MAIN_SCENE.importModel(
             "Skull",
             vec3.fromValues(15.0, 2.0, 0.0), 
             vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(1.0, 1.0, 1.0)
+            vec3.fromValues(1.0, 1.0, 1.0),
+            mat_skull, "models/skull.json",
+            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(0.0, 0.0, 0.0)
         );
-        e_skull.addChildEntity(e_skull_mesh);
 
-        const e_pole = this.MAIN_SCENE.addEntity(
+        const e_sphere = this.MAIN_SCENE.importModel(
+            "Sphere",
+            vec3.fromValues(0.0, 2.0, -32.0), 
+            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(0.5, 0.5, 0.5),
+            mat_emis_red, "models/sphere.json"
+        );
+        e_sphere.addChildEntity(e_redlight);
+
+        const e_pole = this.MAIN_SCENE.importModel(
             "Pole",
-            vec3.fromValues(-50.0, 0.0, 50.0), 
+            vec3.fromValues(-50.0, 0.0, 50.0),
             vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(1.0, 1.0, 1.0)
+            vec3.fromValues(2.0, 2.0, 2.0),
+            mat_wood, "models/POWERPOLES.json",
+            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(0.0, 0.0, 0.0)
         );
 
-        const e_pole_mesh = this.MAIN_SCENE.addEntity(
-            "PoleMesh",
-            vec3.fromValues(0.0, 0.0, 0.0), 
-            vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(2.0, 2.0, 2.0)
+        const e_tunnel = this.MAIN_SCENE.importModel(
+            "Tunnel",
+            vec3.fromValues(0.0, 4.0, -50.0), 
+            vec3.fromValues(0.0, 180.0, 0.0),
+            vec3.fromValues(0.7, 0.7, 0.7),
+            mat_oldstone, "models/Tunnel.json"
         );
 
-        e_pole.addChildEntity(e_pole_mesh);
-
-        // Create shader to render material with
-        const sdr_standard = new Shader(this.GL_CONTEXT, vertexShaderSourceCode, fragmentShaderSourceCode);
-        const sdr_skybox = new Shader(this.GL_CONTEXT, skyboxVertSdrSourceCode, skyboxFragSdrSourceCode);
-
-        // Create material to render model with
-        const mat_skybox = new Material(sdr_skybox, true);
-        this.MAIN_SCENE.skybox = mat_skybox.getTex(0);
-
-        const mat_grass = new Material(sdr_standard);
-        mat_grass.setTex(0, loadTexture(this.GL_CONTEXT, "textures/mud/mud_diff.png", this.GL_CONTEXT.SRGB8_ALPHA8, this.GL_CONTEXT.TEXTURE_2D, true));
-        mat_grass.setTex(1, loadTexture(this.GL_CONTEXT, "textures/mud/mud_spec.png"));
-        mat_grass.setTex(2, loadTexture(this.GL_CONTEXT, "textures/mud/mud_norm.png"));
-        mat_grass.specularFactor = 0.5;
-        mat_grass.roughnessFactor = 0.9;
-
-        const mat_wood = new Material(sdr_standard);
-        mat_wood.setTex(0, loadTexture(this.GL_CONTEXT, "textures/wood/wood_diff.png", this.GL_CONTEXT.SRGB8_ALPHA8, this.GL_CONTEXT.TEXTURE_2D, true));
-        mat_wood.setTex(1, loadTexture(this.GL_CONTEXT, "textures/wood/wood_spec.png"));
-        mat_wood.setTex(2, loadTexture(this.GL_CONTEXT, "textures/wood/wood_norm.png"));
-        mat_wood.specularFactor = 0.5;
-        mat_wood.roughnessFactor = 0.9;
-        
-        const mat_stone = new Material(sdr_standard);
-        mat_stone.setTex(0, loadTexture(this.GL_CONTEXT, "textures/stone.png", this.GL_CONTEXT.SRGB8_ALPHA8));
     
-        const mat_brick = new Material(sdr_standard);
-        mat_brick.setTex(0, loadTexture(this.GL_CONTEXT, "textures/brick.png", this.GL_CONTEXT.SRGB8_ALPHA8)); 
-
-        const mat_face = new Material(sdr_standard);
-        mat_face.setTex(0, loadTexture(this.GL_CONTEXT, "textures/me.jpg", this.GL_CONTEXT.SRGB8_ALPHA8)); 
-        mat_face.specularFactor = 0.5;
-        mat_face.roughnessFactor = 0.5;
-
-        const mat_gata = new Material(sdr_standard);
-        mat_gata.setTex(0, loadTexture(this.GL_CONTEXT, "textures/geoff.jpg", this.GL_CONTEXT.SRGB8_ALPHA8)); 
-
-        const mat_tiles = new Material(sdr_standard);
-        mat_tiles.setTex(0, loadTexture(this.GL_CONTEXT, "textures/tiles_diff.jpg", this.GL_CONTEXT.SRGB8_ALPHA8)); 
-        mat_tiles.setTex(1, loadTexture(this.GL_CONTEXT, "textures/tiles_spec.png")); 
-        mat_tiles.setTex(2, loadTexture(this.GL_CONTEXT, "textures/tiles_norm.jpg")); 
-        mat_tiles.setTex(3, loadTexture(this.GL_CONTEXT, "textures/tiles_emis.jpg", this.GL_CONTEXT.SRGB8_ALPHA8)); 
-        mat_tiles.specularFactor = 1.0;
-        mat_tiles.roughnessFactor = 0.9;
-        mat_tiles.emissiveFactor = 1.0;
-
-        const mat_skull = new Material(sdr_standard);
-        mat_skull.setTex(0, loadTexture(this.GL_CONTEXT, "textures/skull/skull_diff.png", this.GL_CONTEXT.SRGB8_ALPHA8)); 
-        mat_skull.setTex(1, loadTexture(this.GL_CONTEXT, "textures/skull/skull_spec.png")); 
-        mat_skull.setTex(2, loadTexture(this.GL_CONTEXT, "textures/skull/skull_norm.png")); 
-        mat_skull.setTex(3, loadTexture(this.GL_CONTEXT, "textures/skull/skull_emis.png", this.GL_CONTEXT.SRGB8_ALPHA8)); 
-        mat_skull.specularFactor = 1.0;
-        mat_skull.roughnessFactor = 0.2;
-        mat_skull.emissiveFactor = 1.0;
-
-        const mat_flash = new Material(sdr_standard);
-        mat_flash.setTex(0, loadTexture(this.GL_CONTEXT, "textures/flashlight/flashlight_diff.png", this.GL_CONTEXT.SRGB8_ALPHA8)); 
-        mat_flash.setTex(1, loadTexture(this.GL_CONTEXT, "textures/flashlight/flashlight_spec.png")); 
-        mat_flash.setTex(2, loadTexture(this.GL_CONTEXT, "textures/flashlight/flashlight_norm.png")); 
-        mat_flash.setTex(3, loadTexture(this.GL_CONTEXT, "textures/flashlight/flashlight_emis.png", this.GL_CONTEXT.SRGB8_ALPHA8)); 
-        mat_flash.specularFactor = 1.0;
-        mat_flash.roughnessFactor = 0.5;
-        mat_flash.emissiveFactor = 1.0;
-
-        const mat_farm = new Material(sdr_standard);
-        mat_farm.setTex(0, loadTexture(this.GL_CONTEXT, "textures/farm/farm_diff.png", this.GL_CONTEXT.SRGB8_ALPHA8)); 
-        mat_farm.setTex(1, loadTexture(this.GL_CONTEXT, "textures/farm/farm_spec.png")); 
-        mat_farm.setTex(2, loadTexture(this.GL_CONTEXT, "textures/farm/farm_norm.png")); 
-        mat_farm.specularFactor = 1.0;
-        mat_farm.roughnessFactor = 0.9;
-
         // Create models from meshs (make modelcomponent house materials)
-        //const mod_plane = new Model(null, mat_grass, msh_plane);
-        const mod_plane = new Model("models/big_plane.json", mat_grass, null);
-        const mod_cube_1 = new Model("models/cube.json", mat_wood, null);
-        const mod_cube_2 = new Model("models/Monkey.json", mat_stone, null);
-        const mod_cube_3 = new Model("models/cube.json", mat_wood, null);
-        const mod_cube_4 = new Model("models/cube.json", mat_brick, null);
-        const mod_cube_5 = new Model("models/cube.json", mat_tiles, null);
-        const mod_skull = new Model("models/skull.json", mat_skull, null);
         const mod_skybox = new Model("models/cube.json", mat_skybox, null);
-        const mod_flashlight = new Model("models/flashlight.json", mat_flash, null);
-        const mod_pole = new Model("models/POWERPOLES.json", mat_wood, null);
-        const mod_farm = new Model("models/farm.json", mat_farm, null);
-
-        // Add model components to entities (trying to maintain ECS-ish)
-        e_plane_mesh.addComponent(ModelComponent, new ModelComponent(mod_plane));
-
-        e_cube_1_mesh.addComponent(ModelComponent, new ModelComponent(mod_cube_1));
-        e_cube_2_mesh.addComponent(ModelComponent, new ModelComponent(mod_cube_2));
-        e_cube_3_mesh.addComponent(ModelComponent, new ModelComponent(mod_cube_3));
-        e_cube_4_mesh.addComponent(ModelComponent, new ModelComponent(mod_cube_4));
-        e_cube_5_mesh.addComponent(ModelComponent, new ModelComponent(mod_cube_5));
-        e_skull_mesh.addComponent(ModelComponent, new ModelComponent(mod_skull));
-        e_flashlight_mesh.addComponent(ModelComponent, new ModelComponent(mod_flashlight));
-        e_pole_mesh.addComponent(ModelComponent, new ModelComponent(mod_pole));
-        e_farm_mesh.addComponent(ModelComponent, new ModelComponent(mod_farm));
+        
         e_skybox.addComponent(ModelComponent, new ModelComponent(mod_skybox, false));
-
         e_cube_1.addScript(new MeshRotate());
         e_cube_2.addScript(new MeshRotate());
         e_cube_3.addScript(new MeshRotate());
@@ -348,7 +322,7 @@ export class EngineDemo extends Project
         e_skull.addScript(lookAtScript);
     
         e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 0.8, 0.5), 1.3, true)); // default light
-        e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.2, 0.0), 2.0));
+        e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 2.0));
         //e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 0.0));
         //e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.3, 1.0), 0.0));
         //e_purplelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.5, 0.0, 1.0), 0.0));

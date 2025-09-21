@@ -17,6 +17,10 @@ import { depthDebugFragSdrSourceCode } from "../../shaders/debug/depthDebug.frag
 import { Material } from "../datatypes/material";
 import { simpleVertSdrSourceCode } from "../../shaders/simple/simple.vert";
 import { simpleFragSdrSourceCode } from "../../shaders/simple/simple.frag";
+import { vertexShaderSourceCode } from "../../shaders/default.vert";
+import { fragmentShaderSourceCode } from "../../shaders/default.frag";
+import { gaussianBlurVertSdrSourceCode } from "../../shaders/gaussianBlur/gaussianBlur.vert";
+import { gaussianBlurFragSdrSourceCode } from "../../shaders/gaussianBlur/gaussianBlur.frag";
 
  
 export class LavaEngine
@@ -40,6 +44,7 @@ export class LavaEngine
     static fps: number = 0;
     static frameTime: number = 0;
 
+    // Render Quad + MSAA
     static screenFramebuffer: WebGLFramebuffer | null; // msaa
     static screenDepthRenderbuffer: WebGLRenderbuffer | null;
     static screenColorFramebuffer: WebGLFramebuffer | null;
@@ -47,10 +52,19 @@ export class LavaEngine
     static screenQuad: Mesh | null;
     static screenShader: Shader | null;
     static screenTexture: WebGLTexture | null;
+    static depthTexture: WebGLTexture | null; // for mist pass
+    static skyMask: WebGLTexture | null;
 
+    // Bloom
+    static gaussianBlurShader: Shader;
+    static bloomTexture: WebGLTexture; // for mist pass
+    static pingPongFB: WebGLFramebuffer[] = new Array(2);
+    static pingPongTex: WebGLTexture[] = new Array(2);
+
+    // Post Processing
     static ppFramebuffer: WebGLFramebuffer | null; // msaa
-    static ppTexture: WebGLTexture | null; // msaa
 
+    // Shadow Stuff
     static shadowMapResolution: number = 1024;
     static depthMap: WebGLTexture | null;
     static depthMapFB: WebGLFramebuffer | null;
@@ -59,6 +73,10 @@ export class LavaEngine
     static debugCube: Mesh | null;
     static triVAO: WebGLVertexArrayObject;
     static simpleProgram: WebGLProgram;
+
+    //Helper Defaults
+    static defaultShader: Shader;
+    static defaultMaterial: Material;
 
     static CreateEngineWindow()
     {
@@ -84,6 +102,12 @@ export class LavaEngine
         if (ext) {
             console.log("yes");
         }
+
+        this.defaultShader = new Shader(this.gl_context, vertexShaderSourceCode, fragmentShaderSourceCode);
+        this.defaultMaterial = new Material(this.defaultShader);
+
+        this.gaussianBlurShader = new Shader(this.gl_context, gaussianBlurVertSdrSourceCode, gaussianBlurFragSdrSourceCode);
+
 
         this.internalResolutionScale = 1.0;
         this.canvasWidth = (this.canvas.clientWidth * devicePixelRatio) / 1;
@@ -176,7 +200,15 @@ export class LavaEngine
 
                 LavaEngine.BindFramebuffer(LavaEngine.screenFramebuffer!); // custom frame buffer
                 LavaEngine.project.MAIN_SCENE.render(LavaEngine.internalWidth, LavaEngine.internalHeight);
-                LavaEngine.RenderScreenTexture(); // To Screen Quad
+                LavaEngine.project.MAIN_SCENE.renderSkybox(LavaEngine.internalWidth, LavaEngine.internalHeight);
+                LavaEngine.ResolveMSAA();
+
+                LavaEngine.RenderSkymask();
+                LavaEngine.project.MAIN_SCENE.renderSkybox(LavaEngine.internalWidth, LavaEngine.internalHeight);
+
+                LavaEngine.RenderBloom();
+            
+                LavaEngine.RenderScreenTexture(LavaEngine.screenShader!.shaderProgram); // To Screen Quad
             }
 
             
@@ -297,99 +329,60 @@ export class LavaEngine
         console.log('MAX_SAMPLES', gl.getParameter(gl.MAX_SAMPLES));
         console.log('MAX_COLOR_ATTACHMENTS', gl.getParameter(gl.MAX_COLOR_ATTACHMENTS));
 
-
-        if (this.screenTexture)
-        {
-            try { gl.deleteTexture(this.screenTexture); } catch(e) {}
-            this.screenTexture = null;
-        }
-
-        let tex = gl.createTexture();
-        if (!tex) {
-            showError("Failed to create screen texture");
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            return;
-        }
-        gl.bindTexture(gl.TEXTURE_2D, tex);
-
-        // Allocate storage (null data) using sized internal format (WebGL2)
-        // Note: internalFormat = gl.RGBA8, format = gl.RGBA, type = gl.UNSIGNED_BYTE
-        //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.RGBA, gl.FLOAT, null);
-
-        // sampling/wrap params
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-        this.screenTexture = tex;
-
-
+        this.SetupTextures();
+        this.SetupBloom();
+        
         this.BindFramebuffer(this.screenColorFramebuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.screenTexture, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, this.skyMask, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, this.bloomTexture, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.depthTexture, 0);
 
-        /*
-        if (this.ppTexture)
-        {
-            try { gl.deleteTexture(this.ppTexture); } catch(e) {}
-            this.screenTexture = null;
-        }
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
 
-        tex = gl.createTexture();
-        if (!tex) {
-            showError("Failed to create screen texture");
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            return;
-        }
-        gl.bindTexture(gl.TEXTURE_2D, tex);
-
-        // Allocate storage (null data) using sized internal format (WebGL2)
-        // Note: internalFormat = gl.RGBA8, format = gl.RGBA, type = gl.UNSIGNED_BYTE
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.RGBA, gl.FLOAT, null);
-
-        // sampling/wrap params
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-        this.ppTexture = tex;
-
-        this.BindFramebuffer(this.ppFramebuffer);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.ppTexture, 0);
-
-        */
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     } 
 
-    // --- Engine Helper ---
-    static RenderScreenTexture() 
+    static ResolveMSAA()
     {
         const gl = this.gl_context;
 
-        //resolve
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.screenFramebuffer);
+        gl.readBuffer(gl.COLOR_ATTACHMENT0);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.screenColorFramebuffer);
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0]); // only the color attachment
+        gl.blitFramebuffer(
+            0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
+            0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
+            gl.COLOR_BUFFER_BIT, gl.NEAREST
+        );
+
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.screenFramebuffer);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.screenColorFramebuffer);
         gl.blitFramebuffer(
             0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
             0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
-            gl.COLOR_BUFFER_BIT, gl.LINEAR
+            gl.DEPTH_BUFFER_BIT, gl.NEAREST
         );
+    }
 
+    // --- Engine Helper ---
+    static RenderScreenTexture(shaderProgram: WebGLShader) 
+    {
+        const gl = this.gl_context;
         //---
         gl.bindFramebuffer(this.gl_context.FRAMEBUFFER, null);
         gl.viewport(0.0, 0.0, this.canvas!.width, this.canvas!.height); 
         gl.clearColor(1.0, 0.0, 1.0, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        gl.useProgram(this.screenShader!.shaderProgram);
+        gl.useProgram(shaderProgram);
         gl.bindVertexArray(this.screenQuad!.vertexArrayObject);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.screenQuad!.vertexBuffer);
         gl.disable(gl.DEPTH_TEST);
 
-        const posAttrib = gl.getAttribLocation(this.screenShader!.shaderProgram, 'vertexPosition');
-        const texAttrib = gl.getAttribLocation(this.screenShader!.shaderProgram, 'vertexTexCoord');
+        const posAttrib = gl.getAttribLocation(shaderProgram, 'vertexPosition');
+        const texAttrib = gl.getAttribLocation(shaderProgram, 'vertexTexCoord');
 
         gl.enableVertexAttribArray(posAttrib);
         gl.vertexAttribPointer(
@@ -406,15 +399,74 @@ export class LavaEngine
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.screenTexture);
+        gl.uniform1i(gl.getUniformLocation(shaderProgram, "screenTexture"), 0);
 
-        gl.uniform1i(gl.getUniformLocation(this.screenShader!.shaderProgram, "screenTexture"), 0);
-        gl.uniform2fv(gl.getUniformLocation(this.screenShader!.shaderProgram, "screenSize"), vec2.fromValues(LavaEngine.internalWidth, LavaEngine.internalHeight));
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.depthTexture);
+        gl.uniform1i(gl.getUniformLocation(shaderProgram, "depthTexture"), 1);
+
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, this.bloomTexture);
+        gl.uniform1i(gl.getUniformLocation(shaderProgram, "bloomTexture"), 2);
+
+        gl.activeTexture(gl.TEXTURE3);
+        gl.bindTexture(gl.TEXTURE_2D, this.skyMask);
+        gl.uniform1i(gl.getUniformLocation(shaderProgram, "skyMask"), 3);
+
+        gl.uniform2fv(gl.getUniformLocation(shaderProgram, "screenSize"), vec2.fromValues(LavaEngine.internalWidth, LavaEngine.internalHeight));
+
+        
+        gl.uniform1f(gl.getUniformLocation(shaderProgram, "far"), this.project.MAIN_SCENE.mainCamera!.farPlane);
+        gl.uniform1f(gl.getUniformLocation(shaderProgram, "near"), this.project.MAIN_SCENE.mainCamera!.nearPlane);
 
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
         gl.bindVertexArray(null);
         gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+
+    static RenderBloomTexture(shaderProgram: WebGLShader) 
+    {
+        const gl = this.gl_context;
+        gl.viewport(0.0, 0.0, this.canvas!.width, this.canvas!.height); 
+        gl.clearColor(1.0, 0.0, 1.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        gl.bindVertexArray(this.screenQuad!.vertexArrayObject);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.screenQuad!.vertexBuffer);
+        gl.disable(gl.DEPTH_TEST);
+
+        const posAttrib = gl.getAttribLocation(shaderProgram, 'vertexPosition');
+        const texAttrib = gl.getAttribLocation(shaderProgram, 'vertexTexCoord');
+
+        gl.enableVertexAttribArray(posAttrib);
+        gl.vertexAttribPointer(
+            posAttrib, 2, gl.FLOAT, false,
+            4 * Float32Array.BYTES_PER_ELEMENT, 0
+        );
+
+        gl.enableVertexAttribArray(texAttrib);
+        gl.vertexAttribPointer(
+            texAttrib, 2, gl.FLOAT, false,
+            4 * Float32Array.BYTES_PER_ELEMENT,
+            2 * Float32Array.BYTES_PER_ELEMENT
+        );
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        gl.bindVertexArray(null);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+
+    static RenderSkymask()
+    {
+        const gl = this.gl_context;
+        this.BindFramebuffer(this.screenColorFramebuffer);
+        gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1, gl.NONE]);
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
     }
 
     static SetupShadowMap()
@@ -447,7 +499,7 @@ export class LavaEngine
         const depthMapFB = createFrameBuffer(gl);
         gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFB!);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthMap, 0);
-        //logFramebufferStatus(this.gl_context, "fb text");
+        
         gl.drawBuffers([gl.NONE]);
         gl.readBuffer(gl.NONE);
         gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFB!);
@@ -475,6 +527,156 @@ export class LavaEngine
     {
         this.gl_context.bindFramebuffer(LavaEngine.gl_context.FRAMEBUFFER, framebuffer);
         return true;
+    }
+
+    static SetupTextures()
+    {
+        const gl = this.gl_context;
+        if (this.screenTexture)
+        {
+            try { gl.deleteTexture(this.screenTexture); } catch(e) {}
+            this.screenTexture = null;
+        }
+
+        let tex = gl.createTexture();
+        if (!tex) {
+            showError("Failed to create screen texture");
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            return;
+        }
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+
+        // Allocate storage (null data) using sized internal format (WebGL2)
+        // Note: internalFormat = gl.RGBA8, format = gl.RGBA, type = gl.UNSIGNED_BYTE
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.RGBA, gl.FLOAT, null);
+
+        // sampling/wrap params
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        this.screenTexture = tex;
+
+        //depthtex
+        let depth = gl.createTexture();
+        if (!depth) {
+            showError("Failed to create screen texture");
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            return;
+        }
+        gl.bindTexture(gl.TEXTURE_2D, depth);
+
+        // Allocate storage (null data) using sized internal format (WebGL2)
+        // Note: internalFormat = gl.RGBA8, format = gl.RGBA, type = gl.UNSIGNED_BYTE
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH24_STENCIL8, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.DEPTH_STENCIL, gl.UNSIGNED_INT_24_8, null);
+
+        // sampling/wrap params
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+        this.depthTexture = depth;
+
+        //skymask
+        let sky = gl.createTexture();
+        if (!sky) {
+            showError("Failed to create screen texture");
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            return;
+        }
+        gl.bindTexture(gl.TEXTURE_2D, sky);
+
+        // Allocate storage (null data) using sized internal format (WebGL2)
+        // Note: internalFormat = gl.RGBA8, format = gl.RGBA, type = gl.UNSIGNED_BYTE
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.RGBA, gl.FLOAT, null);
+
+        // sampling/wrap params
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+        this.skyMask = sky;
+
+        let bloom = gl.createTexture();
+        if (!bloom) {
+            showError("Failed to create screen texture");
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            return;
+        }
+        gl.bindTexture(gl.TEXTURE_2D, bloom);
+
+        // Allocate storage (null data) using sized internal format (WebGL2)
+        // Note: internalFormat = gl.RGBA8, format = gl.RGBA, type = gl.UNSIGNED_BYTE
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.RGBA, gl.FLOAT, null);
+
+        // sampling/wrap params
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+        this.bloomTexture = bloom;
+    }
+
+    static SetupBloom()
+    {
+        const gl = this.gl_context;
+        for (let i = 0; i < 2; i++)
+        {
+            
+            if (this.pingPongFB[i])
+            {
+                gl.deleteFramebuffer(this.pingPongFB[i]);
+            }
+
+            if (this.pingPongTex[i])
+            {
+                gl.deleteTexture(this.pingPongTex[i]);
+            }
+
+            this.pingPongFB[i] = gl.createFramebuffer();
+            this.pingPongTex[i] = gl.createTexture();
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.pingPongFB[i]);
+            gl.bindTexture(gl.TEXTURE_2D, this.pingPongTex[i]);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.RGBA, gl.FLOAT, null);
+
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.pingPongTex[i], 0);
+        }
+    }
+
+    static RenderBloom()
+    {
+        const gl = this.gl_context;
+        let horizontal = true;
+        let firstItr = true;
+        const amount = 10;
+        gl.useProgram(this.gaussianBlurShader.shaderProgram);
+        
+        for (let i = 0; i < amount; i++)
+        {
+            const writeIndex = horizontal ? 1 : 0;
+            const readIndex  = horizontal ? 0 : 1;
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.pingPongFB[writeIndex]);
+            gl.uniform1i(gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "horizontal"), horizontal ? 1 : 0);
+
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, firstItr ? this.bloomTexture : this.pingPongTex[readIndex]);
+            gl.uniform1i(gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "bloomTexture"), 0);
+            
+            this.RenderBloomTexture(this.gaussianBlurShader.shaderProgram);
+            horizontal = !horizontal;
+            if (firstItr) firstItr = false;
+        }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
 }
 

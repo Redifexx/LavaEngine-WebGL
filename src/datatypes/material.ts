@@ -26,6 +26,8 @@ export class Material
     viewPosMatrixUniformLocation: WebGLUniformLocation  | null;
     viewMatrixUniformLocation: WebGLUniformLocation | null;
     projMatrixUniformLocation: WebGLUniformLocation | null;
+    nearCamUniformLocation: WebGLUniformLocation | null;
+    farCamUniformLocation: WebGLUniformLocation | null;
 
     isCubemap: boolean = false; // once initialized as cubemap, can't be changed
 
@@ -101,6 +103,9 @@ export class Material
             this.texAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'aTexCoord');
             this.tanAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'aTangent');
             this.bitAttrib = this.gl.getAttribLocation(shader.shaderProgram, 'aBitangent');
+
+            this.nearCamUniformLocation = shader.gl.getUniformLocation(shader.shaderProgram, 'near');
+            this.farCamUniformLocation = shader.gl.getUniformLocation(shader.shaderProgram, 'far');
         }
         else
         {
@@ -227,6 +232,62 @@ export class Material
         }
 
         this.textures[texIndex] = texMap;
+    }
+
+    setAllTextures(
+        tex0: string | null = null,
+        tex1: string | null = null,
+        tex2: string | null = null,
+        tex3: string | null = null,
+        specularFactor: number | null = null,
+        roughnessFactor: number | null = null,
+        emissiveFactor: number | null = null,
+        emissiveTint: vec3 | null = null
+    )
+    {
+        // diff
+        if (tex0)
+        {
+            this.setTex(0, loadTexture(this.shader.gl, tex0, this.shader.gl.SRGB8_ALPHA8, this.shader.gl.TEXTURE_2D, true));
+        }
+
+        // spec
+        if (tex1)
+        {
+            this.setTex(1, loadTexture(this.shader.gl, tex1));
+        }
+
+        // norm
+        if (tex2)
+        {
+            this.setTex(2, loadTexture(this.shader.gl, tex2));
+        }
+
+        // emis
+        if (tex3)
+        {
+            this.setTex(3, loadTexture(this.shader.gl, tex3, this.shader.gl.SRGB8_ALPHA8, this.shader.gl.TEXTURE_2D, true));
+        }
+
+        if (specularFactor)
+        {
+            this.specularFactor = specularFactor;
+        }
+
+        if (roughnessFactor)
+        {
+            this.roughnessFactor = roughnessFactor;
+        }
+
+        if (emissiveFactor)
+        {
+            this.emissiveFactor = emissiveFactor;
+        }
+
+        if (emissiveTint)
+        {
+            this.emissiveTint = emissiveTint;
+        }
     }
 
     getTex(texIndex: number): WebGLTexture | null

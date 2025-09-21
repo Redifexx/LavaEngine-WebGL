@@ -8,6 +8,7 @@ import { Material } from "../datatypes/material";
 import { Camera } from "../datatypes/camera";
 import { CameraComponent } from "../components/camera-component";
 import { LavaEngine } from "../engine/lava-engine";
+import { Model } from "../datatypes/model";
 
 
 export class Scene 
@@ -32,7 +33,6 @@ export class Scene
         pos: vec3 = vec3.fromValues(0.0, 0.0, 0.0),
         rotation: vec3 = vec3.fromValues(0.0, 0.0, 0.0),
         scale: vec3 = vec3.fromValues(1.0, 1.0, 1.0),
-        rotCorrection: boolean = false
     )
     {
         const newEntity = new Entity(this.entities.length, name, this, pos, rotation, scale);
@@ -40,16 +40,30 @@ export class Scene
         this.entityMap.set(name, newEntity);
         this.updateEntity(newEntity);
 
-        if (rotCorrection)
-        {
-            const cor = quat.create();
-            quat.rotateX(cor, cor, Math.PI/2);
-            quat.multiply(
-                newEntity.transformComponent.transform.rotation,
-                cor,
-                newEntity.transformComponent.transform.rotation
-            );
-        }
+        return newEntity;
+    }
+
+    importModel(
+        name: string,
+        pos: vec3 = vec3.fromValues(0.0, 0.0, 0.0),
+        rotation: vec3 = vec3.fromValues(0.0, 0.0, 0.0),
+        scale: vec3 = vec3.fromValues(1.0, 1.0, 1.0),
+        material: Material = LavaEngine.defaultMaterial,
+        model: string = "models/cube.json",
+        posCorrection: vec3 = vec3.fromValues(0.0, 0.0, 0.0),
+        rotationCorrection: vec3 = vec3.fromValues(-90.0, 0.0, 0.0),
+        scaleCorrection: vec3 = vec3.fromValues(1.0, 1.0, 1.0),
+    )
+    {
+        // Entity
+        const newEntity = this.addEntity(name, pos, rotation, scale);
+        const childEntity = this.addEntity(`${name}Mesh`, posCorrection, rotationCorrection, scaleCorrection);
+        newEntity.addChildEntity(childEntity);
+
+        // Model
+        const newModel = new Model(model, material, null);
+
+        childEntity.addComponent(ModelComponent, new ModelComponent(newModel));
 
         return newEntity;
     }
@@ -144,43 +158,6 @@ export class Scene
         this.gl.viewport(0, 0, width, height);
         let currentShaderProgram: WebGLProgram | null = null;
 
-        // --- RENDER SKYBOX FIRST ---
-        for (const [material, models] of this.modelsByMaterial.entries()) {
-            if (!material.isCubemap) continue;
-
-            this.gl.depthMask(false);
-            this.gl.cullFace(this.gl.FRONT); // render inside of cube
-            this.gl.depthFunc(this.gl.LEQUAL);
-
-            this.useProgram(currentShaderProgram, material.shader.shaderProgram);
-
-            if (this.mainCamera === null)
-            {
-                console.log("NO CAMERA ATTACHED");
-            }
-            
-            this.mainCamera?.camera.drawSky(
-                this.mainCamera.cameraType,
-                this.mainCamera.fieldOfView,
-                width,
-                height,
-                this.mainCamera.nearPlane,
-                this.mainCamera.farPlane,
-                material.viewMatrixUniformLocation!,
-                material.projMatrixUniformLocation!,
-                this.mainCamera.parentEntity.getGlobalTransform(),
-                this.gl
-            );
-            for (const modelComp of models)
-            {
-                modelComp.model.draw(modelComp.parentEntity.getGlobalTransform());
-            }
-            this.gl.cullFace(this.gl.BACK);
-            this.gl.depthFunc(this.gl.LESS);
-            this.gl.depthMask(true);
-        }
-
-
         // --- RENDER SCENE ---
         for (const [material, models] of this.modelsByMaterial.entries())
         {
@@ -216,8 +193,54 @@ export class Scene
                 modelComp.model.draw(modelComp.parentEntity.getGlobalTransform());
             }
         }
+
     }
 
+    
+    renderSkybox(width: number, height: number)
+    {
+        let currentShaderProgram: WebGLProgram | null = null;
+
+        // --- RENDER SKYBOX ---
+        for (const [material, models] of this.modelsByMaterial.entries()) {
+            if (!material.isCubemap) continue;
+
+            this.gl.depthMask(false);
+            this.gl.cullFace(this.gl.FRONT); // render inside of cube
+            this.gl.depthFunc(this.gl.LEQUAL);
+
+            this.useProgram(currentShaderProgram, material.shader.shaderProgram);
+
+            this.gl.uniform1f(material.nearCamUniformLocation, this.mainCamera!.nearPlane);
+            this.gl.uniform1f(material.farCamUniformLocation, this.mainCamera!.farPlane);
+
+            if (this.mainCamera === null)
+            {
+                console.log("NO CAMERA ATTACHED");
+            }
+            
+            this.mainCamera?.camera.drawSky(
+                this.mainCamera.cameraType,
+                this.mainCamera.fieldOfView,
+                width,
+                height,
+                this.mainCamera.nearPlane,
+                this.mainCamera.farPlane,
+                material.viewMatrixUniformLocation!,
+                material.projMatrixUniformLocation!,
+                this.mainCamera.parentEntity.getGlobalTransform(),
+                this.gl
+            );
+            for (const modelComp of models)
+            {
+                modelComp.model.draw(modelComp.parentEntity.getGlobalTransform());
+            }
+            this.gl.cullFace(this.gl.BACK);
+            this.gl.depthFunc(this.gl.LESS);
+            this.gl.depthMask(true);
+        }
+    }
+    
     renderShadow(currentShaderProgram: WebGLProgram)
     {
         // Gather all the scene light information for shader

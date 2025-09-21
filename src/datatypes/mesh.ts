@@ -11,6 +11,7 @@ export class Mesh
     vertices: Float32Array<ArrayBuffer>;
     indices: Uint16Array<ArrayBuffer> | null;
 
+    meshTransform: mat4 = mat4.create();
     vertexBuffer: WebGLBuffer | null;
     indexBuffer: WebGLBuffer | null;
     vertexArrayObject: WebGLVertexArrayObject;
@@ -18,7 +19,8 @@ export class Mesh
 
     constructor(gl: WebGL2RenderingContext,
         meshVertices: Float32Array<ArrayBuffer>,
-        meshIndices: Uint16Array<ArrayBuffer> | null) 
+        meshIndices: Uint16Array<ArrayBuffer> | null,
+        meshTransform: mat4 | null = null) 
     {
         this.gl = gl;
 
@@ -31,6 +33,10 @@ export class Mesh
             this.indexBuffer = createStaticIndexBuffer(gl, this.indices);
         }
 
+        if (meshTransform)
+        {
+            this.meshTransform = meshTransform;
+        }
     }
 
     setVAO()
@@ -126,7 +132,12 @@ export class Mesh
             transform.scale
         );
 
+        const finalMatrix = mat4.create();
+        // dont enable until fixed
+        // mat4.multiply(finalMatrix, modelMatrix, this.meshTransform);
+
         this.gl.uniformMatrix4fv(uniformLocation, false, modelMatrix);
+
 
         if (!depthOnly)
         {
