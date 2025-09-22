@@ -1,7 +1,7 @@
 export const gaussianBlurVertSdrSourceCode = `#version 300 es
 precision mediump float;
 
-in vec2 vertexPosition;
+in vec3 vertexPosition;
 in vec2 vertexTexCoord;
 
 out vec2 TexCoords;

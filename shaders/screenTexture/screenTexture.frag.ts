@@ -8,6 +8,7 @@ in vec2 TexCoords;
 uniform sampler2D screenTexture;
 uniform sampler2D depthTexture;
 uniform sampler2D skyMask;
+uniform sampler2D bloomTexture;
 uniform vec2 screenSize;
 
 uniform float far;
@@ -38,6 +39,8 @@ void main()
 
     float gamma = 2.2;
     vec3 result = texture(screenTexture, TexCoords).rgb;
+    vec3 bloom = texture(bloomTexture, TexCoords).rgb;
+    result += bloom;
     vec3 mapped = ACESFilm(result * 1.0);
     mapped = pow(mapped, vec3(1.0 / gamma));
 
@@ -62,5 +65,7 @@ void main()
     float fade = smoothstep(far * 0.9, far, linearDepth);
     fog = mix(fog, 1.0, fade * (1.0 - isSky));
 
-    FragColor = vec4(mix(mapped, vec3(0.851, 0.855, 0.863), fog), 1.0);
+    //FragColor = vec4(mix(mapped, vec3(0.851, 0.855, 0.863), fog), 1.0);
+    //FragColor = vec4(bloom, 1.0);
+    FragColor = vec4(texture(screenTexture, TexCoords).rgb, 1.0);
 }`;

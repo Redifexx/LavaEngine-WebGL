@@ -49,6 +49,8 @@ export class LavaEngine
     static screenDepthRenderbuffer: WebGLRenderbuffer | null;
     static screenColorFramebuffer: WebGLFramebuffer | null;
     static screenColorRenderbuffer: WebGLRenderbuffer | null; // multi sample color
+    static screenSkymaskRenderbuffer: WebGLRenderbuffer | null; // multi sample color
+    static screenBloomRenderbuffer: WebGLRenderbuffer | null; // multi sample color
     static screenQuad: Mesh | null;
     static screenShader: Shader | null;
     static screenTexture: WebGLTexture | null;
@@ -297,6 +299,18 @@ export class LavaEngine
             this.screenColorRenderbuffer = createRenderBuffer(this.gl_context);
         }
 
+        if (!this.screenSkymaskRenderbuffer)
+        {
+            this.screenSkymaskRenderbuffer = createRenderBuffer(this.gl_context);
+        }
+
+
+        if (!this.screenBloomRenderbuffer)
+        {
+            this.screenBloomRenderbuffer = createRenderBuffer(this.gl_context);
+        }
+
+
         if (!this.screenDepthRenderbuffer)
         {
             this.screenDepthRenderbuffer = createRenderBuffer(this.gl_context);
@@ -305,6 +319,24 @@ export class LavaEngine
 
         //msaa color buffer
         gl.bindRenderbuffer(gl.RENDERBUFFER, this.screenColorRenderbuffer);
+        gl.renderbufferStorageMultisample(
+            gl.RENDERBUFFER,
+            gl.getParameter(gl.MAX_SAMPLES) / 2,
+            gl.RGBA16F,
+            LavaEngine.internalWidth,
+            LavaEngine.internalHeight
+        );
+
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this.screenSkymaskRenderbuffer);
+        gl.renderbufferStorageMultisample(
+            gl.RENDERBUFFER,
+            gl.getParameter(gl.MAX_SAMPLES) / 2,
+            gl.RGBA16F,
+            LavaEngine.internalWidth,
+            LavaEngine.internalHeight
+        );
+
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this.screenBloomRenderbuffer);
         gl.renderbufferStorageMultisample(
             gl.RENDERBUFFER,
             gl.getParameter(gl.MAX_SAMPLES) / 2,
@@ -325,9 +357,11 @@ export class LavaEngine
 
         this.BindFramebuffer(this.screenFramebuffer);
         gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, this.screenColorRenderbuffer);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.RENDERBUFFER, this.screenSkymaskRenderbuffer);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.RENDERBUFFER, this.screenBloomRenderbuffer);
         gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, this.screenDepthRenderbuffer);
-        console.log('MAX_SAMPLES', gl.getParameter(gl.MAX_SAMPLES));
-        console.log('MAX_COLOR_ATTACHMENTS', gl.getParameter(gl.MAX_COLOR_ATTACHMENTS));
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
+
 
         this.SetupTextures();
         this.SetupBloom();
@@ -350,12 +384,35 @@ export class LavaEngine
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.screenFramebuffer);
         gl.readBuffer(gl.COLOR_ATTACHMENT0);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.screenColorFramebuffer);
-        gl.drawBuffers([gl.COLOR_ATTACHMENT0]); // only the color attachment
+
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.NONE, gl.NONE]);
         gl.blitFramebuffer(
             0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
             0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
             gl.COLOR_BUFFER_BIT, gl.NEAREST
         );
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.screenFramebuffer);
+        gl.readBuffer(gl.COLOR_ATTACHMENT1);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.screenColorFramebuffer);
+
+        gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1, gl.NONE]);
+        gl.blitFramebuffer(
+            0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
+            0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
+            gl.COLOR_BUFFER_BIT, gl.NEAREST
+        );
+        
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.screenFramebuffer);
+        gl.readBuffer(gl.COLOR_ATTACHMENT2);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.screenColorFramebuffer);
+        gl.drawBuffers([gl.NONE, gl.NONE, gl.COLOR_ATTACHMENT2]);
+        gl.blitFramebuffer(
+            0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
+            0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
+            gl.COLOR_BUFFER_BIT, gl.NEAREST
+        );
+        
 
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.screenFramebuffer);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.screenColorFramebuffer);
@@ -381,6 +438,7 @@ export class LavaEngine
         gl.bindBuffer(gl.ARRAY_BUFFER, this.screenQuad!.vertexBuffer);
         gl.disable(gl.DEPTH_TEST);
 
+        
         const posAttrib = gl.getAttribLocation(shaderProgram, 'vertexPosition');
         const texAttrib = gl.getAttribLocation(shaderProgram, 'vertexTexCoord');
 
@@ -396,6 +454,7 @@ export class LavaEngine
             4 * Float32Array.BYTES_PER_ELEMENT,
             2 * Float32Array.BYTES_PER_ELEMENT
         );
+        
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.screenTexture);
@@ -418,40 +477,6 @@ export class LavaEngine
         
         gl.uniform1f(gl.getUniformLocation(shaderProgram, "far"), this.project.MAIN_SCENE.mainCamera!.farPlane);
         gl.uniform1f(gl.getUniformLocation(shaderProgram, "near"), this.project.MAIN_SCENE.mainCamera!.nearPlane);
-
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        gl.bindVertexArray(null);
-        gl.bindTexture(gl.TEXTURE_2D, null);
-    }
-
-    static RenderBloomTexture(shaderProgram: WebGLShader) 
-    {
-        const gl = this.gl_context;
-        gl.viewport(0.0, 0.0, this.canvas!.width, this.canvas!.height); 
-        gl.clearColor(1.0, 0.0, 1.0, 1.0);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-        gl.bindVertexArray(this.screenQuad!.vertexArrayObject);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.screenQuad!.vertexBuffer);
-        gl.disable(gl.DEPTH_TEST);
-
-        const posAttrib = gl.getAttribLocation(shaderProgram, 'vertexPosition');
-        const texAttrib = gl.getAttribLocation(shaderProgram, 'vertexTexCoord');
-
-        gl.enableVertexAttribArray(posAttrib);
-        gl.vertexAttribPointer(
-            posAttrib, 2, gl.FLOAT, false,
-            4 * Float32Array.BYTES_PER_ELEMENT, 0
-        );
-
-        gl.enableVertexAttribArray(texAttrib);
-        gl.vertexAttribPointer(
-            texAttrib, 2, gl.FLOAT, false,
-            4 * Float32Array.BYTES_PER_ELEMENT,
-            2 * Float32Array.BYTES_PER_ELEMENT
-        );
 
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
@@ -660,23 +685,60 @@ export class LavaEngine
         let firstItr = true;
         const amount = 10;
         gl.useProgram(this.gaussianBlurShader.shaderProgram);
-        
+        const horizontalULoc = gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "horizontal");
+        const bloomTexULoc = gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "bloomTexture");
         for (let i = 0; i < amount; i++)
         {
             const writeIndex = horizontal ? 1 : 0;
             const readIndex  = horizontal ? 0 : 1;
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.pingPongFB[writeIndex]);
-            gl.uniform1i(gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "horizontal"), horizontal ? 1 : 0);
+            gl.uniform1i(horizontalULoc, horizontal ? 1 : 0);
 
             gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, firstItr ? this.bloomTexture : this.pingPongTex[readIndex]);
-            gl.uniform1i(gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "bloomTexture"), 0);
+            gl.bindTexture(gl.TEXTURE_2D, firstItr ? this.screenTexture : this.pingPongTex[readIndex]);
+            gl.uniform1i(bloomTexULoc, 0);
             
             this.RenderBloomTexture(this.gaussianBlurShader.shaderProgram);
             horizontal = !horizontal;
             if (firstItr) firstItr = false;
         }
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+        const finalTex = this.pingPongTex[ horizontal ? 0 : 1 ];
+        this.screenTexture = finalTex;
+    }
+
+    static RenderBloomTexture(shaderProgram: WebGLShader) 
+    {
+        const gl = this.gl_context;
+        gl.viewport(0.0, 0.0, LavaEngine.internalWidth, LavaEngine.internalHeight); 
+        gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        gl.bindVertexArray(this.screenQuad!.vertexArrayObject);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.screenQuad!.vertexBuffer);
+        gl.disable(gl.DEPTH_TEST);
+
+        const posAttrib = gl.getAttribLocation(shaderProgram, 'vertexPosition');
+        const texAttrib = gl.getAttribLocation(shaderProgram, 'vertexTexCoord');
+
+        gl.enableVertexAttribArray(posAttrib);
+        gl.vertexAttribPointer(
+            posAttrib, 2, gl.FLOAT, false,
+            4 * Float32Array.BYTES_PER_ELEMENT, 0
+        );
+
+        gl.enableVertexAttribArray(texAttrib);
+        gl.vertexAttribPointer(
+            texAttrib, 2, gl.FLOAT, false,
+            4 * Float32Array.BYTES_PER_ELEMENT,
+            2 * Float32Array.BYTES_PER_ELEMENT
+        );
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        gl.bindVertexArray(null);
+        gl.bindTexture(gl.TEXTURE_2D, null);
     }
 }
 
