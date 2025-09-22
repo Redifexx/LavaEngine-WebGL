@@ -21,6 +21,8 @@ import { vertexShaderSourceCode } from "../../shaders/default.vert";
 import { fragmentShaderSourceCode } from "../../shaders/default.frag";
 import { gaussianBlurVertSdrSourceCode } from "../../shaders/gaussianBlur/gaussianBlur.vert";
 import { gaussianBlurFragSdrSourceCode } from "../../shaders/gaussianBlur/gaussianBlur.frag";
+import { copyVertSdrSourceCode } from "../../shaders/copy/copy.vert";
+import { copyFragSdrSourceCode } from "../../shaders/copy/copy.frag";
 
  
 export class LavaEngine
@@ -51,6 +53,7 @@ export class LavaEngine
     static screenColorRenderbuffer: WebGLRenderbuffer | null; // multi sample color
     static screenSkymaskRenderbuffer: WebGLRenderbuffer | null; // multi sample color
     static screenBloomRenderbuffer: WebGLRenderbuffer | null; // multi sample color
+    static screenViewDepthRenderbuffer: WebGLRenderbuffer | null; // multi sample color
     static screenQuad: Mesh | null;
     static screenShader: Shader | null;
     static screenTexture: WebGLTexture | null;
@@ -59,8 +62,13 @@ export class LavaEngine
 
     // Bloom
     static gaussianBlurShader: Shader;
+    static downsampleShader: Shader;
+    static copyShader: Shader;
     static bloomTexture: WebGLTexture; // for mist pass
     static bloomBlurTexture: WebGLTexture; // for mist pass
+    static viewDepthTexture: WebGLTexture; // for mist pass
+    static bloomFB: WebGLFramebuffer;
+    static bloomMipTexure: WebGLTexture;
     static pingPongFB: WebGLFramebuffer[] = new Array(2);
     static pingPongTex: WebGLTexture[] = new Array(2);
 
@@ -110,8 +118,10 @@ export class LavaEngine
         this.defaultMaterial = new Material(this.defaultShader);
 
         this.gaussianBlurShader = new Shader(this.gl_context, gaussianBlurVertSdrSourceCode, gaussianBlurFragSdrSourceCode);
+        this.downsampleShader = new Shader(this.gl_context, gaussianBlurVertSdrSourceCode, gaussianBlurFragSdrSourceCode);
+        this.copyShader = new Shader(this.gl_context, copyVertSdrSourceCode, copyFragSdrSourceCode);
 
-
+        
         this.internalResolutionScale = 1.0;
         this.canvasWidth = (this.canvas.clientWidth * devicePixelRatio) / 1;
         this.canvasHeight = (this.canvas.clientHeight * devicePixelRatio) / 1;
@@ -121,10 +131,10 @@ export class LavaEngine
         this.shadowMapResolution = this.canvasWidth * 3;
 
         this.debugCube = new Mesh(this.gl_context, CUBE_VERTICES, CUBE_INDICES);
-
+        
         this.ResizeCanvases();
         this.SetupShadowMap();
-
+        
         // Audio
         const audio = Audio({
             file: '../../audio/music/gates.mp3',
@@ -305,6 +315,10 @@ export class LavaEngine
             this.screenSkymaskRenderbuffer = createRenderBuffer(this.gl_context);
         }
 
+        if (!this.screenViewDepthRenderbuffer)
+        {
+            this.screenViewDepthRenderbuffer = createRenderBuffer(this.gl_context);
+        }
 
         if (!this.screenBloomRenderbuffer)
         {
@@ -361,7 +375,7 @@ export class LavaEngine
         gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.RENDERBUFFER, this.screenSkymaskRenderbuffer);
         gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.RENDERBUFFER, this.screenBloomRenderbuffer);
         gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, this.screenDepthRenderbuffer);
-        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3]);
 
 
         this.SetupTextures();
@@ -371,9 +385,10 @@ export class LavaEngine
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.screenTexture, 0);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, this.skyMask, 0);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, this.bloomTexture, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT3, gl.TEXTURE_2D, this.viewDepthTexture, 0);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.depthTexture, 0);
 
-        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3]);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     } 
@@ -386,7 +401,7 @@ export class LavaEngine
         gl.readBuffer(gl.COLOR_ATTACHMENT0);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.screenColorFramebuffer);
 
-        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.NONE, gl.NONE]);
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.NONE, gl.NONE, gl.NONE]);
         gl.blitFramebuffer(
             0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
             0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
@@ -397,7 +412,7 @@ export class LavaEngine
         gl.readBuffer(gl.COLOR_ATTACHMENT1);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.screenColorFramebuffer);
 
-        gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1, gl.NONE]);
+        gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1, gl.NONE, gl.NONE]);
         gl.blitFramebuffer(
             0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
             0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
@@ -407,13 +422,12 @@ export class LavaEngine
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.screenFramebuffer);
         gl.readBuffer(gl.COLOR_ATTACHMENT2);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.screenColorFramebuffer);
-        gl.drawBuffers([gl.NONE, gl.NONE, gl.COLOR_ATTACHMENT2]);
+        gl.drawBuffers([gl.NONE, gl.NONE, gl.COLOR_ATTACHMENT2, gl.NONE]);
         gl.blitFramebuffer(
             0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
             0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight,
             gl.COLOR_BUFFER_BIT, gl.NEAREST
         );
-        
 
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.screenFramebuffer);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.screenColorFramebuffer);
@@ -503,6 +517,7 @@ export class LavaEngine
         
 
         this.shadowMat = new Material(this.depthShader!);
+        console.log("test");
 
         const depthMapFB = createFrameBuffer(gl);
         gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFB!);
@@ -647,11 +662,52 @@ export class LavaEngine
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
         this.bloomBlurTexture = bloomBlur;
+
     }
 
     static SetupBloom()
     {
         const gl = this.gl_context;
+
+        if (this.bloomFB)
+        {
+            gl.deleteFramebuffer(this.bloomFB);
+        }
+        this.bloomFB = gl.createFramebuffer();
+
+
+        if (this.bloomMipTexure)
+        {
+            gl.deleteTexture(this.bloomMipTexure);
+        }
+
+        this.bloomMipTexure = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.bloomMipTexure);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        let w = LavaEngine.internalWidth;
+        let h = LavaEngine.internalHeight;
+        const mipCount = Math.floor(Math.log2(Math.max(LavaEngine.internalWidth, LavaEngine.internalHeight))) + 1;
+        for (let level = 0; level < mipCount; ++level) {
+            gl.texImage2D(
+                gl.TEXTURE_2D,
+                level,
+                gl.RGBA16F,         // or RGBA
+                Math.max(1, w), Math.max(1, h),
+                0,
+                gl.RGBA,
+                gl.FLOAT,           // or gl.UNSIGNED_BYTE
+                null
+            );
+            w = Math.max(1, w >> 1);
+            h = Math.max(1, h >> 1);
+        }
+
+        gl.bindTexture(gl.TEXTURE_2D, null);
+
         for (let i = 0; i < 2; i++)
         {
             
@@ -683,40 +739,103 @@ export class LavaEngine
 
     static RenderBloom()
     {
-        this.BindFramebuffer(this.screenFramebuffer);
         const gl = this.gl_context;
-        let horizontal = true;
-        let firstItr = true;
-        const amount = 10;
-        gl.useProgram(this.gaussianBlurShader.shaderProgram);
-        const horizontalULoc = gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "horizontal");
-        const bloomTexULoc = gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "bloomTexture");
-        gl.uniform1f(gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "far"), this.project.MAIN_SCENE.mainCamera!.farPlane);
-        gl.uniform1f(gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "near"), this.project.MAIN_SCENE.mainCamera!.nearPlane);
-        for (let i = 0; i < amount; i++)
+        const amount = 2;
+        const mipCount = Math.floor(Math.log2(Math.max(LavaEngine.internalWidth, LavaEngine.internalHeight))) + 1;
+
+        
+        for (let level = 1; level < mipCount; ++level)
         {
-            const writeIndex = horizontal ? 1 : 0;
-            const readIndex  = horizontal ? 0 : 1;
-            gl.bindFramebuffer(gl.FRAMEBUFFER, this.pingPongFB[writeIndex]);
-            gl.uniform1i(horizontalULoc, horizontal ? 1 : 0);
+            
+            const w = Math.max(1, LavaEngine.internalWidth >> level);
+            const h = Math.max(1, LavaEngine.internalHeight >> level);
+            gl.viewport(0, 0, w, h);
+
+            // down sample
+
+            gl.bindTexture(gl.TEXTURE_2D, this.bloomMipTexure);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 0);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, level);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.bloomFB);
+            //logFramebufferStatus(gl, "bind");
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.bloomMipTexure, level); //
+            logFramebufferStatus(gl, `tex level:${level}`);
+            //console.log(level);
+
+            
+            
+            gl.useProgram(this.downsampleShader.shaderProgram);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, this.bloomMipTexure);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, level-1);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, level-1);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.uniform1i(gl.getUniformLocation(this.downsampleShader.shaderProgram, "uInput"), 0);
+            console.log(`CUR LVL: ${level}`);
+            console.log(gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL));
+            console.log(gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL));
+            
+            this.RenderBloomTexture(this.downsampleShader.shaderProgram);
+
+            /*
+            // blur
+            let horizontal = true;
+            let firstItr = true;
+            for (let i = 0; i < amount; i++)
+            {
+                const writeIndex = horizontal ? 1 : 0;
+                const readIndex  = horizontal ? 0 : 1;
+
+                gl.bindFramebuffer(gl.FRAMEBUFFER, this.pingPongFB[writeIndex]);
+                gl.viewport(0, 0, w, h);
+
+                gl.useProgram(this.gaussianBlurShader.shaderProgram);
+                const horizontalULoc = gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "horizontal");
+                const bloomTexULoc = gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "bloomTexture");
+
+                gl.activeTexture(gl.TEXTURE0);
+
+                if (firstItr) {
+                    gl.bindTexture(gl.TEXTURE_2D, this.bloomTexture);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, level);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, level);
+                } else {
+                    gl.bindTexture(gl.TEXTURE_2D, this.pingPongTex[readIndex]);
+                }
+
+                gl.uniform1i(horizontalULoc, horizontal ? 1 : 0);
+                gl.uniform1i(bloomTexULoc, 0);
+
+                this.RenderBloomTexture(this.gaussianBlurShader.shaderProgram);
+
+                horizontal = !horizontal;
+                if (firstItr) firstItr = false;
+            }
+
+            // copy back
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.bloomFB);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.bloomTexture, level);
+
+            const finalTex = this.pingPongTex[ horizontal ? 1 : 0 ];
+
+            gl.viewport(0, 0, w, h);
+            gl.useProgram(this.copyShader.shaderProgram);
 
             gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, firstItr ? this.bloomTexture : this.pingPongTex[readIndex]);
-            gl.uniform1i(bloomTexULoc, 0);
-            
-            this.RenderBloomTexture(this.gaussianBlurShader.shaderProgram);
-            horizontal = !horizontal;
-            if (firstItr) firstItr = false;
-        }
+            gl.bindTexture(gl.TEXTURE_2D, finalTex);
+            gl.uniform1i(gl.getUniformLocation(this.copyShader.shaderProgram, "uSource"), 0);
 
-        const finalTex = this.pingPongTex[ horizontal ? 0 : 1 ];
-        this.bloomBlurTexture = finalTex;
+            this.RenderBloomTexture(this.copyShader.shaderProgram);
+            */
+        }
+        
+        this.bloomBlurTexture = this.bloomMipTexure;
     }
 
     static RenderBloomTexture(shaderProgram: WebGLShader) 
     {
         const gl = this.gl_context;
-        gl.viewport(0.0, 0.0, LavaEngine.internalWidth, LavaEngine.internalHeight); 
         gl.clearColor(1.0, 1.0, 1.0, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 

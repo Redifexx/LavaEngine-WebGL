@@ -174,7 +174,7 @@ export class Scene
             {
                 console.log("NO CAMERA ATTACHED");
             }
-            
+        
             this.mainCamera?.camera.draw(
                 this.mainCamera.cameraType,
                 this.mainCamera.fieldOfView,
@@ -182,7 +182,8 @@ export class Scene
                 height,
                 this.mainCamera.nearPlane,
                 this.mainCamera.farPlane,
-                material.viewProjMatrixUniformLocation!,
+                material.viewMatrixUniformLocation!,
+                material.projMatrixUniformLocation!,
                 material.viewPosMatrixUniformLocation!,
                 this.mainCamera.parentEntity.getGlobalTransform(),
                 this.gl
@@ -243,6 +244,7 @@ export class Scene
     
     renderShadow(currentShaderProgram: WebGLProgram)
     {
+        
         // Gather all the scene light information for shader
         this.lightList.length = 0;
         for (let i = 0; i < this.entities.length; i++)

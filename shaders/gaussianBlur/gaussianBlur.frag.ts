@@ -3,29 +3,39 @@ precision mediump float;
 
 out vec4 FragColor;
 in vec2 TexCoords;
-in float viewDepth;
 
 uniform sampler2D bloomTexture;
+uniform sampler2D viewDepthTexture;
 uniform bool horizontal;
 uniform float near;
 uniform float far;
 
+const int MAX_RADIUS = 10;
+
+uniform float radiusNear;
+uniform float radiusFar;
+
 
 void main()
 {
-    int uRadius = 2;
-    float uScale = 2.0;
-    vec3 result = vec3(0.0);
+    float viewDepth = texture(viewDepthTexture, TexCoords).r;
+    float depthFactor = clamp((viewDepth - near) / (far - near), 0.0, 1.0);
 
-    vec2 tex_offset = uScale / vec2(textureSize(bloomTexture, 0));
+    float radius = mix(radiusNear, radiusFar, depthFactor);
+
+    vec3 result = vec3(0.0);
     float totalWeight = 0.0;
 
-    for (int i = -uRadius; i <= uRadius; ++i) {
-        float w = exp(-float(i*i) / (2.0 * float(uRadius*uRadius))); // gaussian weight
-        vec2 offset = horizontal ? vec2(tex_offset.x * float(i), 0.0)
-                                 : vec2(0.0, tex_offset.y * float(i));
-        result += texture(bloomTexture, TexCoords + offset).rgb * w;
-        totalWeight += w;
+    vec2 tex_offset = 1.0 / vec2(textureSize(bloomTexture, 0));
+
+    for (int i = -MAX_RADIUS; i <= MAX_RADIUS; ++i)
+    {
+        if (abs(float(i)) > radius) continue;
+
+        float weight = exp(-float(i*i) / (2.0 * float(MAX_RADIUS * MAX_RADIUS)));
+        vec2 offset = horizontal ? vec2(tex_offset.x * float(i), 0.0) : vec2(0.0, tex_offset.y * float(i));
+        result += texture(bloomTexture, TexCoords + offset).rgb * weight;
+        totalWeight += weight;
     }
 
     FragColor = vec4(result / totalWeight, 1.0);

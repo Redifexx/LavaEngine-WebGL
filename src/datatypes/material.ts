@@ -22,7 +22,6 @@ export class Material
     texUniformLocations: (WebGLUniformLocation | null)[] = new Array(5);
     materialSettingUniformLocations: (WebGLUniformLocation | null)[] = new Array(5); // mat settings
     modelMatrixUniformLocation: WebGLUniformLocation | null;
-    viewProjMatrixUniformLocation: WebGLUniformLocation | null;
     viewPosMatrixUniformLocation: WebGLUniformLocation  | null;
     viewMatrixUniformLocation: WebGLUniformLocation | null;
     projMatrixUniformLocation: WebGLUniformLocation | null;
@@ -81,15 +80,6 @@ export class Material
 
         if (!isCubemap)
         {
-            location = shader.gl.getUniformLocation(shader.shaderProgram, 'viewProjMatrix')
-            if (location === null)
-            {
-                
-            }
-            else
-            {
-                this.viewProjMatrixUniformLocation = location;
-            }
             location = shader.gl.getUniformLocation(shader.shaderProgram, 'viewPosition')
             if (location === null)
             {
@@ -107,27 +97,25 @@ export class Material
             this.nearCamUniformLocation = shader.gl.getUniformLocation(shader.shaderProgram, 'near');
             this.farCamUniformLocation = shader.gl.getUniformLocation(shader.shaderProgram, 'far');
         }
+
+        location = shader.gl.getUniformLocation(shader.shaderProgram, 'viewMatrix')
+        if (location === null)
+        {
+            console.log("no view");
+        }
         else
         {
-            location = shader.gl.getUniformLocation(shader.shaderProgram, 'viewMatrix')
-            if (location === null)
-            {
-                throw new Error('Missing view matrix');
-            }
-            else
-            {
-                this.viewMatrixUniformLocation = location;
-            }
+            this.viewMatrixUniformLocation = location;
+        }
 
-            location = shader.gl.getUniformLocation(shader.shaderProgram, 'projMatrix')
-            if (location === null)
-            {
-                throw new Error('Missing proj matrix');
-            }
-            else
-            {
-                this.projMatrixUniformLocation = location;
-            }
+        location = shader.gl.getUniformLocation(shader.shaderProgram, 'projMatrix')
+        if (location === null)
+        {
+            console.log("new proj");
+        }
+        else
+        {
+            this.projMatrixUniformLocation = location;
         }
 
         // Default Material Textures

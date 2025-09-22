@@ -13,8 +13,11 @@ out mat3 TBN;
 out vec3 Normal;
 out vec4 FragPosLightSpace;
 
+out float outViewDepth;
+
 uniform mat4 modelMatrix;
-uniform mat4 viewProjMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 projMatrix;
 uniform mat4 lightSpaceMatrix;
 
 uniform float near;
@@ -26,6 +29,10 @@ void main()
     vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
     FragPos = worldPos.xyz;
 
+    vec4 viewPos4 = viewMatrix * worldPos;
+    vec3 viewPos = viewPos4.xyz;
+    outViewDepth = -viewPos.z;
+
     // Correct normal transform
     mat3 normalMatrix = mat3(transpose(inverse(modelMatrix)));
     vec3 N = normalize(normalMatrix * aNormal);
@@ -33,7 +40,6 @@ void main()
     vec3 B = normalize(normalMatrix * aBitangent);
     T = normalize(T - dot(T, N) * N);
     B = cross(N, T);
-
 
     mat3 TBN_ = mat3(T, B, N);
     TBN = TBN_;
@@ -45,5 +51,5 @@ void main()
     FragPosLightSpace = lightSpaceMatrix * worldPos;
 
     // Final clip-space position for the camera
-    gl_Position = viewProjMatrix * worldPos;
+    gl_Position = projMatrix * viewMatrix * worldPos;
 }`;

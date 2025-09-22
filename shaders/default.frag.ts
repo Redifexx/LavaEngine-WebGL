@@ -7,11 +7,12 @@ in mat3 TBN;
 in vec3 Normal;
 in vec4 FragPosLightSpace;
 
-in float FragDepth;
+in float outViewDepth;
 
 layout(location = 0) out vec4 outputColor;
 layout(location = 1) out float SkyMask;
 layout(location = 2) out vec4 BrightColor;
+layout(location = 3) out float ViewDepth;
 
 uniform vec3 viewPosition;
 uniform sampler2D tex0;
@@ -211,6 +212,7 @@ vec3 SpotLightResult(SpotLight light, vec3 norm, vec3 diffuseTex, vec3 specularT
 
 void main()
 {
+    ViewDepth = outViewDepth;
     SkyMask = 0.0;
     vec2 dx = dFdx(TexCoords);
     vec2 dy = dFdy(TexCoords);

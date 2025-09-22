@@ -32,7 +32,8 @@ export class Camera
         canvasHeight: number,
         nearPlane: number,
         farPlane: number,
-        matViewProjUniform: WebGLUniformLocation,
+        matViewUniform: WebGLUniformLocation,
+        matProjUniform: WebGLUniformLocation,
         matViewPosUniform: WebGLUniformLocation,
         transform: Transform,
         gl: WebGL2RenderingContext
@@ -40,7 +41,6 @@ export class Camera
     {
         const matView = mat4.create();
         const matProj = mat4.create();
-        const matViewProj = mat4.create();
 
         mat4.copy(matView, this.getViewMatrix(transform));
 
@@ -66,9 +66,9 @@ export class Camera
             );
         }
 
-        mat4.multiply(matViewProj, matProj, matView)
 
-        gl.uniformMatrix4fv(matViewProjUniform, false, matViewProj);
+        gl.uniformMatrix4fv(matProjUniform, false, matProj);
+        gl.uniformMatrix4fv(matViewUniform, false, matView);
 
         gl.uniform3fv(matViewPosUniform, transform.position);
     }
