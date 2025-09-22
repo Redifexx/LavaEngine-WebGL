@@ -438,7 +438,6 @@ export class LavaEngine
         gl.bindBuffer(gl.ARRAY_BUFFER, this.screenQuad!.vertexBuffer);
         gl.disable(gl.DEPTH_TEST);
 
-        
         const posAttrib = gl.getAttribLocation(shaderProgram, 'vertexPosition');
         const texAttrib = gl.getAttribLocation(shaderProgram, 'vertexTexCoord');
 
@@ -454,7 +453,6 @@ export class LavaEngine
             4 * Float32Array.BYTES_PER_ELEMENT,
             2 * Float32Array.BYTES_PER_ELEMENT
         );
-        
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.screenTexture);
@@ -680,10 +678,11 @@ export class LavaEngine
 
     static RenderBloom()
     {
+        this.BindFramebuffer(this.screenFramebuffer);
         const gl = this.gl_context;
         let horizontal = true;
         let firstItr = true;
-        const amount = 10;
+        const amount = 2;
         gl.useProgram(this.gaussianBlurShader.shaderProgram);
         const horizontalULoc = gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "horizontal");
         const bloomTexULoc = gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "bloomTexture");
@@ -704,7 +703,8 @@ export class LavaEngine
         }
 
         const finalTex = this.pingPongTex[ horizontal ? 0 : 1 ];
-        this.screenTexture = finalTex;
+        gl.deleteTexture(this.bloomTexture)
+        this.bloomTexture = finalTex;
     }
 
     static RenderBloomTexture(shaderProgram: WebGLShader) 
