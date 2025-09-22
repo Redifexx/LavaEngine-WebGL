@@ -60,6 +60,7 @@ export class LavaEngine
     // Bloom
     static gaussianBlurShader: Shader;
     static bloomTexture: WebGLTexture; // for mist pass
+    static bloomBlurTexture: WebGLTexture; // for mist pass
     static pingPongFB: WebGLFramebuffer[] = new Array(2);
     static pingPongTex: WebGLTexture[] = new Array(2);
 
@@ -438,22 +439,6 @@ export class LavaEngine
         gl.bindBuffer(gl.ARRAY_BUFFER, this.screenQuad!.vertexBuffer);
         gl.disable(gl.DEPTH_TEST);
 
-        const posAttrib = gl.getAttribLocation(shaderProgram, 'vertexPosition');
-        const texAttrib = gl.getAttribLocation(shaderProgram, 'vertexTexCoord');
-
-        gl.enableVertexAttribArray(posAttrib);
-        gl.vertexAttribPointer(
-            posAttrib, 2, gl.FLOAT, false,
-            4 * Float32Array.BYTES_PER_ELEMENT, 0
-        );
-
-        gl.enableVertexAttribArray(texAttrib);
-        gl.vertexAttribPointer(
-            texAttrib, 2, gl.FLOAT, false,
-            4 * Float32Array.BYTES_PER_ELEMENT,
-            2 * Float32Array.BYTES_PER_ELEMENT
-        );
-
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.screenTexture);
         gl.uniform1i(gl.getUniformLocation(shaderProgram, "screenTexture"), 0);
@@ -463,7 +448,7 @@ export class LavaEngine
         gl.uniform1i(gl.getUniformLocation(shaderProgram, "depthTexture"), 1);
 
         gl.activeTexture(gl.TEXTURE2);
-        gl.bindTexture(gl.TEXTURE_2D, this.bloomTexture);
+        gl.bindTexture(gl.TEXTURE_2D, this.bloomBlurTexture);
         gl.uniform1i(gl.getUniformLocation(shaderProgram, "bloomTexture"), 2);
 
         gl.activeTexture(gl.TEXTURE3);
@@ -642,6 +627,26 @@ export class LavaEngine
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
         this.bloomTexture = bloom;
+
+        let bloomBlur = gl.createTexture();
+        if (!bloomBlur) {
+            showError("Failed to create screen texture");
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            return;
+        }
+        gl.bindTexture(gl.TEXTURE_2D, bloomBlur);
+
+        // Allocate storage (null data) using sized internal format (WebGL2)
+        // Note: internalFormat = gl.RGBA8, format = gl.RGBA, type = gl.UNSIGNED_BYTE
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.RGBA, gl.FLOAT, null);
+
+        // sampling/wrap params
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+        this.bloomBlurTexture = bloomBlur;
     }
 
     static SetupBloom()
@@ -682,10 +687,12 @@ export class LavaEngine
         const gl = this.gl_context;
         let horizontal = true;
         let firstItr = true;
-        const amount = 2;
+        const amount = 10;
         gl.useProgram(this.gaussianBlurShader.shaderProgram);
         const horizontalULoc = gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "horizontal");
         const bloomTexULoc = gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "bloomTexture");
+        gl.uniform1f(gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "far"), this.project.MAIN_SCENE.mainCamera!.farPlane);
+        gl.uniform1f(gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "near"), this.project.MAIN_SCENE.mainCamera!.nearPlane);
         for (let i = 0; i < amount; i++)
         {
             const writeIndex = horizontal ? 1 : 0;
@@ -694,7 +701,7 @@ export class LavaEngine
             gl.uniform1i(horizontalULoc, horizontal ? 1 : 0);
 
             gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, firstItr ? this.screenTexture : this.pingPongTex[readIndex]);
+            gl.bindTexture(gl.TEXTURE_2D, firstItr ? this.bloomTexture : this.pingPongTex[readIndex]);
             gl.uniform1i(bloomTexULoc, 0);
             
             this.RenderBloomTexture(this.gaussianBlurShader.shaderProgram);
@@ -703,8 +710,7 @@ export class LavaEngine
         }
 
         const finalTex = this.pingPongTex[ horizontal ? 0 : 1 ];
-        gl.deleteTexture(this.bloomTexture)
-        this.bloomTexture = finalTex;
+        this.bloomBlurTexture = finalTex;
     }
 
     static RenderBloomTexture(shaderProgram: WebGLShader) 
