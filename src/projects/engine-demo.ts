@@ -46,9 +46,9 @@ export class EngineDemo extends Project
 
         const mat_grass = new Material(sdr_standard);
         mat_grass.setAllTextures(
-            "textures/mud/mud_diff.png",
-            "textures/mud/mud_spec.png",
-            "textures/mud/mud_norm.png",
+            "textures/grass/grass_diff.png",
+            "textures/grass/grass_spec.png",
+            "textures/grass/grass_norm.png",
             null, 0.5, 0.9
         );
 
@@ -246,6 +246,7 @@ export class EngineDemo extends Project
 
         e_flashlight_obj.getChildEntity("FlashLightObjMesh")!.addChildEntity(e_flashlight);
         e_flashlight.setActive(false);
+        e_flashlight_obj.getChildEntity("FlashLightObjMesh")!.setActive(false);
 
         const e_cube_1 = this.MAIN_SCENE.importModel(
             "Cube1",
@@ -375,7 +376,7 @@ export class EngineDemo extends Project
         lookAtScript.player = e_player;
         e_skull.addScript(lookAtScript);
     
-        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 1.0, true)); // default light
+        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 0.2, true)); // default light
         e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 2.0));
         //e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 0.0));
         //e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.3, 1.0), 0.0));

@@ -51,6 +51,8 @@ export class LavaEngine
     static fps: number = 0;
     static frameTime: number = 0;
 
+    static debugMode: boolean = false;
+
     // Render Quad + MSAA
     static screenFramebuffer: WebGLFramebuffer | null; // msaa
     static screenDepthRenderbuffer: WebGLRenderbuffer | null;
@@ -223,9 +225,14 @@ export class LavaEngine
 
 
                 // --- UPDATE LOGIC ---
-                LavaEngine.DrawDebugui();
+                if (LavaEngine.debugMode)
+                {
+                    LavaEngine.DrawDebugui();
+                }
                 
                 LavaEngine.UpdateEngine();
+                LavaEngine.CheckEngineInput();
+
                 Input.ValidateInputs();
 
                 LavaEngine.ShadowPass();
@@ -946,6 +953,15 @@ export class LavaEngine
         this.avgLum = pixel[0];
 
         if(callback) callback();
+    }
+
+    static CheckEngineInput()
+    {
+        if (Input.GetKeyPressed("e"))
+        {
+            this.debugMode = !this.debugMode;
+            this.ui!.clearRect(0, 0, this.ui_canvas!.width, this.ui_canvas!.height);
+        }
     }
 }
 

@@ -236,7 +236,7 @@ void main()
     float reflectivity = fresnelFactor(cosTheta, F0);
 
     vec3 result = vec3(0.0);
-    vec3 ambient = vec3(1.0) * 0.01 * diffuseTex;
+    vec3 ambient = vec3(1.0) * 0.04 * diffuseTex;
     vec3 emissive = emissiveTex * material.emissiveTint * material.emissiveFactor;
     result += ambient;
     result += emissive;

@@ -12,7 +12,7 @@ uniform samplerCube skybox;
 
 void main()
 {
-    fragmentColor = texture(skybox, fragmentTexCoord) * 0.1;
+    fragmentColor = texture(skybox, fragmentTexCoord) * 0.2;
     SkyMask = 1.0;
 
     float brightness = dot(vec3(fragmentColor), vec3(0.2126, 0.7152, 0.0722));
