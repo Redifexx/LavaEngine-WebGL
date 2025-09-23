@@ -114,7 +114,7 @@ export class EngineDemo extends Project
             null,
             null,
             null,
-            "textures/default_diffuse.png", 0.0, 1.0, 100.0,
+            "textures/default_diffuse.png", 0.0, 1.0, 20.0,
             vec3.fromValues(1.0, 0.0, 0.0)
         );
 
@@ -123,7 +123,7 @@ export class EngineDemo extends Project
             null,
             null,
             null,
-            "textures/default_diffuse.png", 0.0, 1.0, 100.0,
+            "textures/default_diffuse.png", 0.0, 1.0, 20.0,
             vec3.fromValues(0.0, 1.0, 0.0)
         );
 
@@ -132,7 +132,7 @@ export class EngineDemo extends Project
             null,
             null,
             null,
-            "textures/default_diffuse.png", 0.0, 1.0, 100.0,
+            "textures/default_diffuse.png", 0.0, 1.0, 20.0,
             vec3.fromValues(0.0, 0.0, 1.0)
         );
 
@@ -141,7 +141,7 @@ export class EngineDemo extends Project
             null,
             null,
             null,
-            "textures/default_diffuse.png", 0.0, 1.0, 100.0,
+            "textures/default_diffuse.png", 0.0, 1.0, 20.0,
             vec3.fromValues(1.0, 1.0, 1.0)
         );
 
@@ -375,7 +375,7 @@ export class EngineDemo extends Project
         lookAtScript.player = e_player;
         e_skull.addScript(lookAtScript);
     
-        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 0.8, 0.5), 0.3, true)); // default light
+        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 1.0, true)); // default light
         e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 2.0));
         //e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 0.0));
         //e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.3, 1.0), 0.0));

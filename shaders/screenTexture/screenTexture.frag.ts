@@ -9,10 +9,14 @@ uniform sampler2D screenTexture;
 uniform sampler2D depthTexture;
 uniform sampler2D skyMask;
 uniform sampler2D bloomTexture;
+uniform sampler2D avgLumTexture;
 uniform vec2 screenSize;
 
 uniform float far;
 uniform float near;
+
+uniform float deltaTime;
+uniform float lastExposure;
 
 vec3 ACESFilm(vec3 x)
 {
@@ -45,7 +49,14 @@ void main()
     float linearDepth = LinearizeDepth(texture(depthTexture, TexCoords).r);
     linearDepth = min(linearDepth, far - 1.0);
 
-    vec3 mapped = ACESFilm(bloomedOut * 4.0);
+    float lod = floor(log2(max(screenSize.x, screenSize.y)));
+    float avgLum = textureLod(avgLumTexture, vec2(0.5, 0.5), lod).r;
+
+    //float target = 0.15 / max(avgLum, 1e-6);
+    //float exposure = mix(lastExposure, target, 1.0 - exp(-deltaTime * 0.01));
+    float exposure = lastExposure;
+
+    vec3 mapped = ACESFilm(bloomedOut * exposure);
     //vec3 mapped = vec3(1.0) - exp(-bloomedOut * 2.0);
 
     // saturation

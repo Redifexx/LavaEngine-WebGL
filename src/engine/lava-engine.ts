@@ -27,6 +27,7 @@ import { downsampleVertSdrSourceCode } from "../../shaders/downsample/downsample
 import { downsampleFragSdrSourceCode } from "../../shaders/downsample/downsample.frag";
 import { upsampleVertSdrSourceCode } from "../../shaders/upsample/upsample.vert";
 import { upsampleFragSdrSourceCode } from "../../shaders/upsample/upsample.frag";
+import { avgLumFragSdrSourceCode } from "../../shaders/avgLum/avgLum.frag";
 
  
 export class LavaEngine
@@ -64,14 +65,17 @@ export class LavaEngine
     static depthTexture: WebGLTexture | null; // for mist pass
     static skyMask: WebGLTexture | null;
 
-    // Bloom
+    // Bloom / HDR
     static gaussianBlurShader: Shader;
     static downsampleShader: Shader;
     static upsampleShader: Shader;
+    static avgLumShader: Shader; // for mist pass
     static mipTexSizes: vec2[];
     static mipWeights: number[];
     static copyShader: Shader;
     static bloomTexture: WebGLTexture; // for mist pass
+    static avgLumTexture: WebGLTexture; // for mist pass
+    static avgLum: number = 1.0;
     static bloomBlurTexture: WebGLTexture; // for mist pass
     static viewDepthTexture: WebGLTexture; // for mist pass
     static mipCount: number;
@@ -133,8 +137,8 @@ export class LavaEngine
         this.downsampleShader = new Shader(this.gl_context, downsampleVertSdrSourceCode, downsampleFragSdrSourceCode);
         this.upsampleShader = new Shader(this.gl_context, upsampleVertSdrSourceCode, upsampleFragSdrSourceCode);
         this.copyShader = new Shader(this.gl_context, copyVertSdrSourceCode, copyFragSdrSourceCode);
+        this.avgLumShader = new Shader(this.gl_context, copyVertSdrSourceCode, avgLumFragSdrSourceCode);
         this.mipCount = 6;
-        //this.mipCount = Math.floor(Math.log2(Math.max(LavaEngine.internalWidth, LavaEngine.internalHeight))) + 1;
 
         
         this.internalResolutionScale = 1.0;
@@ -457,6 +461,7 @@ export class LavaEngine
     static RenderScreenTexture(shaderProgram: WebGLShader) 
     {
         const gl = this.gl_context;
+
         //---
         gl.bindFramebuffer(this.gl_context.FRAMEBUFFER, null);
         gl.viewport(0.0, 0.0, this.canvas!.width, this.canvas!.height); 
@@ -484,11 +489,18 @@ export class LavaEngine
         gl.bindTexture(gl.TEXTURE_2D, this.skyMask);
         gl.uniform1i(gl.getUniformLocation(shaderProgram, "skyMask"), 3);
 
+        gl.activeTexture(gl.TEXTURE4);
+        gl.bindTexture(gl.TEXTURE_2D, this.avgLumTexture);
+        gl.uniform1i(gl.getUniformLocation(shaderProgram, "avgLumTexture"), 4);
+
         gl.uniform2fv(gl.getUniformLocation(shaderProgram, "screenSize"), vec2.fromValues(LavaEngine.internalWidth, LavaEngine.internalHeight));
 
         
         gl.uniform1f(gl.getUniformLocation(shaderProgram, "far"), this.project.MAIN_SCENE.mainCamera!.farPlane);
         gl.uniform1f(gl.getUniformLocation(shaderProgram, "near"), this.project.MAIN_SCENE.mainCamera!.nearPlane);
+
+        gl.uniform1f(gl.getUniformLocation(shaderProgram, "deltaTime"), LavaEngine.deltaTime);
+        gl.uniform1f(gl.getUniformLocation(shaderProgram, "lastExposure"), this.avgLum);
 
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
@@ -665,8 +677,8 @@ export class LavaEngine
         // sampling/wrap params
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
         this.bloomTexture = bloom;
 
@@ -691,8 +703,8 @@ export class LavaEngine
         // sampling/wrap params
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
         this.bloomBlurTexture = bloomBlur;
 
@@ -720,6 +732,26 @@ export class LavaEngine
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
         this.testTexture = testTex;
+
+        let avgLum = gl.createTexture();
+        if (!avgLum) {
+            showError("Failed to create screen texture");
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            return;
+        }
+        gl.bindTexture(gl.TEXTURE_2D, avgLum);
+
+        // Allocate storage (null data) using sized internal format (WebGL2)
+        // Note: internalFormat = gl.RGBA8, format = gl.RGBA, type = gl.UNSIGNED_BYTE
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, LavaEngine.internalWidth, LavaEngine.internalHeight, 0, gl.RED, gl.FLOAT, null);
+
+        // sampling/wrap params
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        this.avgLumTexture = avgLum;
     }
 
     static SetupBloom()
@@ -882,6 +914,38 @@ export class LavaEngine
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
         gl.bindVertexArray(null);
         gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+
+    static ComputeAvgLum(callback: (() => void) | undefined)
+    {
+        const gl = this.gl_context;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.bloomFB);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.avgLumTexture, 0);
+
+        gl.useProgram(this.avgLumShader.shaderProgram);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.screenTexture);
+        gl.uniform1i(gl.getUniformLocation(this.avgLumShader.shaderProgram, "uInput"), 0);
+        
+        gl.viewport(0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight);
+        this.RenderBloomTexture(this.avgLumShader.shaderProgram);
+
+        gl.bindTexture(gl.TEXTURE_2D, this.avgLumTexture);
+
+        gl.generateMipmap(gl.TEXTURE_2D);
+
+        gl.finish();
+
+        const pixel = new Float32Array(4);
+        gl.readPixels(
+            0, 0, 1, 1,
+            gl.RGBA,
+            gl.FLOAT,
+            pixel
+        );
+        this.avgLum = pixel[0];
+
+        if(callback) callback();
     }
 }
 
