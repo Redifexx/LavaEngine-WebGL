@@ -237,9 +237,37 @@ void main()
 
     vec3 result = vec3(0.0);
     vec3 ambient = vec3(1.0) * 0.04 * diffuseTex;
+    // compute emission
+
+    // inputs (linear space)
+    //vec3 emissiveColor = texture(emissiveTex, TexCoords).rgb; // base color (0..inf)
+    float emissiveFactor = material.emissiveFactor;   // scalar intensity
+
+    // radiance
+    vec3 radiance = emissiveTex * emissiveFactor * material.emissiveTint;
+
+    // compute a perceptual luminance (linear)
+    float lum = dot(radiance, vec3(0.2126, 0.7152, 0.0722));
+
+    // choose thresholds (tweak these)
+    float whiteStart = 1.0;  // when luminance starts adding white
+    float whiteFull  = 8.0; // full white contribution by this luminance
+
+    // amount [0..1] of white to add
+    float t = clamp((lum - whiteStart) / (whiteFull - whiteStart), 0.0, 1.0);
+
+    // optional curve to shape the transition (smoothstep or pow)
+    t = smoothstep(0.0, 1.0, t);
+
+    // how much white energy to add (scale to taste)
+    float whiteScale = mix(0.0, lum * 0.1, t); // eg. add up to 0.8 * lum as white
+
+    vec3 finalEmissive = radiance + vec3(whiteScale);
+
     vec3 emissive = emissiveTex * material.emissiveTint * material.emissiveFactor;
     result += ambient;
-    result += emissive;
+    result += finalEmissive;
+
     for (int i = 0; i < MAX_POINT_LIGHTS; i++)
     {
         if (i >= numPointLights) break;
@@ -263,7 +291,8 @@ void main()
     //outputColor = vec4(vec3(result.z), 1.0);
     outputColor = vec4(result, 1.0);
 
-    float brightness = dot(outputColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+    //float brightness = dot(outputColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+    float brightness = max(max(outputColor.r, outputColor.g), outputColor.b);
     if (brightness > 0.0)
     {   
         BrightColor = vec4(outputColor.rgb, 1.0);

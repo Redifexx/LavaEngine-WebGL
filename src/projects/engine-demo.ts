@@ -1,4 +1,4 @@
-import { vec3 } from "gl-matrix";
+import { glMatrix, vec3 } from "gl-matrix";
 import { Project } from "../engine/project";
 import { Scene } from "../gameobjects/scene";
 import { Mesh } from "../datatypes/mesh";
@@ -229,24 +229,24 @@ export class EngineDemo extends Project
 
         const e_flashlight_obj = this.MAIN_SCENE.importModel(
             "FlashLightObj",
-            vec3.fromValues(0.5, -0.5, -1.0),
+            vec3.fromValues(0.15, -0.1, -0.15),
             vec3.fromValues(5.0, 5.0, 0.0),
             vec3.fromValues(1.0, 1.0, 1.0),
             mat_flash, "models/flashlight.json",
             vec3.fromValues(0.0, 0.0, 0.0),
-            vec3.fromValues(0.0, 180.0, 90.0),
-            vec3.fromValues(0.05, 0.05, 0.05)
+            vec3.fromValues(0.0, 177.0, 90.0),
+            vec3.fromValues(0.005, 0.005, 0.005)
         );
 
         const e_flashlight = this.MAIN_SCENE.addEntity(
             "FlashLight",
-            vec3.fromValues(0.0, 0.0, 5.0),
+            vec3.fromValues(0.0, 0.0, 0.1),
             vec3.fromValues(0.0, 180.0, 0.0)
         );
 
         e_flashlight_obj.getChildEntity("FlashLightObjMesh")!.addChildEntity(e_flashlight);
         e_flashlight.setActive(false);
-        e_flashlight_obj.getChildEntity("FlashLightObjMesh")!.setActive(false);
+        //e_flashlight_obj.getChildEntity("FlashLightObjMesh")!.setActive(false);
 
         const e_cube_1 = this.MAIN_SCENE.importModel(
             "Cube1",
@@ -383,7 +383,9 @@ export class EngineDemo extends Project
         //e_purplelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.5, 0.0, 1.0), 0.0));
         //e_yellowlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 0.0), 0.0));
         //e_whitelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 0.0));
-        e_flashlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 0.5), 1.0));
+        e_flashlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 0.9, 0.8), 4.0, true,
+        Math.cos(glMatrix.toRadian(16.0)),
+        Math.cos(glMatrix.toRadian(50.0))));
         //e_whitePtlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.0, 1.0), 0.0));
         //e_skullLight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.5, 0.0, 1.0), 0.0));
         e_camera.addChildEntity(e_flashlight_obj);
