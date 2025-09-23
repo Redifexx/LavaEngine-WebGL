@@ -6,6 +6,8 @@ in vec2 TexCoords;
 
 uniform sampler2D uInput;
 uniform float filterRadius;
+uniform vec2 uTexelSize;
+uniform float levelWeight;
 
 void main()
 {
@@ -19,6 +21,7 @@ void main()
     // d - e - f
     // g - h - i
     // === ('e' is the current texel) ===
+    
     vec3 a = texture(uInput, vec2(TexCoords.x - x, TexCoords.y + y)).rgb;
     vec3 b = texture(uInput, vec2(TexCoords.x,     TexCoords.y + y)).rgb;
     vec3 c = texture(uInput, vec2(TexCoords.x + x, TexCoords.y + y)).rgb;

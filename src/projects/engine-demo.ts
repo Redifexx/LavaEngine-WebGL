@@ -72,7 +72,7 @@ export class EngineDemo extends Project
             "textures/tiles_spec.png",
             "textures/tiles_norm.jpg",
             "textures/tiles_emis.jpg",
-            0.5, 0.9, 5.0
+            0.5, 0.9, 50.0
         );
 
         const mat_skull = new Material(sdr_standard);
@@ -114,7 +114,34 @@ export class EngineDemo extends Project
             null,
             null,
             null,
-            "textures/default_diffuse.png", 0.0, 1.0, 20.0,
+            "textures/default_diffuse.png", 0.0, 1.0, 100.0,
+            vec3.fromValues(1.0, 0.0, 0.0)
+        );
+
+        const mat_emis_green = new Material(sdr_standard);
+        mat_emis_green.setAllTextures(
+            null,
+            null,
+            null,
+            "textures/default_diffuse.png", 0.0, 1.0, 100.0,
+            vec3.fromValues(0.0, 1.0, 0.0)
+        );
+
+        const mat_emis_blue = new Material(sdr_standard);
+        mat_emis_blue.setAllTextures(
+            null,
+            null,
+            null,
+            "textures/default_diffuse.png", 0.0, 1.0, 100.0,
+            vec3.fromValues(0.0, 0.0, 1.0)
+        );
+
+        const mat_emis_white = new Material(sdr_standard);
+        mat_emis_white.setAllTextures(
+            null,
+            null,
+            null,
+            "textures/default_diffuse.png", 0.0, 1.0, 100.0,
             vec3.fromValues(1.0, 1.0, 1.0)
         );
 
@@ -270,14 +297,41 @@ export class EngineDemo extends Project
             vec3.fromValues(0.0, 0.0, 0.0)
         );
 
-        const e_sphere = this.MAIN_SCENE.importModel(
+        const e_sphere_white = this.MAIN_SCENE.importModel(
             "Sphere",
-            vec3.fromValues(0.0, 2.0, -32.0), 
+            vec3.fromValues(-20.0, 0.0, -12.0), 
+            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(0.5, 0.5, 0.5),
+            mat_emis_white, "models/sphere.json"
+        );
+        //e_sphere_white.addChildEntity(e_redlight);
+
+        const e_sphere_red = this.MAIN_SCENE.importModel(
+            "Sphere",
+            vec3.fromValues(-20.0, 0.0, -6.0), 
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.5, 0.5, 0.5),
             mat_emis_red, "models/sphere.json"
         );
-        e_sphere.addChildEntity(e_redlight);
+        //e_sphere_red.addChildEntity(e_redlight);
+
+        const e_sphere_green = this.MAIN_SCENE.importModel(
+            "Sphere",
+            vec3.fromValues(-20.0, 0.0, 0.0), 
+            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(0.5, 0.5, 0.5),
+            mat_emis_green, "models/sphere.json"
+        );
+        //e_sphere_green.addChildEntity(e_redlight);
+
+        const e_sphere_blue = this.MAIN_SCENE.importModel(
+            "Sphere",
+            vec3.fromValues(-20.0, 0.0, 6.0), 
+            vec3.fromValues(0.0, 0.0, 0.0),
+            vec3.fromValues(0.5, 0.5, 0.5),
+            mat_emis_blue, "models/sphere.json"
+        );
+        //e_sphere_blue.addChildEntity(e_redlight);
 
         const e_pole = this.MAIN_SCENE.importModel(
             "Pole",
@@ -321,7 +375,7 @@ export class EngineDemo extends Project
         lookAtScript.player = e_player;
         e_skull.addScript(lookAtScript);
     
-        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 0.8, 0.5), 1.3, true)); // default light
+        e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 0.8, 0.5), 0.3, true)); // default light
         e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 2.0));
         //e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 0.0));
         //e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.3, 1.0), 0.0));

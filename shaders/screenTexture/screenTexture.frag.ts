@@ -40,31 +40,32 @@ void main()
     float gamma = 2.2;
     vec3 result = texture(screenTexture, TexCoords).rgb;
     vec3 bloom = texture(bloomTexture, TexCoords).rgb;
-    result += bloom;
-    vec3 mapped = ACESFilm(result * 1.0);
-    mapped = pow(mapped, vec3(1.0 / gamma));
+    vec3 bloomedOut = mix(result, bloom, 0.03);
 
     float linearDepth = LinearizeDepth(texture(depthTexture, TexCoords).r);
     linearDepth = min(linearDepth, far - 1.0);
 
+    vec3 mapped = ACESFilm(bloomedOut * 4.0);
+    //vec3 mapped = vec3(1.0) - exp(-bloomedOut * 2.0);
+
     // saturation
-    float saturation = 1.0;
-    float avgColor = (result.r + result.g + result.b) / 3.0;
+    float saturation = 0.25;
+    float avgColor = (mapped.r + mapped.g + mapped.b) / 3.0;
     
-    float redOutput = result.r + ((result.r - avgColor) * saturation);
-    float greenOutput = result.g + ((result.g - avgColor) * saturation);
-    float blueOutput = result.b + ((result.b - avgColor) * saturation);
+    float redOutput = mapped.r + ((mapped.r - avgColor) * saturation);
+    float greenOutput = mapped.g + ((mapped.g - avgColor) * saturation);
+    float blueOutput = mapped.b + ((mapped.b - avgColor) * saturation);
     
-    vec3 n = vec3(redOutput, greenOutput, blueOutput);
+    vec3 saturated = vec3(redOutput, greenOutput, blueOutput);
 
-
+    vec3 final = pow(saturated, vec3(1.0 / gamma));
     // Fog
     
     float fogStart = 20.0;     
     float fogEnd = far * 0.7;
     float fog = 0.0;
     
-    float density = 0.6;   // tweak for effect
+    float density = 0.0;   // tweak for effect 0.6
     if (linearDepth > fogStart) {
         float t = (linearDepth - fogStart) / (fogEnd - fogStart);
         t = clamp(t, 0.0, 1.0);
@@ -76,7 +77,7 @@ void main()
     float fade = smoothstep(far * 0.9, far, linearDepth);
     fog = mix(fog, 1.0, fade * (1.0 - isSky));
 
-    //FragColor = vec4(mix(mapped, vec3(0.851, 0.855, 0.863), fog), 1.0);
-    FragColor = vec4(bloom, 1.0);
+    FragColor = vec4(mix(final, vec3(0.851, 0.855, 0.863), fog), 1.0);
+    //FragColor = vec4(bloom, 1.0);
     //FragColor = vec4(texture(screenTexture, TexCoords).rgb, 1.0);
 }`;

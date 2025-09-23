@@ -236,7 +236,7 @@ void main()
     float reflectivity = fresnelFactor(cosTheta, F0);
 
     vec3 result = vec3(0.0);
-    vec3 ambient = vec3(1.0) * 0.1 * diffuseTex;
+    vec3 ambient = vec3(1.0) * 0.01 * diffuseTex;
     vec3 emissive = emissiveTex * material.emissiveTint * material.emissiveFactor;
     result += ambient;
     result += emissive;
@@ -264,7 +264,7 @@ void main()
     outputColor = vec4(result, 1.0);
 
     float brightness = dot(outputColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-    if (brightness > 1.0)
+    if (brightness > 0.9)
     {   
         BrightColor = vec4(outputColor.rgb, 1.0);
     }

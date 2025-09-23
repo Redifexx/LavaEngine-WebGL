@@ -350,13 +350,26 @@ export function loadCubemap(
     }
 
     const level = 0;
-    const internalFormat = gl.RGBA;
+    const internalFormat = gl.RGBA32F;
     const width = 1;
     const height = 1;
     const border = 0;
     const srcFormat = gl.RGBA;
-    const srcType = gl.UNSIGNED_BYTE;
-    const pixel = new Uint8Array([0, 0, 255, 255]);
+    const srcType = gl.FLOAT;
+    // Original byte values
+    const r = 0;
+    const g = 0;
+    const b = 255;
+    const a = 255;
+
+    // Convert to floats
+    const pixel = new Float32Array([
+        r / 255.0,
+        g / 255.0,
+        b / 255.0,
+        a / 255.0
+    ]);
+    
 
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
@@ -388,8 +401,8 @@ export function loadCubemap(
 
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
     return texture;

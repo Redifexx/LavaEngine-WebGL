@@ -69,10 +69,12 @@ export class LavaEngine
     static downsampleShader: Shader;
     static upsampleShader: Shader;
     static mipTexSizes: vec2[];
+    static mipWeights: number[];
     static copyShader: Shader;
     static bloomTexture: WebGLTexture; // for mist pass
     static bloomBlurTexture: WebGLTexture; // for mist pass
     static viewDepthTexture: WebGLTexture; // for mist pass
+    static mipCount: number;
 
     static bloomFB: WebGLFramebuffer;
     static copyFB: WebGLFramebuffer;
@@ -130,9 +132,9 @@ export class LavaEngine
         this.gaussianBlurShader = new Shader(this.gl_context, gaussianBlurVertSdrSourceCode, gaussianBlurFragSdrSourceCode);
         this.downsampleShader = new Shader(this.gl_context, downsampleVertSdrSourceCode, downsampleFragSdrSourceCode);
         this.upsampleShader = new Shader(this.gl_context, upsampleVertSdrSourceCode, upsampleFragSdrSourceCode);
-        //this.downsampleShader = new Shader(this.gl_context, copyVertSdrSourceCode, copyFragSdrSourceCode);
-        //this.upsampleShader = new Shader(this.gl_context, copyVertSdrSourceCode, copyFragSdrSourceCode);
         this.copyShader = new Shader(this.gl_context, copyVertSdrSourceCode, copyFragSdrSourceCode);
+        this.mipCount = 6;
+        //this.mipCount = Math.floor(Math.log2(Math.max(LavaEngine.internalWidth, LavaEngine.internalHeight))) + 1;
 
         
         this.internalResolutionScale = 1.0;
@@ -736,15 +738,16 @@ export class LavaEngine
         }
         this.bloomFB = gl.createFramebuffer();
 
-        const mipCount = Math.floor(Math.log2(Math.max(LavaEngine.internalWidth, LavaEngine.internalHeight))) + 1;
-        this.mipTexSizes = new Array(mipCount);
+        this.mipTexSizes = new Array(this.mipCount);
         let w = LavaEngine.internalWidth;
         let h = LavaEngine.internalHeight;
-        this.bloomMipTextures = new Array(mipCount);
-
-        for (let i = 0; i < mipCount; i++)
+        this.bloomMipTextures = new Array(this.mipCount);
+        this.mipWeights = new Array(this.mipCount);
+        let initialWeight = 1.0;
+        for (let i = 0; i < this.mipCount; i++)
         {
             this.mipTexSizes[i] = vec2.fromValues(w, h);
+            this.mipWeights[i] = initialWeight;
 
             if (this.bloomMipTextures[i])
             {
@@ -763,45 +766,28 @@ export class LavaEngine
             h = Math.max(1, h >> 1);
 
             gl.bindTexture(gl.TEXTURE_2D, null);
+            initialWeight *= 1.0;
         }
     }
 
     static RenderBloom()
     {
         const gl = this.gl_context;
-        const amount = 2;
-        const mipCount = Math.floor(Math.log2(Math.max(LavaEngine.internalWidth, LavaEngine.internalHeight))) + 1;
+
+        const karisAvg = true;
         
-
-        // copy shader: sample this.bloomTexture -> write to bloomMipTextures[0]
-        
-        /*
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.copyFB);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.bloomMipTextures[0], 0);
-        logFramebufferStatus(gl, "copy shader");
-        gl.useProgram(this.copyShader.shaderProgram);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.bloomTexture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.viewport(0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight);
-        gl.uniform1i(gl.getUniformLocation(this.copyShader.shaderProgram, "uSource"), 0);
-        this.RenderBloomTexture(this.copyShader.shaderProgram);
-
-        this.bloomBlurTexture = this.bloomMipTextures[0];
-        //this.bloomBlurTexture = this.testTexture;
-        */
-
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.bloomFB);
         // downsample first
         gl.useProgram(this.downsampleShader.shaderProgram);
+        if (karisAvg)
+        {
+            gl.uniform1i(gl.getUniformLocation(this.downsampleShader.shaderProgram, "mipLevel"), 0);
+        }
         
         let srcTex = this.bloomTexture;
 
         // for each mip level
-        for (let level = 0; level < mipCount; level++)
+        for (let level = 0; level < this.mipCount; level++)
         {
             const w = this.mipTexSizes[level][0];
             const h = this.mipTexSizes[level][1];
@@ -824,44 +810,51 @@ export class LavaEngine
             this.RenderBloomTexture(this.downsampleShader.shaderProgram);
 
             srcTex = this.bloomMipTextures[level];
-        }
-        this.bloomBlurTexture = this.bloomMipTextures[0];
 
-        /*
+            if (level === 0)
+            {
+                gl.uniform1i(gl.getUniformLocation(this.downsampleShader.shaderProgram, "mipLevel"), 1);
+            }
+        }
+        
         //upsample
         gl.useProgram(this.upsampleShader.shaderProgram);
-        gl.uniform1f(gl.getUniformLocation(this.upsampleShader.shaderProgram, "filterRadius"), 2.0);
+
+        const filterBase = 0.005;
+
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE);
         gl.blendEquation(gl.FUNC_ADD);
-
-        for (let level = mipCount - 1; level > 0; level--)
+        //gl.uniform2f(gl.getUniformLocation(this.upsampleShader.shaderProgram, "uTexelSize"), 1.0 / LavaEngine.internalWidth, 1.0 / LavaEngine.internalHeight);
+        
+        for (let level = this.mipCount - 1; level > 0; level--)
         {
-            const curMip = this.bloomMipTextures[level];
-            const nextMip = this.bloomMipTextures[level - 1];
-
             gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, curMip);
+            gl.bindTexture(gl.TEXTURE_2D, this.bloomMipTextures[level]);
+
             gl.uniform1i(gl.getUniformLocation(this.upsampleShader.shaderProgram, "uInput"), 0);
+            gl.uniform1f(gl.getUniformLocation(this.upsampleShader.shaderProgram, "levelWeight"), this.mipWeights[level]);
+            gl.uniform1f(gl.getUniformLocation(this.upsampleShader.shaderProgram, "filterRadius"), filterBase);
+            gl.uniform2f(gl.getUniformLocation(this.upsampleShader.shaderProgram, "uTexelSize"),
+            1.0 / this.mipTexSizes[level][0], 1.0 / this.mipTexSizes[level][1]);
+
             gl.viewport(0, 0, this.mipTexSizes[level - 1][0], this.mipTexSizes[level - 1][1]);
-
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, nextMip, 0);
-
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.bloomMipTextures[level - 1], 0);
             this.RenderBloomTexture(this.upsampleShader.shaderProgram);
         }
-        gl.disable(gl.BLEND);
+            
 
+        gl.disable(gl.BLEND);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.viewport(0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight);
         
         this.bloomBlurTexture = this.bloomMipTextures[0];
-        */
     }
 
     static RenderBloomTexture(shaderProgram: WebGLShader) 
     {
         const gl = this.gl_context;
-        gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         gl.bindVertexArray(this.screenQuad!.vertexArrayObject);
