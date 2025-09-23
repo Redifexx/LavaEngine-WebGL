@@ -64,4 +64,5 @@ void main()
     downsample3 += (j+k+l+m)*0.125;
 
     FragColor = vec4(downsample3, 1.0);
+    //FragColor = texture(uInput, TexCoords);
 }`;

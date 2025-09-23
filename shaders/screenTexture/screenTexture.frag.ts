@@ -76,7 +76,7 @@ void main()
     float fade = smoothstep(far * 0.9, far, linearDepth);
     fog = mix(fog, 1.0, fade * (1.0 - isSky));
 
-    FragColor = vec4(mix(mapped, vec3(0.851, 0.855, 0.863), fog), 1.0);
-    //FragColor = vec4(bloom, 1.0);
+    //FragColor = vec4(mix(mapped, vec3(0.851, 0.855, 0.863), fog), 1.0);
+    FragColor = vec4(bloom, 1.0);
     //FragColor = vec4(texture(screenTexture, TexCoords).rgb, 1.0);
 }`;
