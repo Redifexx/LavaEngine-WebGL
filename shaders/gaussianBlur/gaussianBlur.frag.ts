@@ -14,19 +14,16 @@ const int MAX_RADIUS = 10;
 
 uniform float radiusNear;
 uniform float radiusFar;
-
+uniform vec2 texelSize;
 
 void main()
 {
-    float viewDepth = texture(viewDepthTexture, TexCoords).r;
-    float depthFactor = clamp((viewDepth - near) / (far - near), 0.0, 1.0);
-
-    float radius = mix(radiusNear, radiusFar, depthFactor);
+    float radius = 4.0;
 
     vec3 result = vec3(0.0);
     float totalWeight = 0.0;
 
-    vec2 tex_offset = 1.0 / vec2(textureSize(bloomTexture, 0));
+    vec2 tex_offset = texelSize;
 
     for (int i = -MAX_RADIUS; i <= MAX_RADIUS; ++i)
     {
@@ -37,6 +34,6 @@ void main()
         result += texture(bloomTexture, TexCoords + offset).rgb * weight;
         totalWeight += weight;
     }
-
-    FragColor = vec4(result / totalWeight, 1.0);
+    //FragColor = vec4(result / totalWeight, 1.0);
+    FragColor = texture(bloomTexture, TexCoords);
 }`;

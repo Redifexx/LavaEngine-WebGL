@@ -23,6 +23,10 @@ import { gaussianBlurVertSdrSourceCode } from "../../shaders/gaussianBlur/gaussi
 import { gaussianBlurFragSdrSourceCode } from "../../shaders/gaussianBlur/gaussianBlur.frag";
 import { copyVertSdrSourceCode } from "../../shaders/copy/copy.vert";
 import { copyFragSdrSourceCode } from "../../shaders/copy/copy.frag";
+import { downsampleVertSdrSourceCode } from "../../shaders/downsample/downsample.vert";
+import { downsampleFragSdrSourceCode } from "../../shaders/downsample/downsample.frag";
+import { upsampleVertSdrSourceCode } from "../../shaders/upsample/upsample.vert";
+import { upsampleFragSdrSourceCode } from "../../shaders/upsample/upsample.frag";
 
  
 export class LavaEngine
@@ -63,12 +67,16 @@ export class LavaEngine
     // Bloom
     static gaussianBlurShader: Shader;
     static downsampleShader: Shader;
+    static upsampleShader: Shader;
+    static mipTexSizes: vec2[];
     static copyShader: Shader;
     static bloomTexture: WebGLTexture; // for mist pass
     static bloomBlurTexture: WebGLTexture; // for mist pass
     static viewDepthTexture: WebGLTexture; // for mist pass
+
     static bloomFB: WebGLFramebuffer;
-    static bloomMipTexure: WebGLTexture;
+    static bloomMipTextures: WebGLTexture[];
+
     static pingPongFB: WebGLFramebuffer[] = new Array(2);
     static pingPongTex: WebGLTexture[] = new Array(2);
 
@@ -118,7 +126,10 @@ export class LavaEngine
         this.defaultMaterial = new Material(this.defaultShader);
 
         this.gaussianBlurShader = new Shader(this.gl_context, gaussianBlurVertSdrSourceCode, gaussianBlurFragSdrSourceCode);
-        this.downsampleShader = new Shader(this.gl_context, gaussianBlurVertSdrSourceCode, gaussianBlurFragSdrSourceCode);
+        this.downsampleShader = new Shader(this.gl_context, downsampleVertSdrSourceCode, downsampleFragSdrSourceCode);
+        this.upsampleShader = new Shader(this.gl_context, upsampleVertSdrSourceCode, upsampleFragSdrSourceCode);
+        //this.downsampleShader = new Shader(this.gl_context, copyVertSdrSourceCode, copyFragSdrSourceCode);
+        //this.upsampleShader = new Shader(this.gl_context, copyVertSdrSourceCode, copyFragSdrSourceCode);
         this.copyShader = new Shader(this.gl_context, copyVertSdrSourceCode, copyFragSdrSourceCode);
 
         
@@ -675,38 +686,34 @@ export class LavaEngine
         }
         this.bloomFB = gl.createFramebuffer();
 
-
-        if (this.bloomMipTexure)
-        {
-            gl.deleteTexture(this.bloomMipTexure);
-        }
-
-        this.bloomMipTexure = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, this.bloomMipTexure);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
+        const mipCount = Math.floor(Math.log2(Math.max(LavaEngine.internalWidth, LavaEngine.internalHeight))) + 1;
+        this.mipTexSizes = new Array(mipCount);
         let w = LavaEngine.internalWidth;
         let h = LavaEngine.internalHeight;
-        const mipCount = Math.floor(Math.log2(Math.max(LavaEngine.internalWidth, LavaEngine.internalHeight))) + 1;
-        for (let level = 0; level < mipCount; ++level) {
-            gl.texImage2D(
-                gl.TEXTURE_2D,
-                level,
-                gl.RGBA16F,         // or RGBA
-                Math.max(1, w), Math.max(1, h),
-                0,
-                gl.RGBA,
-                gl.FLOAT,           // or gl.UNSIGNED_BYTE
-                null
-            );
+        this.bloomMipTextures = new Array(mipCount);
+
+        for (let i = 0; i < mipCount; i++)
+        {
+            this.mipTexSizes[i] = vec2.fromValues(w, h);
+
+            if (this.bloomMipTextures[i])
+            {
+                gl.deleteTexture(this.bloomMipTextures[i]);
+            }
+            this.bloomMipTextures[i] = gl.createTexture();
+
+            gl.bindTexture(gl.TEXTURE_2D, this.bloomMipTextures[i]);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, Math.max(1, w), Math.max(1, h), 0, gl.RGBA, gl.FLOAT, null);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
             w = Math.max(1, w >> 1);
             h = Math.max(1, h >> 1);
-        }
 
-        gl.bindTexture(gl.TEXTURE_2D, null);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+        }
 
         for (let i = 0; i < 2; i++)
         {
@@ -743,94 +750,59 @@ export class LavaEngine
         const amount = 2;
         const mipCount = Math.floor(Math.log2(Math.max(LavaEngine.internalWidth, LavaEngine.internalHeight))) + 1;
 
+        // downsample first
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.bloomFB);
+        gl.useProgram(this.downsampleShader.shaderProgram);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.bloomTexture);
         
-        for (let level = 1; level < mipCount; ++level)
+        // for each mip level
+        for (let level = 0; level < mipCount; ++level)
         {
-            
-            const w = Math.max(1, LavaEngine.internalWidth >> level);
-            const h = Math.max(1, LavaEngine.internalHeight >> level);
+            const w = this.mipTexSizes[level][0];
+            const h = this.mipTexSizes[level][1];
+
+            // step 2: downsample the current mip level
             gl.viewport(0, 0, w, h);
-
-            // down sample
-
-            gl.bindTexture(gl.TEXTURE_2D, this.bloomMipTexure);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 0);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, level);
-            gl.bindFramebuffer(gl.FRAMEBUFFER, this.bloomFB);
-            //logFramebufferStatus(gl, "bind");
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.bloomMipTexure, level); //
-            logFramebufferStatus(gl, `tex level:${level}`);
-            //console.log(level);
-
-            
-            
-            gl.useProgram(this.downsampleShader.shaderProgram);
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.bloomMipTexure);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, level-1);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, level-1);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            gl.uniform1i(gl.getUniformLocation(this.downsampleShader.shaderProgram, "uInput"), 0);
-            console.log(`CUR LVL: ${level}`);
-            console.log(gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL));
-            console.log(gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL));
-            
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.bloomMipTextures[level], 0);
             this.RenderBloomTexture(this.downsampleShader.shaderProgram);
 
-            /*
-            // blur
-            let horizontal = true;
-            let firstItr = true;
-            for (let i = 0; i < amount; i++)
-            {
-                const writeIndex = horizontal ? 1 : 0;
-                const readIndex  = horizontal ? 0 : 1;
+            gl.uniform1i(gl.getUniformLocation(this.downsampleShader.shaderProgram, "uInput"), 0);
+            gl.uniform2f(gl.getUniformLocation(this.downsampleShader.shaderProgram, "uTexelSize"), 1.0 / w, 1.0 / h);
 
-                gl.bindFramebuffer(gl.FRAMEBUFFER, this.pingPongFB[writeIndex]);
-                gl.viewport(0, 0, w, h);
+            this.RenderBloomTexture(this.downsampleShader.shaderProgram);
 
-                gl.useProgram(this.gaussianBlurShader.shaderProgram);
-                const horizontalULoc = gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "horizontal");
-                const bloomTexULoc = gl.getUniformLocation(this.gaussianBlurShader.shaderProgram, "bloomTexture");
+            gl.bindTexture(gl.TEXTURE_2D, this.bloomMipTextures[level]);
+        }
+        this.bloomBlurTexture = this.bloomMipTextures[0];
 
-                gl.activeTexture(gl.TEXTURE0);
+        //upsample
+        gl.useProgram(this.upsampleShader.shaderProgram);
+        gl.uniform1f(gl.getUniformLocation(this.upsampleShader.shaderProgram, "filterRadius"), 2.0);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE);
+        gl.blendEquation(gl.FUNC_ADD);
 
-                if (firstItr) {
-                    gl.bindTexture(gl.TEXTURE_2D, this.bloomTexture);
-                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, level);
-                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, level);
-                } else {
-                    gl.bindTexture(gl.TEXTURE_2D, this.pingPongTex[readIndex]);
-                }
-
-                gl.uniform1i(horizontalULoc, horizontal ? 1 : 0);
-                gl.uniform1i(bloomTexULoc, 0);
-
-                this.RenderBloomTexture(this.gaussianBlurShader.shaderProgram);
-
-                horizontal = !horizontal;
-                if (firstItr) firstItr = false;
-            }
-
-            // copy back
-            gl.bindFramebuffer(gl.FRAMEBUFFER, this.bloomFB);
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.bloomTexture, level);
-
-            const finalTex = this.pingPongTex[ horizontal ? 1 : 0 ];
-
-            gl.viewport(0, 0, w, h);
-            gl.useProgram(this.copyShader.shaderProgram);
+        for (let level = mipCount - 1; level > 0; level--)
+        {
+            const curMip = this.bloomMipTextures[level];
+            const nextMip = this.bloomMipTextures[level - 1];
 
             gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, finalTex);
-            gl.uniform1i(gl.getUniformLocation(this.copyShader.shaderProgram, "uSource"), 0);
+            gl.bindTexture(gl.TEXTURE_2D, curMip);
+            gl.uniform1i(gl.getUniformLocation(this.upsampleShader.shaderProgram, "uInput"), 0);
+            gl.viewport(0, 0, this.mipTexSizes[level - 1][0], this.mipTexSizes[level - 1][1]);
 
-            this.RenderBloomTexture(this.copyShader.shaderProgram);
-            */
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, nextMip, 0);
+
+            this.RenderBloomTexture(this.upsampleShader.shaderProgram);
         }
+        gl.disable(gl.BLEND);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, LavaEngine.internalWidth, LavaEngine.internalHeight);
         
-        this.bloomBlurTexture = this.bloomMipTexure;
+        //this.bloomBlurTexture = this.bloomMipTextures[0];
     }
 
     static RenderBloomTexture(shaderProgram: WebGLShader) 

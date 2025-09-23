@@ -47,6 +47,17 @@ void main()
     float linearDepth = LinearizeDepth(texture(depthTexture, TexCoords).r);
     linearDepth = min(linearDepth, far - 1.0);
 
+    // saturation
+    float saturation = 1.0;
+    float avgColor = (result.r + result.g + result.b) / 3.0;
+    
+    float redOutput = result.r + ((result.r - avgColor) * saturation);
+    float greenOutput = result.g + ((result.g - avgColor) * saturation);
+    float blueOutput = result.b + ((result.b - avgColor) * saturation);
+    
+    vec3 n = vec3(redOutput, greenOutput, blueOutput);
+
+
     // Fog
     
     float fogStart = 20.0;     

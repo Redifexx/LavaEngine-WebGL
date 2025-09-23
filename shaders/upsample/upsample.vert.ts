@@ -1,4 +1,4 @@
-export const downsampleVertSdrSourceCode = `#version 300 es
+export const upsampleVertSdrSourceCode = `#version 300 es
 precision mediump float;
 
 layout(location = 0) in vec2 vertexPosition;
