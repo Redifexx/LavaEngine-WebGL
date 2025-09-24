@@ -421,7 +421,6 @@ export class Scene
     }
 
     computeLightSpaceMatrix(lightDir: vec3) {
-        // --- 1. Get frustum corners in world space ---
         const near = this.mainCamera!.nearPlane;
         const far = this.mainCamera!.farPlane;
         const fov = this.mainCamera!.fieldOfView * Math.PI / 180;
@@ -467,30 +466,27 @@ export class Scene
         corners.push(vec3.fromValues(fc[0] + right[0]*fw - up[0]*fh, fc[1] + right[1]*fw - up[1]*fh, fc[2] + right[2]*fw - up[2]*fh));
         corners.push(vec3.fromValues(fc[0] - right[0]*fw - up[0]*fh, fc[1] - right[1]*fw - up[1]*fh, fc[2] - right[2]*fw - up[2]*fh));
 
-        // --- 2. Compute light view matrix ---
         const lightPos = vec3.create();
-        // Move light back along its direction to ensure scene is in front
         const center = vec3.create();
-        vec3.add(center, camPos, forward); // center = some point in front of camera
-        vec3.scaleAndAdd(lightPos, center, lightDir, -50.0); // 50 units back
+        vec3.add(center, camPos, forward);
+        vec3.scaleAndAdd(lightPos, center, lightDir, -50.0);
 
         const lightView = mat4.create();
         const lightTarget = center;
         const lightUp = vec3.fromValues(0, 1, 0);
         mat4.lookAt(lightView, lightPos, lightTarget, lightUp);
 
-        // --- 3. Transform corners to light space and compute bounding box ---
         let min = vec3.fromValues(Infinity, Infinity, Infinity);
         let max = vec3.fromValues(-Infinity, -Infinity, -Infinity);
 
-        for (const corner of corners) {
+        for (const corner of corners)
+        {
             const cLS = vec3.create();
             vec3.transformMat4(cLS, corner, lightView);
             vec3.min(min, min, cLS);
             vec3.max(max, max, cLS);
         }
 
-        // --- 4. Snap bounds to texels ---
         const worldUnitsPerTexelX = (max[0] - min[0]) / LavaEngine.shadowMapResolution;
         const worldUnitsPerTexelY = (max[1] - min[1]) / LavaEngine.shadowMapResolution;
 
@@ -499,18 +495,16 @@ export class Scene
         max[0] = Math.floor(max[0] / worldUnitsPerTexelX) * worldUnitsPerTexelX;
         max[1] = Math.floor(max[1] / worldUnitsPerTexelY) * worldUnitsPerTexelY;
 
-        // --- 4. Create orthographic projection using bounds ---
         const lightProj = mat4.create();
         const depthRange = max[2] - min[2];
-        const zPadding = depthRange * 0.1; // 10% extra 
+        const zPadding = depthRange * 0.1;
         mat4.ortho(lightProj, min[0], max[0], min[1], max[1], -max[2] - zPadding, -min[2] + zPadding);
 
-        // --- 5. lightSpaceMatrix ---
         const lightSpaceMatrix = mat4.create();
         mat4.multiply(lightSpaceMatrix, lightProj, lightView);
 
         // Stabilize by snapping to nearest texel
-        const shadowMapResolution = 2048; // or whatever your shadow map size is
+        const shadowMapResolution = LavaEngine.shadowMapResolution; // or whatever your shadow map size is
         const shadowOrigin = vec4.fromValues(0, 0, 0, 1);
         vec4.transformMat4(shadowOrigin, shadowOrigin, lightSpaceMatrix);
 

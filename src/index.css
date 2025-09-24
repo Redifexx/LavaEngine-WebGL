@@ -185,6 +185,7 @@ p {
     border-radius: 5px;
 }
 
+#update-box-highlight-main,
 #update-box-highlight
 {
     color: rgb(0, 187, 255);
@@ -194,10 +195,11 @@ p {
 #update-box-highlight-main
 {
     color: rgb(255, 225, 0);
-    width: 7rem;
 }
 
 #update-box-content
 {
     color: rgb(255, 255, 255);
+    max-width: 80%;
+    min-width: 70%;
 }

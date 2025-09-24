@@ -529,3 +529,17 @@ export function logFramebufferStatus(gl: WebGL2RenderingContext, label: string) 
     }
     return status;
 }
+
+export async function toggleFullscreen(canvas: HTMLCanvasElement) {
+  if (!document.fullscreenElement) {
+    if (canvas.requestFullscreen)
+    {
+        canvas.requestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen)
+    {
+      document.exitFullscreen();
+    }
+  }
+}

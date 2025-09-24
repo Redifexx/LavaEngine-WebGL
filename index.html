@@ -11,7 +11,7 @@
     <body>
         <div id="site-header">
             <div id="site-header-title">
-                <h1>Redifexx's Lava Engine WebGL Demo</h1>
+                <h1>Lava Engine WebGL Demo</h1>
             </div>
             <p id="site-header-subtitle">
             </p>
@@ -42,10 +42,21 @@
                 <p id="comment-box-highlight">R: </p>
                 <p id="comment-box-content">Toggle Cube Rotation</p>
             </div>
+            <div id="comment-box-control">
+                <p id="comment-box-highlight">1: </p>
+                <p id="comment-box-content">Toggle Debug Mode</p>
+            </div>
         </div>
         <div id="update-box">
             <div id="update-box-control-b">
-                <p id="update-box-highlight-main">9/9/2025</p>
+                <p id="update-box-highlight-main">9/24/2025</p>
+                <p id="update-box-content">
+                    Directional Shadows, fixed mipmaps, post-processing (tone-mapping, bloom, HDR, chromatic abberation), swapped to quaternions,
+                    fixed global transform calculations, model importing (assimp2json), normal mapping, some optimizations, and fog!
+                </p>
+            </div>
+            <div id="update-box-control-b">
+                <p id="update-box-highlight">9/9/2025</p>
                 <p id="update-box-content">Added skyboxes, environment mapping, blinn-phong shading, and improved material control.</p>
             </div>
             <div id="update-box-control-b">
@@ -58,7 +69,9 @@
             </div>
         </div>
         <div id="error-box">
-            <span class="error-box-title">Made by Gio Perez Colon</span>
+            <a href="https://github.com/Redifexx" target="_blank" rel="noopener noreferrer">
+                <span class="error-box-title">Made by Gio Perez Colon</span>
+            </a>
         </div>
         <script src="dist/lava-engine.js"></script>
     </body>

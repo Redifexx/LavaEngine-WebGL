@@ -100,10 +100,7 @@ float ShadowCalculation(vec4 fragPosLightSpace, out vec3 coords, vec3 norm, vec3
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
 
-    float slope = 1.0 - dot(norm, lightDir);
-    slope = clamp(slope, 0.0, 0.5);          // limit to half
     float bias = max(0.005 * (1.0 - dot(norm, lightDir)), 0.0005);
-    //float bias = 0.0005;
     float shadow = 0.0;
 
     if(projCoords.z > 1.0) return 0.0;
@@ -295,6 +292,8 @@ void main()
     outputColor = vec4(result, 1.0);
 
     //float brightness = dot(outputColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+
+    // remove at some point, no threshold makes this a wasted textures
     float brightness = max(max(outputColor.r, outputColor.g), outputColor.b);
     if (brightness > 0.0)
     {   

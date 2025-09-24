@@ -133,6 +133,7 @@ export class Mesh
         );
 
         const finalMatrix = mat4.create();
+        
         // dont enable until fixed
         // mat4.multiply(finalMatrix, modelMatrix, this.meshTransform);
 

@@ -44,7 +44,8 @@ void main()
     float gamma = 2.2;
     vec3 result = texture(screenTexture, TexCoords).rgb;
     vec3 bloom = texture(bloomTexture, TexCoords).rgb;
-    vec3 bloomedOut = mix(result, bloom, 0.03);
+    vec3 bloomedOut = mix(result, bloom, 0.05);
+    //vec3 bloomedOut = result + bloom * 0.1;
 
     // chromastic abberation
     vec2 center = vec2(0.5);
@@ -96,7 +97,7 @@ void main()
     float fogEnd = far * 0.7;
     float fog = 0.0;
     
-    float density = 0.6;   // tweak for effect 0.6
+    float density = 1.0;   // tweak for effect 0.6
     if (linearDepth > fogStart) {
         float t = (linearDepth - fogStart) / (fogEnd - fogStart);
         t = clamp(t, 0.0, 1.0);
@@ -108,7 +109,8 @@ void main()
     float fade = smoothstep(far * 0.9, far, linearDepth);
     fog = mix(fog, 1.0, fade * (1.0 - isSky));
 
-    FragColor = vec4(mix(final, vec3(0.851, 0.855, 0.863), fog), 1.0);
+    // fog color here
+    FragColor = vec4(mix(final, vec3(0.741, 0.749, 0.757), fog), 1.0);
     //FragColor = vec4(bloom, 1.0);
     //float d = texture(screenTexture, TexCoords).r;
     //FragColor = vec4(d, d, d, 1.0);

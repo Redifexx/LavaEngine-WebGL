@@ -193,13 +193,12 @@ export class EngineDemo extends Project
 
         const e_greenlight = this.MAIN_SCENE.addEntity(
             "GreenLight",
-            vec3.fromValues(-2.0, 3.0, 8.0),
-            vec3.fromValues(-15.0, 0.0, 0.0)
+            vec3.fromValues(0.0, 0.0, 0.0)
         );
 
         const e_bluelight = this.MAIN_SCENE.addEntity(
             "BlueLight",
-            vec3.fromValues(6.0, 3, 1.0)
+            vec3.fromValues(0.0, 0.0, 0.0)
         );
 
         const e_purplelight = this.MAIN_SCENE.addEntity(
@@ -215,7 +214,7 @@ export class EngineDemo extends Project
 
         const e_whitelight = this.MAIN_SCENE.addEntity(
             "WhiteLight",
-            vec3.fromValues(7.0, 4, 10.0)
+            vec3.fromValues(0.0, 0.0, 0.0)
         );
 
         const e_whitePtlight = this.MAIN_SCENE.addEntity(
@@ -300,39 +299,39 @@ export class EngineDemo extends Project
 
         const e_sphere_white = this.MAIN_SCENE.importModel(
             "Sphere",
-            vec3.fromValues(-20.0, 0.0, -12.0), 
+            vec3.fromValues(0.0, 1.0, -50.0), 
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.5, 0.5, 0.5),
             mat_emis_white, "models/sphere.json"
         );
-        //e_sphere_white.addChildEntity(e_redlight);
+        e_sphere_white.addChildEntity(e_whitelight);
 
         const e_sphere_red = this.MAIN_SCENE.importModel(
             "Sphere",
-            vec3.fromValues(-20.0, 0.0, -6.0), 
+            vec3.fromValues(-10.0, 1.0, -32.4), 
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.5, 0.5, 0.5),
             mat_emis_red, "models/sphere.json"
         );
-        //e_sphere_red.addChildEntity(e_redlight);
+        e_sphere_red.addChildEntity(e_redlight);
 
         const e_sphere_green = this.MAIN_SCENE.importModel(
             "Sphere",
-            vec3.fromValues(-20.0, 0.0, 0.0), 
+            vec3.fromValues(0.0, 1.0, -32.4), 
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.5, 0.5, 0.5),
             mat_emis_green, "models/sphere.json"
         );
-        //e_sphere_green.addChildEntity(e_redlight);
+        e_sphere_green.addChildEntity(e_greenlight);
 
         const e_sphere_blue = this.MAIN_SCENE.importModel(
             "Sphere",
-            vec3.fromValues(-20.0, 0.0, 6.0), 
+            vec3.fromValues(10.0, 1.0, -32.4), 
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.5, 0.5, 0.5),
             mat_emis_blue, "models/sphere.json"
         );
-        //e_sphere_blue.addChildEntity(e_redlight);
+        e_sphere_blue.addChildEntity(e_bluelight);
 
         const e_pole = this.MAIN_SCENE.importModel(
             "Pole",
@@ -377,12 +376,12 @@ export class EngineDemo extends Project
         e_skull.addScript(lookAtScript);
     
         e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 0.2, true)); // default light
-        e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 2.0));
-        //e_greenlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(0.0, 1.0, 0.0), 0.0));
-        //e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.3, 1.0), 0.0));
+        e_redlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 0.0, 0.0), 1.0));
+        e_greenlight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 1.0, 0.0), 1.0));
+        e_bluelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.0, 0.0, 1.0), 1.0));
+        e_whitelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 1.0));
         //e_purplelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(0.5, 0.0, 1.0), 0.0));
         //e_yellowlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 1.0, 0.0), 0.0));
-        //e_whitelight.addComponent(LightComponent, new LightComponent(1, vec3.fromValues(1.0, 1.0, 1.0), 0.0));
         e_flashlight.addComponent(LightComponent, new LightComponent(2, vec3.fromValues(1.0, 0.9, 0.8), 4.0, true,
         Math.cos(glMatrix.toRadian(16.0)),
         Math.cos(glMatrix.toRadian(50.0))));

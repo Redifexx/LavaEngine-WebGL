@@ -1,4 +1,4 @@
-import { allocateRenderBufferStorage, attachRenderBufferToFrameBuffer, createFrameBuffer, createProgram, createRenderBuffer, createTexture, eulerToDirection, eulerToQuatWorld, getContext, getQuatForward, logFramebufferStatus, quatToEuler, setFrameBufferColorAttachment, showError } from "../gl-utils";
+import { allocateRenderBufferStorage, attachRenderBufferToFrameBuffer, createFrameBuffer, createProgram, createRenderBuffer, createTexture, eulerToDirection, eulerToQuatWorld, getContext, getQuatForward, logFramebufferStatus, quatToEuler, setFrameBufferColorAttachment, showError, toggleFullscreen } from "../gl-utils";
 import { EngineDemo } from "../projects/engine-demo";
 import { Input } from "./input";
 import { Project } from "./project";
@@ -596,9 +596,7 @@ export class LavaEngine
         gl.enable(gl.DEPTH_TEST);
         gl.clear(gl.DEPTH_BUFFER_BIT);
 
-        //gl.cullFace(gl.FRONT);
         LavaEngine.project.MAIN_SCENE.renderShadow(this.depthShader!.shaderProgram);
-        //gl.cullFace(gl.BACK);
     }
 
     
@@ -979,7 +977,7 @@ export class LavaEngine
 
     static CheckEngineInput()
     {
-        if (Input.GetKeyPressed("e"))
+        if (Input.GetKeyPressed("digit1"))
         {
             this.debugMode = !this.debugMode;
             this.ui!.clearRect(0, 0, this.ui_canvas!.width, this.ui_canvas!.height);
@@ -993,3 +991,4 @@ try {
 {
     showError('Unhandled JavaScript exception: ${e}');
 }
+
