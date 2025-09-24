@@ -49,7 +49,7 @@ export class Model
     // parse from json
     async loadModel(url: string)
     {
-        let rootURL = './../../' + url;
+        let rootURL = './' + url;
 
         // Fetch the file
         const response = await fetch(rootURL);

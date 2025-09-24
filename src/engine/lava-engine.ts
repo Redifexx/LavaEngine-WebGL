@@ -156,17 +156,8 @@ export class LavaEngine
         
         this.ResizeCanvases();
         
-        // Audio
-        const audio = Audio({
-            file: './../../audio/music/gates.mp3',
-            volume: 0.03,
-            loop: true,
-            preload: true
-        });
-
         window.addEventListener("resize", () => LavaEngine.ResizeCanvases());
         this.canvas.addEventListener('click', () => {
-            audio.play();
             this.canvas?.requestPointerLock();
             this.isPointerLock = true;
         });
