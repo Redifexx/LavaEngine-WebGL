@@ -59,6 +59,8 @@ export class LookAtPlayer extends ScriptableBehavior
 
     }
 
+    override FixedUpdate(): void {/*empty*/}
+
     lookAtQuat(eye: vec3, target: vec3, up: vec3 = [0, 1, 0]): quat {
         const forward = vec3.normalize(vec3.create(), vec3.sub(vec3.create(), target, eye));
         const right   = vec3.normalize(vec3.create(), vec3.cross(vec3.create(), up, forward));

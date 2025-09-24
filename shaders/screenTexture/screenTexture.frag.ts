@@ -110,5 +110,6 @@ void main()
 
     FragColor = vec4(mix(final, vec3(0.851, 0.855, 0.863), fog), 1.0);
     //FragColor = vec4(bloom, 1.0);
-    //FragColor = vec4(texture(screenTexture, TexCoords).rgb, 1.0);
+    //float d = texture(screenTexture, TexCoords).r;
+    //FragColor = vec4(d, d, d, 1.0);
 }`;

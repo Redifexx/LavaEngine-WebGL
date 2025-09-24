@@ -100,23 +100,26 @@ float ShadowCalculation(vec4 fragPosLightSpace, out vec3 coords, vec3 norm, vec3
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
 
-    float bias = max(0.007 * (1.0 - dot(norm, lightDir)), 0.001);
+    float slope = 1.0 - dot(norm, lightDir);
+    slope = clamp(slope, 0.0, 0.5);          // limit to half
+    float bias = max(0.005 * (1.0 - dot(norm, lightDir)), 0.0005);
+    //float bias = 0.0005;
     float shadow = 0.0;
 
     if(projCoords.z > 1.0) return 0.0;
 
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0)); // optimize
 
-    for(int x = 0; x <= 1; ++x)
+    for(int x = -1; x <= 1; ++x)
     {
-        for(int y = 0; y <= 1; ++y)
+        for(int y = -1; y <= 1; ++y)
         {   
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
             shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
         }
     }
     
-    shadow /= 4.0;
+    shadow /= 9.0;
 
     return shadow;    
 }
@@ -260,7 +263,7 @@ void main()
     t = smoothstep(0.0, 1.0, t);
 
     // how much white energy to add (scale to taste)
-    float whiteScale = mix(0.0, lum * 0.1, t); // eg. add up to 0.8 * lum as white
+    float whiteScale = mix(0.0, lum * 0.8, t); // eg. add up to 0.8 * lum as white
 
     vec3 finalEmissive = radiance + vec3(whiteScale);
 

@@ -132,7 +132,7 @@ export class EngineDemo extends Project
             null,
             null,
             null,
-            "textures/default_diffuse.png", 0.0, 1.0, 20.0,
+            "textures/default_diffuse.png", 0.0, 1.0, 50.0,
             vec3.fromValues(0.0, 0.0, 1.0)
         );
 

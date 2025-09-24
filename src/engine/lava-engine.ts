@@ -96,6 +96,7 @@ export class LavaEngine
     // Shadow Stuff
     static shadowMapResolution: number = 1024;
     static depthMap: WebGLTexture | null;
+    static spotShadowMap: WebGLTexture | null;
     static depthMapFB: WebGLFramebuffer | null;
     static depthShader:  Shader | null;
     static shadowMat: Material | null;
@@ -149,12 +150,11 @@ export class LavaEngine
         this.internalWidth = this.canvasWidth * this.internalResolutionScale;
         this.internalHeight = this.canvasHeight * this.internalResolutionScale;
         this.fpsTarget = 240;
-        this.shadowMapResolution = this.canvasWidth * 3;
+        this.shadowMapResolution = 2048;
 
         this.debugCube = new Mesh(this.gl_context, CUBE_VERTICES, CUBE_INDICES);
         
         this.ResizeCanvases();
-        this.SetupShadowMap();
         
         // Audio
         const audio = Audio({
@@ -309,6 +309,8 @@ export class LavaEngine
         if (this.screenFramebuffer) {
             this.ResizeFramebuffer();
         }
+
+        this.SetupShadowMap();
 
     }
 
@@ -481,6 +483,7 @@ export class LavaEngine
         gl.disable(gl.DEPTH_TEST);
 
         gl.activeTexture(gl.TEXTURE0);
+        //gl.bindTexture(gl.TEXTURE_2D, this.screenTexture);
         gl.bindTexture(gl.TEXTURE_2D, this.screenTexture);
         gl.uniform1i(gl.getUniformLocation(shaderProgram, "screenTexture"), 0);
 
@@ -536,8 +539,27 @@ export class LavaEngine
             gl.TEXTURE_2D,
             0,
             gl.DEPTH_COMPONENT32F,
-            this.canvasWidth * 3,
-            this.canvasWidth * 3,
+            this.shadowMapResolution,
+            this.shadowMapResolution,
+            0,
+            gl.DEPTH_COMPONENT,
+            gl.FLOAT,
+            null,
+        );
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+
+        const spotShadow = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, spotShadow);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.DEPTH_COMPONENT32F,
+            this.shadowMapResolution,
+            this.shadowMapResolution,
             0,
             gl.DEPTH_COMPONENT,
             gl.FLOAT,
@@ -574,9 +596,9 @@ export class LavaEngine
         gl.enable(gl.DEPTH_TEST);
         gl.clear(gl.DEPTH_BUFFER_BIT);
 
-        gl.cullFace(gl.FRONT);
+        //gl.cullFace(gl.FRONT);
         LavaEngine.project.MAIN_SCENE.renderShadow(this.depthShader!.shaderProgram);
-        gl.cullFace(gl.BACK);
+        //gl.cullFace(gl.BACK);
     }
 
     

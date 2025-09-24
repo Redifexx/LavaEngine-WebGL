@@ -58,5 +58,7 @@ export class CameraController extends ScriptableBehavior
             );
         }
     }
+    
+    override FixedUpdate(): void {/*empty*/}
 
 }

@@ -345,14 +345,14 @@ export class Scene
                 {
                     
                     const nearPlane = 5.0;
-                    const farPlane = 100.0;
+                    const farPlane = 500.0;
 
                     const lightTransform = light.parentEntity.getGlobalTransform();
                     const lightDirection = getQuatForward(lightTransform.rotation);
 
                     const lightPos = vec3.create();
                     const cameraPos = this.mainCamera!.parentEntity!.getGlobalPosition();
-                    vec3.scaleAndAdd(lightPos, cameraPos, lightDirection, -50.0);
+                    vec3.scaleAndAdd(lightPos, cameraPos, lightDirection, -20.0);
 
                     let lightView = mat4.create();
                     mat4.lookAt(
@@ -375,6 +375,42 @@ export class Scene
                     mat4.multiply(lightSpaceMatrix, lightProjection, lightView);
                     this.gl.uniformMatrix4fv(this.gl.getUniformLocation(program, "lightSpaceMatrix"), false, lightSpaceMatrix);
                 }
+                /*
+                else if (light.lightType === LightType.SPOT)
+                {
+                    const nearPlane = 0.1;
+                    const farPlane = 50.0;
+
+                    const lightTransform = light.parentEntity.getGlobalTransform();
+                    const lightDirection = getQuatForward(lightTransform.rotation);
+                    const lightPos = lightTransform.position;
+                    const lightTarget = vec3.create();
+
+                    vec3.scaleAndAdd(lightTarget, lightPos, lightDirection, 1.0);
+
+                    let lightView = mat4.create();
+                    mat4.lookAt(
+                        lightView,
+                        lightPos,
+                        lightTarget,
+                        vec3.fromValues(0.0, 1.0, 0.0)
+                    );
+
+                    const radius = 30.0;
+
+                    let lightProjection = mat4.create();
+                    mat4.perspective(
+                        lightProjection,
+                        light.outerCutOff,
+                        LavaEngine.internalWidth / LavaEngine.internalHeight,
+                        nearPlane, farPlane
+                    );
+
+                    const lightSpaceMatrix = mat4.create();
+                    mat4.multiply(lightSpaceMatrix, lightProjection, lightView);
+                    this.gl.uniformMatrix4fv(this.gl.getUniformLocation(program, "lightSpaceMatrix"), false, lightSpaceMatrix);
+                }
+                    */
             }
         }
     }

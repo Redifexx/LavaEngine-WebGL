@@ -116,6 +116,8 @@ export class PlayerMovement extends ScriptableBehavior
         }
     }
 
+    override FixedUpdate(): void {/*empty*/}
+
     SpeedCheck()
     {
         if (this.playerTransform.position[1] !== this.groundHeight && this.speed !== this.airSpeed && Input.GetKeyReleased('w'))

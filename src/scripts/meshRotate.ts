@@ -40,4 +40,5 @@ export class MeshRotate extends ScriptableBehavior
             this.isMoving = !this.isMoving;
         }
     }
+    override FixedUpdate(): void {/*empty*/}
 }

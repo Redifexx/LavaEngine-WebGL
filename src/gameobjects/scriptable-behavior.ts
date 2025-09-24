@@ -12,4 +12,5 @@ export abstract class ScriptableBehavior
 
     public abstract Start(): void;
     public abstract Update(): void;
+    public abstract FixedUpdate(): void;
 }

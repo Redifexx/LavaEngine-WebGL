@@ -61,4 +61,6 @@ export class FlashlightFollow extends ScriptableBehavior
         );
     }
 
+    override FixedUpdate(): void {/*empty*/}
+
 }
