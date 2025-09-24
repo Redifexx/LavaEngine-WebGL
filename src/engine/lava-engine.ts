@@ -158,7 +158,7 @@ export class LavaEngine
         
         // Audio
         const audio = Audio({
-            file: '../../audio/music/gates.mp3',
+            file: './../../audio/music/gates.mp3',
             volume: 0.03,
             loop: true,
             preload: true

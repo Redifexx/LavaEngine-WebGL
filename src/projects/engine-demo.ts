@@ -164,7 +164,7 @@ export class EngineDemo extends Project
                     vec3.fromValues(x, 0.0, z), 
                     vec3.fromValues(0.0, 0.0, 0.0),
                     vec3.fromValues(1.0, 1.0, 1.0),
-                    mat_grass, "models/big_plane.json"
+                    mat_grass, "./models/big_plane.json"
                 );
             }
         }
@@ -174,7 +174,7 @@ export class EngineDemo extends Project
             vec3.fromValues(30.0, 3.6, -20.0),
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(1.0, 1.0, 1.0),
-            mat_farm, "models/farm.json"
+            mat_farm, "./models/farm.json"
         );
 
         const e_player = this.MAIN_SCENE.addEntity("Player", vec3.fromValues(0.0, 0.0, 0.0));
@@ -231,7 +231,7 @@ export class EngineDemo extends Project
             vec3.fromValues(0.15, -0.1, -0.15),
             vec3.fromValues(5.0, 5.0, 0.0),
             vec3.fromValues(1.0, 1.0, 1.0),
-            mat_flash, "models/flashlight.json",
+            mat_flash, "./models/flashlight.json",
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.0, 177.0, 90.0),
             vec3.fromValues(0.005, 0.005, 0.005)
@@ -252,7 +252,7 @@ export class EngineDemo extends Project
             vec3.fromValues(10.0, 1.0, -10.0),
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(1.0, 1.0, 1.0),
-            mat_wood, "models/cube.json"
+            mat_wood, "./models/cube.json"
         );
 
         const e_cube_2 = this.MAIN_SCENE.importModel(
@@ -260,7 +260,7 @@ export class EngineDemo extends Project
             vec3.fromValues(4.0, 0.2, 3.0),
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.2, 0.2, 0.2),
-            mat_stone, "models/cube.json"
+            mat_stone, "./models/cube.json"
         );
 
         const e_cube_3 = this.MAIN_SCENE.importModel(
@@ -268,7 +268,7 @@ export class EngineDemo extends Project
             vec3.fromValues(3.0, 0.4, -2.5),
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.4, 0.4, 0.4),
-            mat_wood, "models/cube.json"
+            mat_wood, "./models/cube.json"
         );
 
         const e_cube_4 = this.MAIN_SCENE.importModel(
@@ -276,7 +276,7 @@ export class EngineDemo extends Project
             vec3.fromValues(-5.0, 0.7, 2.0),
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.7, 0.7, 0.7),
-            mat_brick, "models/cube.json"
+            mat_brick, "./models/cube.json"
         );
 
         const e_cube_5 = this.MAIN_SCENE.importModel(
@@ -284,7 +284,7 @@ export class EngineDemo extends Project
             vec3.fromValues(0.0, 2.0, 10.0), 
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(1.5, 1.5, 1.5),
-            mat_tiles, "models/cube.json"
+            mat_tiles, "./models/cube.json"
         );
 
         const e_skull = this.MAIN_SCENE.importModel(
@@ -292,7 +292,7 @@ export class EngineDemo extends Project
             vec3.fromValues(15.0, 2.0, 0.0), 
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(1.0, 1.0, 1.0),
-            mat_skull, "models/skull.json",
+            mat_skull, "./models/skull.json",
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.0, 0.0, 0.0)
         );
@@ -302,7 +302,7 @@ export class EngineDemo extends Project
             vec3.fromValues(0.0, 1.0, -50.0), 
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.5, 0.5, 0.5),
-            mat_emis_white, "models/sphere.json"
+            mat_emis_white, "./models/sphere.json"
         );
         e_sphere_white.addChildEntity(e_whitelight);
 
@@ -311,7 +311,7 @@ export class EngineDemo extends Project
             vec3.fromValues(-10.0, 1.0, -32.4), 
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.5, 0.5, 0.5),
-            mat_emis_red, "models/sphere.json"
+            mat_emis_red, "./models/sphere.json"
         );
         e_sphere_red.addChildEntity(e_redlight);
 
@@ -320,7 +320,7 @@ export class EngineDemo extends Project
             vec3.fromValues(0.0, 1.0, -32.4), 
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.5, 0.5, 0.5),
-            mat_emis_green, "models/sphere.json"
+            mat_emis_green, "./models/sphere.json"
         );
         e_sphere_green.addChildEntity(e_greenlight);
 
@@ -329,7 +329,7 @@ export class EngineDemo extends Project
             vec3.fromValues(10.0, 1.0, -32.4), 
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.5, 0.5, 0.5),
-            mat_emis_blue, "models/sphere.json"
+            mat_emis_blue, "./models/sphere.json"
         );
         e_sphere_blue.addChildEntity(e_bluelight);
 
@@ -338,7 +338,7 @@ export class EngineDemo extends Project
             vec3.fromValues(-50.0, 0.0, 50.0),
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(2.0, 2.0, 2.0),
-            mat_wood, "models/POWERPOLES.json",
+            mat_wood, "./models/POWERPOLES.json",
             vec3.fromValues(0.0, 0.0, 0.0),
             vec3.fromValues(0.0, 0.0, 0.0)
         );
@@ -348,12 +348,12 @@ export class EngineDemo extends Project
             vec3.fromValues(0.0, 4.0, -50.0), 
             vec3.fromValues(0.0, 180.0, 0.0),
             vec3.fromValues(0.7, 0.7, 0.7),
-            mat_oldstone, "models/Tunnel.json"
+            mat_oldstone, "./models/Tunnel.json"
         );
 
     
         // Create models from meshs (make modelcomponent house materials)
-        const mod_skybox = new Model("models/cube.json", mat_skybox, null);
+        const mod_skybox = new Model("./models/cube.json", mat_skybox, null);
         
         e_skybox.addComponent(ModelComponent, new ModelComponent(mod_skybox, false));
         e_cube_1.addScript(new MeshRotate());
