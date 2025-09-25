@@ -112,6 +112,7 @@ void main()
     // fog color here
     FragColor = vec4(mix(final, vec3(0.741, 0.749, 0.757), fog), 1.0);
     //FragColor = vec4(bloom, 1.0);
-    //float d = texture(screenTexture, TexCoords).r;
+    //vec3 tex = texture(screenTexture, TexCoords).rgb;
+    //FragColor = vec4(tex, 1.0);
     //FragColor = vec4(d, d, d, 1.0);
 }`;

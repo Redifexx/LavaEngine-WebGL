@@ -22,6 +22,7 @@ uniform sampler2D tex3;
 uniform sampler2D shadowMap;
 uniform samplerCube skybox;
 
+uniform int mipMaps[4];
 uniform float near;
 uniform float far;
 
@@ -217,15 +218,47 @@ void main()
     vec2 dx = dFdx(TexCoords);
     vec2 dy = dFdy(TexCoords);
 
-    // normal map
-    vec3 normalMap = textureGrad(tex2, TexCoords, dx, dy).rgb;
+    vec3 diffuseTex;
+    if (mipMaps[0] == 0)
+    {
+        diffuseTex = texture(tex0, TexCoords).rgb;
+    }
+    else
+    {
+        diffuseTex = textureGrad(tex0, TexCoords, dx, dy).rgb;
+    }
+
+    vec3 specularTex;
+    if (mipMaps[1] == 0)
+    {
+        specularTex = texture(tex1, TexCoords).rgb;
+    }
+    else
+    {
+        specularTex = textureGrad(tex1, TexCoords, dx, dy).rgb;
+    }
+
+    vec3 normalMap;
+    if (mipMaps[2] == 0)
+    {
+        normalMap = texture(tex2, TexCoords).rgb;
+    }
+    else
+    {
+        normalMap = textureGrad(tex2, TexCoords, dx, dy).rgb;
+    }
     normalMap = normalMap * 2.0 - 1.0;
     vec3 norm = normalize(TBN * normalMap);
 
-    // sample textures
-    vec3 diffuseTex = textureGrad(tex0, TexCoords, dx, dy).rgb;
-    vec3 specularTex = textureGrad(tex1, TexCoords, dx, dy).rgb;
-    vec3 emissiveTex = textureGrad(tex3, TexCoords, dx, dy).rgb;
+    vec3 emissiveTex;
+    if (mipMaps[3] == 0)
+    {
+        emissiveTex = texture(tex3, TexCoords).rgb;
+    }
+    else
+    {
+        emissiveTex = textureGrad(tex3, TexCoords, dx, dy).rgb;
+    }
 
     vec3 viewDir = normalize(viewPosition - FragPos);
     vec3 I = -viewDir;
@@ -290,6 +323,7 @@ void main()
     //outputColor = vec4(pow(result, vec3(1.0/gamma)), 1.0);
     //outputColor = vec4(vec3(result.z), 1.0);
     outputColor = vec4(result, 1.0);
+    //outputColor = vec4(diffuseTex, 1.0);
 
     //float brightness = dot(outputColor.rgb, vec3(0.2126, 0.7152, 0.0722));
 

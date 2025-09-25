@@ -6,6 +6,8 @@
   },
   "devDependencies": {
     "@types/node": "^24.3.0",
+    "@types/requirejs": "^2.1.32",
+    "ammojs-typed": "^1.0.6",
     "css-loader": "^7.1.2",
     "style-loader": "^4.0.0",
     "ts-loader": "^9.5.2",
@@ -15,9 +17,11 @@
   },
   "dependencies": {
     "ammo.js": "^0.0.10",
+    "ammojs-typed": "github:giniedp/ammojs-typed",
     "fs": "^0.0.1-security",
     "gl-matrix": "^3.4.4",
     "nodejs": "^0.0.0",
+    "path-browserify": "^1.0.1",
     "ts-audio": "^0.7.9",
     "webgl-gltf": "^0.3.3"
   }

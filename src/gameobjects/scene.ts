@@ -9,12 +9,16 @@ import { Camera } from "../datatypes/camera";
 import { CameraComponent } from "../components/camera-component";
 import { LavaEngine } from "../engine/lava-engine";
 import { Model } from "../datatypes/model";
+import { RigidbodyComponent } from "../components/rigidbody-component";
+import { ColliderComponent } from "../components/collider-component";
+import type * as Ammo from "ammojs-typed";
 
 
 export class Scene 
 {
     gl: WebGL2RenderingContext;
     entities: Entity[] = [];
+    physicsEntities: Entity[] = [];
     entityMap: Map<string, Entity> = new Map();
     mainCamera: CameraComponent | null;
     skybox: WebGLTexture | null = null;
@@ -115,6 +119,11 @@ export class Scene
             if (newEntity.hasComponent(CameraComponent) && !this.mainCamera)
             {
                 this.mainCamera = newEntity.getComponentOrThrow(CameraComponent);
+            }
+
+            if (newEntity.hasComponent(RigidbodyComponent))
+            {
+                this.physicsEntities.push(newEntity);
             }
         }
         else
@@ -537,6 +546,57 @@ export class Scene
             for (const s of e.scripts.values())
             {
                 s.Update();
+            }
+        }
+    }
+
+    FixedUpdate()
+    {
+        for (const e of this.entities)
+        {
+            for (const s of e.scripts.values())
+            {
+                s.FixedUpdate();
+            }
+        }
+
+        for (const e of this.physicsEntities)
+        {
+            const rb = e.getComponentOrThrow(RigidbodyComponent);
+            const curBody = rb.body;
+            //console.log(curBody);
+            const motionState = curBody.getMotionState();
+            //console.log(motionState);
+            motionState.getWorldTransform(e.ammoTransform);
+
+            if (!rb.isKinematic)
+            {
+                const position = e.ammoTransform.getOrigin();
+                const rotation = e.ammoTransform.getRotation();
+
+                const newPos = vec3.fromValues(position.x(), position.y(), position.z());
+                const newRot: quat = quat.fromValues(rotation.x(), rotation.y(), rotation.z(), rotation.w());
+                e.transformComponent.transform.position = newPos;
+                e.transformComponent.transform.rotation = newRot;
+            }
+            else
+            {   
+                const curPos = e.transformComponent.transform.position;
+                const curRot = e.transformComponent.transform.rotation;
+
+                e.ammoPosition.setX(curPos[0]);
+                e.ammoPosition.setY(curPos[1]);
+                e.ammoPosition.setZ(curPos[2]);
+
+                e.ammoQuat.setX(curRot[0]);
+                e.ammoQuat.setY(curRot[1]);
+                e.ammoQuat.setZ(curRot[2]);
+                e.ammoQuat.setW(curRot[3]);
+
+                e.ammoTransform.setOrigin(e.ammoPosition);
+                e.ammoTransform.setRotation(e.ammoQuat);
+                e.ammoMotionState.setWorldTransform(e.ammoTransform);
+                rb.body.setMotionState(e.ammoMotionState);
             }
         }
     }

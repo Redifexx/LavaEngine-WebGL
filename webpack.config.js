@@ -19,9 +19,16 @@ module.exports = {
   },
   resolve: {
     extensions: ['.ts'],
+    fallback: {
+      path: require.resolve('path-browserify'),
+      fs: false,
+    },
   },
   output: {
     filename: 'lava-engine.js',
     path: path.resolve(__dirname, 'dist'),
+  },
+  experiments: {
+    topLevelAwait: true
   },
 };

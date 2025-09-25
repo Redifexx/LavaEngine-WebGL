@@ -5,6 +5,7 @@ import { Scene } from "./scene";
 import { ScriptableBehavior } from "./scriptable-behavior";
 import { Input } from "../engine/input";
 import { eulerToQuatWorld, quatToEuler } from "../gl-utils";
+import { LavaEngine } from "../engine/lava-engine";
 
 export class Entity
 {
@@ -12,6 +13,10 @@ export class Entity
     name: string;
     scene: Scene;
     transformComponent: TransformComponent;
+    ammoTransform: any;
+    ammoPosition: any;
+    ammoQuat: any;
+    ammoMotionState: any;
     components: Map<symbol, Component> = new Map();
     scripts: Map<string, ScriptableBehavior> = new Map();
     isActive: boolean;
@@ -32,6 +37,7 @@ export class Entity
         this.transformComponent = new TransformComponent(pos, eulerToQuatWorld(rotation), scale);
         this.addComponent(TransformComponent, this.transformComponent);
         this.isActive = true;
+        this.ammoTransform = new LavaEngine.physics.Ammo.btTransform();
     }
 
     addChildEntity(childEntity: Entity)

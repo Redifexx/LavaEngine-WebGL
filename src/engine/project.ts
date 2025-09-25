@@ -15,6 +15,7 @@ export abstract class Project
     public abstract Setup(): void;
     public abstract Start(): void;
     public abstract Update(): void;
+    public abstract FixedUpdate(): void;
     
     CreateScene()
     {

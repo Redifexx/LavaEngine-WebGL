@@ -401,4 +401,9 @@ export class EngineDemo extends Project
         this.MAIN_SCENE.Update();
     }
 
+    override FixedUpdate(): void
+    {
+        this.MAIN_SCENE.FixedUpdate();
+    }
+
 }

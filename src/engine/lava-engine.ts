@@ -28,6 +28,8 @@ import { downsampleFragSdrSourceCode } from "../../shaders/downsample/downsample
 import { upsampleVertSdrSourceCode } from "../../shaders/upsample/upsample.vert";
 import { upsampleFragSdrSourceCode } from "../../shaders/upsample/upsample.frag";
 import { avgLumFragSdrSourceCode } from "../../shaders/avgLum/avgLum.frag";
+import { PhysicsWorld } from "./physics-world";
+import { PhysicsDemo } from "../projects/physics-demo";
 
  
 export class LavaEngine
@@ -104,6 +106,10 @@ export class LavaEngine
     static triVAO: WebGLVertexArrayObject;
     static simpleProgram: WebGLProgram;
 
+    // Physics
+    static physics: PhysicsWorld;
+    static physicsStep: number = 1 / 30;
+
     //Helper Defaults
     static defaultShader: Shader;
     static defaultMaterial: Material;
@@ -142,7 +148,6 @@ export class LavaEngine
         this.copyShader = new Shader(this.gl_context, copyVertSdrSourceCode, copyFragSdrSourceCode);
         this.avgLumShader = new Shader(this.gl_context, copyVertSdrSourceCode, avgLumFragSdrSourceCode);
         this.mipCount = 6;
-
         
         this.internalResolutionScale = 1.0;
         this.canvasWidth = (this.canvas.clientWidth * devicePixelRatio) / 1;
@@ -163,12 +168,19 @@ export class LavaEngine
         });
 
         
+        this.StartPhysics();
+    }
+
+    static async StartPhysics()
+    {
+        this.physics = new PhysicsWorld();
+        await this.physics.Init();
         this.StartEngine();
     }
 
     static StartEngine()
     {
-        this.project = new EngineDemo(this.gl_context);
+        this.project = new PhysicsDemo(this.gl_context);
         this.project.Start();
 
         const q = eulerToQuatWorld([0, 0, 0]);
@@ -193,6 +205,8 @@ export class LavaEngine
         // ----- RENDER LOOP -------
         const frameDuration = 1000 / this.fpsTarget;
         LavaEngine.deltaTime = 0.0;
+        let accumulator = 0;
+        let maxStepsPerFrame = 3;
         let lastFrameTime = performance.now();
 
 
@@ -200,6 +214,17 @@ export class LavaEngine
         {
             const thisFrameTime = performance.now()
             const delta = thisFrameTime - lastFrameTime;
+
+            accumulator += delta;
+
+            while (accumulator >= LavaEngine.physicsStep)
+            {
+                LavaEngine.physics.World.stepSimulation(LavaEngine.physicsStep / 1000, 10);
+                LavaEngine.FixedUpdateEngine();
+                accumulator -= LavaEngine.physicsStep;
+                maxStepsPerFrame--;
+            }
+            if (accumulator > 0.5) accumulator = 0.5;
 
             if (delta >= frameDuration)
             {
@@ -254,11 +279,16 @@ export class LavaEngine
         this.project.Update();
     }
 
+    static FixedUpdateEngine()
+    {
+        this.project.FixedUpdate();
+    }
+
     // ---- ui LOGIC ----
     static DrawDebugui()
     {
         this.ui!.clearRect(0, 0, this.ui_canvas!.width, this.ui_canvas!.height);
-        let playerTransform = this.project.MAIN_SCENE.getEntityByName("Player")!.getGlobalTransform();
+        let playerTransform = this.project.MAIN_SCENE.getEntityByName("Camera")!.getGlobalTransform();
         let cameraTransform = this.project.MAIN_SCENE.getEntityByName("Camera")!.getGlobalTransform();
 
         const cameraRot = quatToEuler(cameraTransform.rotation);

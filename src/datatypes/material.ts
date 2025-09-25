@@ -19,6 +19,7 @@ export class Material
     */
 
     textures: (WebGLTexture | null) [] = new Array(6);
+    mipMaps: number[] = [1, 1, 1, 1];
     texUniformLocations: (WebGLUniformLocation | null)[] = new Array(5);
     materialSettingUniformLocations: (WebGLUniformLocation | null)[] = new Array(5); // mat settings
     modelMatrixUniformLocation: WebGLUniformLocation | null;
@@ -162,6 +163,10 @@ export class Material
         }
         else
         {
+            // Mipmaps or not
+            this.shader.gl.uniform1iv(this.shader.gl.getUniformLocation(this.shader.shaderProgram, 'mipMaps'), this.mipMaps);
+            //console.log(this.mipMaps);
+
             // Apply material settings
             this.shader.gl.uniform3fv(this.materialSettingUniformLocations[0], this.diffuseTint);
             this.shader.gl.uniform1f(this.materialSettingUniformLocations[1], this.specularFactor);
@@ -211,12 +216,17 @@ export class Material
         }
     }
 
-    setTex(texIndex: number, texMap: WebGLTexture)
+    setTex(texIndex: number, texMap: WebGLTexture, hasMipmaps: boolean = true)
     {
         if (texIndex >= this.textures.length)
         {
             showError('Texture index doesnt exist');
             return;
+        }
+        
+        if (!hasMipmaps)
+        {
+            this.mipMaps[texIndex] = 0;
         }
 
         this.textures[texIndex] = texMap;
@@ -230,31 +240,33 @@ export class Material
         specularFactor: number | null = null,
         roughnessFactor: number | null = null,
         emissiveFactor: number | null = null,
-        emissiveTint: vec3 | null = null
+        emissiveTint: vec3 | null = null,
+        hasMipmaps: boolean = true,
+        isLinear: boolean = true
     )
     {
         // diff
         if (tex0)
         {
-            this.setTex(0, loadTexture(this.shader.gl, tex0, this.shader.gl.SRGB8_ALPHA8, this.shader.gl.TEXTURE_2D, true));
+            this.setTex(0, loadTexture(this.shader.gl, tex0, this.shader.gl.SRGB8_ALPHA8, this.shader.gl.TEXTURE_2D, hasMipmaps, isLinear));
         }
 
         // spec
         if (tex1)
         {
-            this.setTex(1, loadTexture(this.shader.gl, tex1));
+            this.setTex(1, loadTexture(this.shader.gl, tex1, this.shader.gl.RGBA8, this.shader.gl.TEXTURE_2D, hasMipmaps, isLinear));
         }
 
         // norm
         if (tex2)
         {
-            this.setTex(2, loadTexture(this.shader.gl, tex2));
+            this.setTex(2, loadTexture(this.shader.gl, tex2, this.shader.gl.RGBA8, this.shader.gl.TEXTURE_2D, hasMipmaps, isLinear));
         }
 
         // emis
         if (tex3)
         {
-            this.setTex(3, loadTexture(this.shader.gl, tex3, this.shader.gl.SRGB8_ALPHA8, this.shader.gl.TEXTURE_2D, true));
+            this.setTex(3, loadTexture(this.shader.gl, tex3, this.shader.gl.SRGB8_ALPHA8, this.shader.gl.TEXTURE_2D, hasMipmaps, isLinear));
         }
 
         if (specularFactor)
@@ -275,6 +287,11 @@ export class Material
         if (emissiveTint)
         {
             this.emissiveTint = emissiveTint;
+        }
+
+        if (!hasMipmaps)
+        {
+            this.mipMaps = [0, 0, 0, 0];
         }
     }
 

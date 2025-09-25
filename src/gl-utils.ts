@@ -223,49 +223,12 @@ export function createTexture(
         srcType,
         data,
     );
-    
-
-    /*
-    
-    // WebGL1 has different requirements for power of 2 images
-    if (isPowerOf2(texWidth) && isPowerOf2(texHeight))
-    {
-        gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.REPEAT);
-
-        const ext = gl.getExtension('EXT_texture_filter_anisotropic');
-        const extRGB = gl.getExtension('EXT_sRGB');
-        if (ext) {
-            const max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-            gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
-        }
-
-        if (hasMipmaps)
-        {
-            gl.generateMipmap(texType);
-            gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-        }
-        else
-        {
-            gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        }
-
-        gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    }
-    else
-    {
-        gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    }
-    */
 
     gl.bindTexture(texType, null);
     return texture;
 }
 
-export function loadTexture(gl: WebGL2RenderingContext, url: string, internalFormat: number = gl.RGBA8, texType: number = gl.TEXTURE_2D, hasMipmaps: boolean = true)
+export function loadTexture(gl: WebGL2RenderingContext, url: string, internalFormat: number = gl.RGBA8, texType: number = gl.TEXTURE_2D, hasMipmaps: boolean = true, isLinear: boolean = true)
 {
     // Temp pixel to fill item while image is loading
     const level = 0;
@@ -291,14 +254,6 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string, internalFor
             image,
         );
 
-        gl.generateMipmap(texType);
-
-        const ext = gl.getExtension('EXT_texture_filter_anisotropic');
-        if (ext) {
-            const max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-            gl.texParameterf(texType, ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
-        }
-
         // WebGL1 has different requirements for power of 2 images
         if (isPowerOf2(width) && isPowerOf2(height))
         {
@@ -311,25 +266,50 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string, internalFor
                 const max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
                 gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
             }
-
             if (hasMipmaps)
             {
                 gl.generateMipmap(texType);
-                gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+                if (isLinear == true)
+                {
+                    gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+                    gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+                }
+                else
+                {
+                    gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+                    gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+                }
             }
             else
             {
-                gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                if (isLinear == true)
+                {
+                    gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                    gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                }
+                else
+                {
+                    gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+                    gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+                }
             }
 
-            gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         }
         else
         {
             gl.texParameteri(texType, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(texType, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            if (isLinear == true)
+            {
+                gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            }
+            else
+            {
+                gl.texParameteri(texType, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+                gl.texParameteri(texType, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            }
+            
         }
     };
 
