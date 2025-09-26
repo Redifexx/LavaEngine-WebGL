@@ -29,6 +29,22 @@ export class Model
         }
     }
 
+    destroy(): void 
+    {
+        for (const m of this.meshCollection)
+        {
+            if (m)
+            {
+                m.destroy();
+            }
+        }
+
+        if (this.material)
+        {
+            this.material.destroy();
+        }
+    }
+
     setMaterial(material: Material)
     {
         this.material = material;
@@ -139,4 +155,5 @@ export class Model
             mesh.draw(transform, uniformLocation, depthOnly);
         }
     }
+    
 }

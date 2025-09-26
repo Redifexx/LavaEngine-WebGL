@@ -25,6 +25,11 @@ export class Camera
         this.WorldUp = this.Up;
     }
 
+    destroy()
+    {
+        // nothing to destroy :)
+    }
+
     draw(
         camType: CameraType,
         fieldOfView: number,

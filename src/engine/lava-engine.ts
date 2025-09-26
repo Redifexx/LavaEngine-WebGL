@@ -28,7 +28,7 @@ import { downsampleFragSdrSourceCode } from "../../shaders/downsample/downsample
 import { upsampleVertSdrSourceCode } from "../../shaders/upsample/upsample.vert";
 import { upsampleFragSdrSourceCode } from "../../shaders/upsample/upsample.frag";
 import { avgLumFragSdrSourceCode } from "../../shaders/avgLum/avgLum.frag";
-import { PhysicsWorld } from "./physics-world";
+import { Lava, PhysicsWorld } from "./physics-world";
 import { PhysicsDemo } from "../projects/physics-demo";
 
  
@@ -103,16 +103,28 @@ export class LavaEngine
     static depthShader:  Shader | null;
     static shadowMat: Material | null;
     static debugCube: Mesh | null;
-    static triVAO: WebGLVertexArrayObject;
     static simpleProgram: WebGLProgram;
 
     // Physics
     static physics: PhysicsWorld;
     static physicsStep: number = 1 / 30;
+    static alpha: number;
 
     //Helper Defaults
     static defaultShader: Shader;
     static defaultMaterial: Material;
+
+    //Resource Tracking for Cleanup
+    static SHADERS: Shader[] = [];
+    static MESHES: Mesh[] = [];
+    static MATERIALS: Material[] = []; 
+    static FRAMEBUFFERS: WebGLFramebuffer[] = []; 
+    static RENDERBUFFERS: WebGLRenderbuffer[] = []; 
+    static TEXTURES: WebGLTexture[] = []; 
+
+    static isPageHidden = false;
+
+
 
     static CreateEngineWindow()
     {
@@ -140,13 +152,22 @@ export class LavaEngine
         }
 
         this.defaultShader = new Shader(this.gl_context, vertexShaderSourceCode, fragmentShaderSourceCode);
-        this.defaultMaterial = new Material(this.defaultShader);
-
         this.gaussianBlurShader = new Shader(this.gl_context, gaussianBlurVertSdrSourceCode, gaussianBlurFragSdrSourceCode);
         this.downsampleShader = new Shader(this.gl_context, downsampleVertSdrSourceCode, downsampleFragSdrSourceCode);
         this.upsampleShader = new Shader(this.gl_context, upsampleVertSdrSourceCode, upsampleFragSdrSourceCode);
         this.copyShader = new Shader(this.gl_context, copyVertSdrSourceCode, copyFragSdrSourceCode);
         this.avgLumShader = new Shader(this.gl_context, copyVertSdrSourceCode, avgLumFragSdrSourceCode);
+
+        this.SHADERS.push(this.defaultShader);
+        this.SHADERS.push(this.gaussianBlurShader);
+        this.SHADERS.push(this.downsampleShader);
+        this.SHADERS.push(this.upsampleShader);
+        this.SHADERS.push(this.copyShader);
+        this.SHADERS.push(this.avgLumShader);
+
+        this.defaultMaterial = new Material(this.defaultShader);
+        this.MATERIALS.push(this.defaultMaterial);
+
         this.mipCount = 6;
         
         this.internalResolutionScale = 1.0;
@@ -158,6 +179,7 @@ export class LavaEngine
         this.shadowMapResolution = 2048;
 
         this.debugCube = new Mesh(this.gl_context, CUBE_VERTICES, CUBE_INDICES);
+        this.MESHES.push(this.debugCube);
         
         this.ResizeCanvases();
         
@@ -167,6 +189,10 @@ export class LavaEngine
             this.isPointerLock = true;
         });
 
+        window.addEventListener("beforeunload", () => this.CleanUp());
+        document.addEventListener("visibilitychange", () => {
+            this.isPageHidden = document.hidden;
+        });
         
         this.StartPhysics();
     }
@@ -186,10 +212,7 @@ export class LavaEngine
         const q = eulerToQuatWorld([0, 0, 0]);
         const forward = vec3.create();
         vec3.transformQuat(forward, [0, 0, -1], q);
-        console.log(forward); // -> [0, 0, -1]
 
-        console.log(this.gl_context.getContextAttributes()?.antialias); // true or false
-        console.log(this.gl_context.getParameter(this.gl_context.SAMPLES));
 
         // ---- INPUT LISTENING ----
         Input.InitInputEvents();
@@ -199,8 +222,9 @@ export class LavaEngine
         this.ResizeFramebuffer();
 
         LavaEngine.screenQuad = new Mesh(this.gl_context, quadVertices, null);
+        this.MESHES.push(LavaEngine.screenQuad);
         LavaEngine.screenShader = new Shader(this.gl_context, screenTextureVertSdrSourceCode, screenTextureFragSdrSourceCode);
-
+        this.SHADERS.push(LavaEngine.screenShader);
 
         // ----- RENDER LOOP -------
         const frameDuration = 1000 / this.fpsTarget;
@@ -212,66 +236,65 @@ export class LavaEngine
 
         const frame = function ()
         {
-            const thisFrameTime = performance.now()
-            const delta = thisFrameTime - lastFrameTime;
-
-            accumulator += delta;
-
-            while (accumulator >= LavaEngine.physicsStep)
+            if (!LavaEngine.isPageHidden)
             {
-                LavaEngine.physics.World.stepSimulation(LavaEngine.physicsStep / 1000, 10);
-                LavaEngine.FixedUpdateEngine();
-                accumulator -= LavaEngine.physicsStep;
-                maxStepsPerFrame--;
-            }
-            if (accumulator > 0.5) accumulator = 0.5;
+                const thisFrameTime = performance.now()
+                const delta = thisFrameTime - lastFrameTime;
 
-            if (delta >= frameDuration)
-            {
-                LavaEngine.deltaTime = delta / 1000;
-                lastFrameTime = thisFrameTime;
-                //console.log("FRAME: " + lastFrameTime);
-                const currentFps = 1.0 / LavaEngine.deltaTime;
-                LavaEngine.fpsHistory.push(currentFps);
-                if (LavaEngine.fpsHistory.length > 60) {
-                    LavaEngine.fpsHistory.shift();
-                }
-                LavaEngine.fps = LavaEngine.fpsHistory.reduce((a, b) => a + b, 0) / LavaEngine.fpsHistory.length;
-                LavaEngine.frameTime = 1000.0 / LavaEngine.fps;
+                accumulator += delta;
 
-
-                // --- UPDATE LOGIC ---
-                if (LavaEngine.debugMode)
+                while (accumulator >= LavaEngine.physicsStep)
                 {
-                    LavaEngine.DrawDebugui();
+                    LavaEngine.physics.World.stepSimulation(LavaEngine.physicsStep / 1000, 10);
+                    LavaEngine.FixedUpdateEngine();
+                    accumulator -= LavaEngine.physicsStep;
+                    maxStepsPerFrame--;
                 }
+                if (accumulator > 0.5) accumulator = 0.5;
+
+                LavaEngine.alpha = accumulator / LavaEngine.physicsStep;
+
+                if (delta >= frameDuration)
+                {
+                    LavaEngine.deltaTime = delta / 1000;
+                    lastFrameTime = thisFrameTime;
+                    const currentFps = 1.0 / LavaEngine.deltaTime;
+                    LavaEngine.fpsHistory.push(currentFps);
+                    if (LavaEngine.fpsHistory.length > 60) {
+                        LavaEngine.fpsHistory.shift();
+                    }
+                    LavaEngine.fps = LavaEngine.fpsHistory.reduce((a, b) => a + b, 0) / LavaEngine.fpsHistory.length;
+                    LavaEngine.frameTime = 1000.0 / LavaEngine.fps;
+
+                    // --- UPDATE LOGIC ---
+                    if (LavaEngine.debugMode)
+                    {
+                        LavaEngine.DrawDebugui();
+                    }
+                    
+                    LavaEngine.UpdateEngine();
+                    LavaEngine.CheckEngineInput();
+
+                    Input.ValidateInputs();
+
+                    LavaEngine.ShadowPass();
+
+                    LavaEngine.BindFramebuffer(LavaEngine.screenFramebuffer!); // custom frame buffer
+                    LavaEngine.project.MAIN_SCENE.render(LavaEngine.internalWidth, LavaEngine.internalHeight);
+                    LavaEngine.project.MAIN_SCENE.renderSkybox(LavaEngine.internalWidth, LavaEngine.internalHeight);
+                    LavaEngine.ResolveMSAA();
+
+                    LavaEngine.RenderSkymask();
+                    LavaEngine.project.MAIN_SCENE.renderSkybox(LavaEngine.internalWidth, LavaEngine.internalHeight);
+
+                    LavaEngine.RenderBloom();
                 
-                LavaEngine.UpdateEngine();
-                LavaEngine.CheckEngineInput();
-
-                Input.ValidateInputs();
-
-                LavaEngine.ShadowPass();
-
-                LavaEngine.BindFramebuffer(LavaEngine.screenFramebuffer!); // custom frame buffer
-                LavaEngine.project.MAIN_SCENE.render(LavaEngine.internalWidth, LavaEngine.internalHeight);
-                LavaEngine.project.MAIN_SCENE.renderSkybox(LavaEngine.internalWidth, LavaEngine.internalHeight);
-                LavaEngine.ResolveMSAA();
-
-                LavaEngine.RenderSkymask();
-                LavaEngine.project.MAIN_SCENE.renderSkybox(LavaEngine.internalWidth, LavaEngine.internalHeight);
-
-                LavaEngine.RenderBloom();
-            
-                LavaEngine.RenderScreenTexture(LavaEngine.screenShader!.shaderProgram); // To Screen Quad
+                    LavaEngine.RenderScreenTexture(LavaEngine.screenShader!.shaderProgram); // To Screen Quad
+                }
             }
-
-            
-            //requestAnimationFrame(frame);
             setTimeout(frame, 0);
         }
         frame();
-        //requestAnimationFrame(frame);
     }
 
     static UpdateEngine()
@@ -284,7 +307,8 @@ export class LavaEngine
         this.project.FixedUpdate();
     }
 
-    // ---- ui LOGIC ----
+    // ---- UI LOGIC ----
+    // please replace later
     static DrawDebugui()
     {
         this.ui!.clearRect(0, 0, this.ui_canvas!.width, this.ui_canvas!.height);
@@ -342,42 +366,50 @@ export class LavaEngine
         if (!this.screenFramebuffer)
         {
             this.screenFramebuffer = createFrameBuffer(this.gl_context);
+            this.FRAMEBUFFERS.push(this.screenFramebuffer!);
         }
 
         if (!this.ppFramebuffer)
         {
             this.ppFramebuffer = createFrameBuffer(this.gl_context);
+            this.FRAMEBUFFERS.push(this.ppFramebuffer!);
         }
 
         if (!this.screenColorFramebuffer)
         {
             this.screenColorFramebuffer = createFrameBuffer(this.gl_context);
+            this.FRAMEBUFFERS.push(this.screenColorFramebuffer!);
         }
 
         if (!this.screenColorRenderbuffer)
         {
             this.screenColorRenderbuffer = createRenderBuffer(this.gl_context);
+            this.RENDERBUFFERS.push(this.screenColorRenderbuffer!);
         }
 
         if (!this.screenSkymaskRenderbuffer)
         {
             this.screenSkymaskRenderbuffer = createRenderBuffer(this.gl_context);
+            this.RENDERBUFFERS.push(this.screenSkymaskRenderbuffer!);
         }
 
         if (!this.screenViewDepthRenderbuffer)
         {
             this.screenViewDepthRenderbuffer = createRenderBuffer(this.gl_context);
+            this.RENDERBUFFERS.push(this.screenViewDepthRenderbuffer!);
         }
 
         if (!this.screenBloomRenderbuffer)
         {
             this.screenBloomRenderbuffer = createRenderBuffer(this.gl_context);
+            this.RENDERBUFFERS.push(this.screenBloomRenderbuffer!);
         }
 
 
         if (!this.screenDepthRenderbuffer)
         {
             this.screenDepthRenderbuffer = createRenderBuffer(this.gl_context);
+            this.RENDERBUFFERS.push(this.screenDepthRenderbuffer!);
         }
         
 
@@ -553,6 +585,7 @@ export class LavaEngine
     {
         const gl = this.gl_context;
         this.depthShader = new Shader(gl, depthMapVertSdrSourceCode, depthMapFragSdrSourceCode);
+        this.SHADERS.push(this.depthShader);
 
         const depthMap = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, depthMap);
@@ -572,6 +605,7 @@ export class LavaEngine
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.bindTexture(gl.TEXTURE_2D, null);
+        this.TEXTURES.push(depthMap);
 
         const spotShadow = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, spotShadow);
@@ -591,10 +625,11 @@ export class LavaEngine
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.bindTexture(gl.TEXTURE_2D, null);
+        this.TEXTURES.push(spotShadow);
         
 
         this.shadowMat = new Material(this.depthShader!);
-        console.log("test");
+        this.MATERIALS.push(this.shadowMat);
 
         const depthMapFB = createFrameBuffer(gl);
         gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFB!);
@@ -604,6 +639,8 @@ export class LavaEngine
         gl.readBuffer(gl.NONE);
         gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFB!);
 
+        this.FRAMEBUFFERS.push(depthMapFB!);
+
         this.depthMap = depthMap!;
         this.depthMapFB = depthMapFB!;
     }
@@ -612,7 +649,6 @@ export class LavaEngine
     {
         const gl = this.gl_context;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.depthMapFB!);
-        //logFramebufferStatus(gl, "Shadow Pass Bind");
         gl.viewport(0, 0, LavaEngine.shadowMapResolution, LavaEngine.shadowMapResolution);
         gl.enable(gl.DEPTH_TEST);
         gl.clear(gl.DEPTH_BUFFER_BIT);
@@ -656,6 +692,11 @@ export class LavaEngine
 
         this.screenTexture = tex;
 
+        if (!this.TEXTURES.includes(this.screenTexture))
+        {
+            this.TEXTURES.push(this.screenTexture);
+        }
+
         //depthtex
         if (this.depthTexture)
         {
@@ -678,6 +719,11 @@ export class LavaEngine
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
         this.depthTexture = depth;
+
+        if (!this.TEXTURES.includes(this.depthTexture))
+        {
+            this.TEXTURES.push(this.depthTexture);
+        }
 
         
         //skymask
@@ -703,6 +749,11 @@ export class LavaEngine
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
         this.skyMask = sky;
+
+        if (!this.TEXTURES.includes(this.skyMask))
+        {
+            this.TEXTURES.push(this.skyMask);
+        }
 
         // bloom pass tex
         if (this.bloomTexture)
@@ -730,6 +781,11 @@ export class LavaEngine
 
         this.bloomTexture = bloom;
 
+        if (!this.TEXTURES.includes(this.bloomTexture))
+        {
+            this.TEXTURES.push(this.bloomTexture);
+        }
+
 
         if (this.bloomBlurTexture)
         {
@@ -756,6 +812,11 @@ export class LavaEngine
 
         this.bloomBlurTexture = bloomBlur;
 
+        if (!this.TEXTURES.includes(this.bloomBlurTexture))
+        {
+            this.TEXTURES.push(this.bloomBlurTexture);
+        }
+
         if (this.testTexture)
         {
             gl.deleteTexture(this.testTexture);
@@ -781,6 +842,11 @@ export class LavaEngine
 
         this.testTexture = testTex;
 
+        if (!this.TEXTURES.includes(this.testTexture))
+        {
+            this.TEXTURES.push(this.testTexture);
+        }
+
         let avgLum = gl.createTexture();
         if (!avgLum) {
             showError("Failed to create screen texture");
@@ -800,6 +866,11 @@ export class LavaEngine
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
         this.avgLumTexture = avgLum;
+
+        if (!this.TEXTURES.includes(this.avgLumTexture))
+        {
+            this.TEXTURES.push(this.avgLumTexture);
+        }
     }
 
     static SetupBloom()
@@ -812,11 +883,21 @@ export class LavaEngine
         }
         this.copyFB = gl.createFramebuffer();
 
+        if (!this.FRAMEBUFFERS.includes(this.copyFB))
+        {
+            this.FRAMEBUFFERS.push(this.copyFB);
+        }
+
         if (this.bloomFB)
         {
             gl.deleteFramebuffer(this.bloomFB);
         }
         this.bloomFB = gl.createFramebuffer();
+
+        if (!this.FRAMEBUFFERS.includes(this.bloomFB))
+        {
+            this.FRAMEBUFFERS.push(this.bloomFB);
+        }
 
         this.mipTexSizes = new Array(this.mipCount);
         let w = LavaEngine.internalWidth;
@@ -847,6 +928,11 @@ export class LavaEngine
 
             gl.bindTexture(gl.TEXTURE_2D, null);
             initialWeight *= 1.0;
+
+            if (!this.TEXTURES.includes(this.bloomMipTextures[i]))
+            {
+                this.TEXTURES.push(this.bloomMipTextures[i]);
+            }
         }
     }
 
@@ -1003,6 +1089,43 @@ export class LavaEngine
             this.debugMode = !this.debugMode;
             this.ui!.clearRect(0, 0, this.ui_canvas!.width, this.ui_canvas!.height);
         }
+    }
+
+    static CleanUp()
+    {
+        for (const s of this.SHADERS)
+        {
+            s.destroy();
+        }
+
+        for (const m of this.MESHES)
+        {
+            m.destroy();
+        }
+
+        for (const m of this.MATERIALS)
+        {
+            m.destroy();
+        }
+
+        for (const fb of this.FRAMEBUFFERS)
+        {
+            this.gl_context.deleteFramebuffer(fb);
+        }
+
+        for (const rb of this.RENDERBUFFERS)
+        {
+            this.gl_context.deleteRenderbuffer(rb);
+        }
+
+        for (const t of this.TEXTURES)
+        {
+            this.gl_context.deleteRenderbuffer(t);
+        }
+
+        this.physics.destroy();
+
+        this.project.Destroy();
     }
 }
 

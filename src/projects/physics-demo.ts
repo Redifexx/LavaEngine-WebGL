@@ -22,6 +22,7 @@ import { Entity } from "../gameobjects/entity";
 import { CameraFlightController } from "../scripts/cameraFlightController";
 import { ColliderComponent, ColliderType } from "../components/collider-component";
 import { RigidbodyComponent } from "../components/rigidbody-component";
+import { PlayerRBMovement } from "../scripts/playerRBMovement";
 
 export class PhysicsDemo extends Project
 {
@@ -88,15 +89,22 @@ export class PhysicsDemo extends Project
 
         const e_camera = this.MAIN_SCENE.addEntity(
             "Camera",
-            vec3.fromValues(0.0, 2.0, 22.0),
+            vec3.fromValues(0.0, 1.6, 0.0),
             vec3.fromValues(0.0, 0.0, 0.0)
         );
 
-        const col_camera = new ColliderComponent(ColliderType.SPHERE, null, null, 1.0);
-        e_camera.addComponent(ColliderComponent, col_camera);
+        const e_player = this.MAIN_SCENE.addEntity(
+            "Player",
+            vec3.fromValues(0.0, 5.0, 20.0),
+            vec3.fromValues(0.0, 0.0, 0.0)
+        );
+        e_player.addChildEntity(e_camera);
 
-        const rb_camera = new RigidbodyComponent(e_camera, 1.0, true);
-        e_camera.addComponent(RigidbodyComponent, rb_camera);
+        const col_player = new ColliderComponent(ColliderType.CAPSULE, null, 2.0, 0.5);
+        e_player.addComponent(ColliderComponent, col_player);
+
+        const rb_player = new RigidbodyComponent(e_player, 5.0, false, [0, 1, 0]);
+        e_player.addComponent(RigidbodyComponent, rb_player);
 
 
         const e_skybox = this.MAIN_SCENE.addEntity("Skybox", vec3.fromValues(0.0, 0.0, 0.0));
@@ -136,7 +144,9 @@ export class PhysicsDemo extends Project
         e_skybox.addComponent(ModelComponent, new ModelComponent(mod_skybox, false));
     
         e_camera.addComponent(CameraComponent, new CameraComponent());
-        e_camera.addScript(new CameraFlightController());
+
+        e_camera.addScript(new CameraController());
+        e_player.addScript(new PlayerRBMovement());
 
     
         e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 0.2, true)); // default light

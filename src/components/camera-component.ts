@@ -35,4 +35,8 @@ export class CameraComponent extends Component
         this.nearPlane = nearPlane;
         this.farPlane = farPlane;
     }
+    
+    override destroy(): void {
+        if (this.camera) this.camera.destroy();
+    }
 };

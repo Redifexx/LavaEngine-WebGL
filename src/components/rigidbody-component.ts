@@ -15,8 +15,9 @@ export class RigidbodyComponent extends Component
     localInertia: any;
     body: any;
     isKinematic: boolean;
+    rotMask: number[];
 
-    constructor(e: Entity, mass: number = 1.0, isKinematic: boolean = false)
+    constructor(e: Entity, mass: number = 1.0, isKinematic: boolean = false, rotMask: number[] = [1, 1, 1])
     {
         super();
         let localInertia = vec3.fromValues(0.0, 0.0, 0.0);
@@ -25,6 +26,8 @@ export class RigidbodyComponent extends Component
             showError("Missing collider component!!!");
             return;
         }
+
+        this.rotMask = rotMask;
 
         this.isKinematic = isKinematic;
 
@@ -54,13 +57,16 @@ export class RigidbodyComponent extends Component
             this.localInertia
         );
 
-        const body = new ammo.btRigidBody(rbInfo);
-        this.body = body;
+        this.body = new ammo.btRigidBody(rbInfo);
 
         e.ammoPosition = new ammo.btVector3();
         e.ammoQuat = new ammo.btQuaternion();
         e.ammoMotionState = new ammo.btDefaultMotionState();
 
-        LavaEngine.physics.World.addRigidBody(body);
+        LavaEngine.physics.World.addRigidBody(this.body);
+    }
+
+    override destroy(): void {
+        if (this.body) LavaEngine.physics.Ammo.destroy(this.body);
     }
 }

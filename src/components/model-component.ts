@@ -15,4 +15,8 @@ export class ModelComponent extends Component
         this.model = model;
         this.hasShadows = hasShadows;
     }
+
+    override destroy(): void {
+        if (this.model) this.model.destroy();
+    }
 }

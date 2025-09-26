@@ -7,19 +7,34 @@ import { Input } from "../engine/input";
 import { eulerToQuatWorld, quatToEuler } from "../gl-utils";
 import { LavaEngine } from "../engine/lava-engine";
 
+export class PhysicsState
+{
+    prevPos: any = new LavaEngine.physics.Ammo.btVector3(1.0, 1.0, 1.0);
+    prevRot: any = new LavaEngine.physics.Ammo.btQuaternion(0.0, 0.0, 0.0, 0.0);
+    currPos: any = new LavaEngine.physics.Ammo.btVector3(1.0, 1.0, 1.0);
+    currRot: any = new LavaEngine.physics.Ammo.btQuaternion(0.0, 0.0, 0.0, 0.0);
+}
+
 export class Entity
 {
     id: number;
     name: string;
     scene: Scene;
     transformComponent: TransformComponent;
+    components: Map<symbol, Component> = new Map();
+    scripts: Map<string, ScriptableBehavior> = new Map();
+    isActive: boolean;
+
+    //physics info
     ammoTransform: any;
     ammoPosition: any;
     ammoQuat: any;
     ammoMotionState: any;
-    components: Map<symbol, Component> = new Map();
-    scripts: Map<string, ScriptableBehavior> = new Map();
-    isActive: boolean;
+    lastPos: vec3;
+    lastRot: quat;
+    diffPos: vec3 = vec3.fromValues(0.0, 0.0, 0.0);
+    diffRot: quat = quat.create();
+    physics: PhysicsState = new PhysicsState();
 
     parentEntity: Entity | null;
     childEntities: Map<string, Entity> = new Map();
@@ -38,6 +53,21 @@ export class Entity
         this.addComponent(TransformComponent, this.transformComponent);
         this.isActive = true;
         this.ammoTransform = new LavaEngine.physics.Ammo.btTransform();
+        this.lastPos = this.transformComponent.transform.position;
+        this.lastRot = this.transformComponent.transform.rotation;
+    }
+
+    destroy()
+    {
+        for (const [symbol, component] of this.components.entries()) {
+            if (component) component.destroy();
+        }
+
+        for (const [str, e] of this.childEntities.entries()) {
+            if (e) e.destroy();
+        }
+
+        if (this.parentEntity) this.parentEntity.destroy();
     }
 
     addChildEntity(childEntity: Entity)

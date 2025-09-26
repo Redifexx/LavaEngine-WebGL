@@ -153,6 +153,15 @@ export class Material
         }
     }
 
+    destroy(): void
+    {
+        if (this.shader) this.shader.destroy();
+        for (const t in this.textures)
+        {
+            if (t) this.gl.deleteTexture(t);
+        }
+    }
+
     bindTextures()
     {
         if (this.isCubemap && this.texUniformLocations[4])

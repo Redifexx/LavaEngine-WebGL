@@ -28,4 +28,12 @@ export abstract class Project
     {
         return this.scenes.delete(sceneRef);
     }
+
+    Destroy()
+    {
+        for (const scene of this.scenes) {
+        scene.destroy();
+        }
+        this.scenes.clear();
+    }
 }

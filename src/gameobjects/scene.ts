@@ -32,6 +32,36 @@ export class Scene
         this.gl = gl;
     }
 
+    destroy()
+    {
+        for (const e of this.entities)
+        {
+            if (e) e.destroy();
+        }
+
+        for (const e of this.physicsEntities)
+        {
+            if (e) e.destroy();
+        }
+
+        this.entityMap.clear();
+
+        if (this.skybox) this.gl.deleteTexture(this.skybox);
+
+        for (const l of this.lightList)
+        {
+            if (l) l.destroy();
+        }
+
+        for (const [material, modelArray] of this.modelsByMaterial.entries()) {
+            for (const model of modelArray) {
+                if (model) model.destroy();
+            }
+            if (material) material.destroy();
+        }
+
+    }
+
     addEntity(
         name: string,
         pos: vec3 = vec3.fromValues(0.0, 0.0, 0.0),
@@ -548,6 +578,47 @@ export class Scene
                 s.Update();
             }
         }
+
+        for (const e of this.physicsEntities)
+        {
+            const rb = e.getComponentOrThrow(RigidbodyComponent);
+            const alpha = LavaEngine.alpha;
+        
+            if (!rb.isKinematic)
+            {
+                const p0 = e.physics.prevPos;
+                const p1 = e.physics.currPos;
+                const q0 = e.physics.prevRot;
+                const q1 = e.physics.currRot;
+
+                const nq0 = quat.fromValues(q0.x(), q0.y(), q0.z(), q0.w());
+                const nq1 = quat.fromValues(q1.x(), q1.y(), q1.z(), q1.w());
+                const tq = quat.create();
+                quat.slerp(tq, nq0, nq1, alpha);
+
+                const x = p0.x() + (p1.x() - p0.x()) * alpha;
+                const y = p0.y() + (p1.y() - p0.y()) * alpha;
+                const z = p0.z() + (p1.z() - p0.z()) * alpha;
+
+                /*
+                const newPos = vec3.fromValues(x, y, z);
+                const newRot: quat = quat.fromValues(
+                    tq[0] * rb.rotMask[0],
+                    tq[1] * rb.rotMask[1],
+                    tq[2] * rb.rotMask[2],
+                    tq[3]);
+                    */
+
+                const newPos = vec3.fromValues(p1.x(), p1.y(), p1.z());
+                const newRot: quat = quat.fromValues(
+                    nq1[0] * rb.rotMask[0],
+                    nq1[1] * rb.rotMask[1],
+                    nq1[2] * rb.rotMask[2],
+                    nq1[3]);
+                e.transformComponent.transform.position = newPos;
+                e.transformComponent.transform.rotation = newRot;
+            }
+        }
     }
 
     FixedUpdate()
@@ -564,40 +635,77 @@ export class Scene
         {
             const rb = e.getComponentOrThrow(RigidbodyComponent);
             const curBody = rb.body;
-            //console.log(curBody);
-            const motionState = curBody.getMotionState();
-            //console.log(motionState);
-            motionState.getWorldTransform(e.ammoTransform);
 
+            const curPos = e.transformComponent.transform.position;
+            const curRot = e.transformComponent.transform.rotation;
+                
+
+            if (rb.isKinematic)
+            {              
+                quat.invert(e.diffRot, e.lastRot);
+                quat.multiply(e.diffRot, e.diffRot, curRot);
+                const angle = 2 * Math.acos(Math.min(1, Math.max(-1, e.diffRot[3])));
+                let hasMoved = false;
+
+
+                if (vec3.distance(curPos, e.lastPos) > 0.01)
+                {
+                    //console.log(vec3.distance(curPos, e.lastPos));
+                    hasMoved = true;
+                }
+
+                if (hasMoved)
+                {
+                    e.ammoPosition.setX(curPos[0]);
+                    e.ammoPosition.setY(curPos[1]);
+                    e.ammoPosition.setZ(curPos[2]);
+
+                    e.ammoQuat.setX(curRot[0] * rb.rotMask[0]);
+                    e.ammoQuat.setY(curRot[1] * rb.rotMask[1]);
+                    e.ammoQuat.setZ(curRot[2] * rb.rotMask[2]);
+                    e.ammoQuat.setW(curRot[3]);
+
+                    e.ammoTransform.setOrigin(e.ammoPosition);
+                    e.ammoTransform.setRotation(e.ammoQuat);
+                    e.ammoMotionState.setWorldTransform(e.ammoTransform);
+                    rb.body.setMotionState(e.ammoMotionState);
+                }
+                e.lastPos = vec3.clone(curPos);
+                e.lastRot = quat.clone(curRot);
+            }
+
+            
             if (!rb.isKinematic)
             {
+                const motionState = curBody.getMotionState();
+                motionState.getWorldTransform(e.ammoTransform);
+
+                e.physics.prevPos.setValue(
+                    e.physics.currPos.x(), e.physics.currPos.y(), e.physics.currPos.z()
+                );
+
+                e.physics.prevRot.setValue(
+                    e.physics.currRot.x() * rb.rotMask[0],
+                    e.physics.currRot.y() * rb.rotMask[1],
+                    e.physics.currRot.z() * rb.rotMask[2],
+                    e.physics.currRot.w()
+                );
+
                 const position = e.ammoTransform.getOrigin();
                 const rotation = e.ammoTransform.getRotation();
 
-                const newPos = vec3.fromValues(position.x(), position.y(), position.z());
-                const newRot: quat = quat.fromValues(rotation.x(), rotation.y(), rotation.z(), rotation.w());
-                e.transformComponent.transform.position = newPos;
-                e.transformComponent.transform.rotation = newRot;
-            }
-            else
-            {   
-                const curPos = e.transformComponent.transform.position;
-                const curRot = e.transformComponent.transform.rotation;
+                e.physics.currPos.setValue(
+                    position.x(), position.y(), position.z()
+                );
 
-                e.ammoPosition.setX(curPos[0]);
-                e.ammoPosition.setY(curPos[1]);
-                e.ammoPosition.setZ(curPos[2]);
-
-                e.ammoQuat.setX(curRot[0]);
-                e.ammoQuat.setY(curRot[1]);
-                e.ammoQuat.setZ(curRot[2]);
-                e.ammoQuat.setW(curRot[3]);
-
-                e.ammoTransform.setOrigin(e.ammoPosition);
-                e.ammoTransform.setRotation(e.ammoQuat);
-                e.ammoMotionState.setWorldTransform(e.ammoTransform);
-                rb.body.setMotionState(e.ammoMotionState);
+                e.physics.currRot.setValue(
+                    rotation.x() * rb.rotMask[0],
+                    rotation.y() * rb.rotMask[1],
+                    rotation.z() * rb.rotMask[2],
+                    rotation.w()
+                );
             }
         }
     }
+
 }

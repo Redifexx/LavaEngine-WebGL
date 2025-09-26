@@ -17,4 +17,14 @@ export class Shader
         this.fragmentShader = fragmentShader;
         this.shaderProgram = createProgram(gl, this.vertexShader, this.fragmentShader);
     }
+
+    destroy(): void
+    {
+        const gl = this.gl;
+        if (this.shaderProgram)
+        {
+            gl.deleteProgram(this.shaderProgram);
+            this.shaderProgram = null as any;
+        }
+    }
 }

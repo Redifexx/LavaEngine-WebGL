@@ -2,9 +2,9 @@ import { Entity } from "./entity";
 
 export abstract class Component
 {
-    // every component type gets a unique bit ID
     static typeId: symbol;
     parentEntity: Entity;
+    destroy(): void {}
 }
 
 export interface ComponentConstructor<T extends Component> {

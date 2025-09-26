@@ -165,11 +165,9 @@ export function getContext(canvas: HTMLCanvasElement)
         }
         else
         {
-            console.log('WEB GL 2');
             throw new Error('WebGL is not supported on this device - try using a different device or browser');
         }
     }
-    console.log('WEB GL 2');
     return gl;
 }
 

@@ -39,6 +39,14 @@ export class Mesh
         }
     }
 
+    destroy(): void
+    {
+        if (this.vertexBuffer) this.gl.deleteBuffer(this.vertexBuffer);
+        if (this.indexBuffer) this.gl.deleteBuffer(this.indexBuffer);
+        if (this.vertexArrayObject) this.gl.deleteVertexArray(this.vertexArrayObject);
+        if (this.material) this.material.destroy();
+    }
+
     setVAO()
     {
         if (this.vertexArrayObject)
