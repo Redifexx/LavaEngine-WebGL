@@ -2,13 +2,16 @@
   "name": "intro-to-3d",
   "scripts": {
     "build": "webpack",
-    "dev": "webpack --watch"
+    "wb": "webpack --watch",
+    "sv": "serve .",
+    "dev": "run-p wb sv"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",
     "@types/requirejs": "^2.1.32",
     "ammojs-typed": "^1.0.6",
     "css-loader": "^7.1.2",
+    "npm-run-all": "^4.1.5",
     "style-loader": "^4.0.0",
     "ts-loader": "^9.5.2",
     "typescript": "^5.9.2",
@@ -22,6 +25,7 @@
     "gl-matrix": "^3.4.4",
     "nodejs": "^0.0.0",
     "path-browserify": "^1.0.1",
+    "serve": "^14.2.5",
     "ts-audio": "^0.7.9",
     "webgl-gltf": "^0.3.3"
   }

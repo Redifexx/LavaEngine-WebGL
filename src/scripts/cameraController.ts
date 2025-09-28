@@ -11,6 +11,7 @@ export class CameraController extends ScriptableBehavior
     yaw: number;
     pitch: number;
     sensitivity: number;
+    parentRot: quat;
 
     constructor(s: number = 0.1)
     {
@@ -22,6 +23,8 @@ export class CameraController extends ScriptableBehavior
     {
         this.pitch = 0;
         this.yaw = 0;
+        this.parentEntity!.parentEntity!.getComponentOrThrow(TransformComponent).rotationOR = quat.create(); //override rotation
+        this.parentRot = this.parentEntity!.parentEntity!.getComponentOrThrow(TransformComponent).rotationOR!;
     }
 
     override Update(): void
@@ -47,7 +50,8 @@ export class CameraController extends ScriptableBehavior
 
             // yaw on player
             quat.copy(
-                this.parentEntity!.parentEntity!.transformComponent.transform.rotation,
+                
+                this.parentRot,
                 yawQuat
             );
 

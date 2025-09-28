@@ -1,11 +1,12 @@
-import { vec3 } from "gl-matrix";
+import { quat, vec3 } from "gl-matrix";
 import { TransformComponent, Transform } from "../components/transform-component";
 import { Input } from "../engine/input";
 import { LavaEngine } from "../engine/lava-engine";
 import { Entity } from "../gameobjects/entity";
 import { ScriptableBehavior } from "../gameobjects/scriptable-behavior";
-import { getQuatForward, getQuatRight } from "../gl-utils";
+import { getQuatForward, getQuatRight, lerp } from "../gl-utils";
 import { RigidbodyComponent } from "../components/rigidbody-component";
+import { Lava } from "../engine/physics-world";
 
 export class PlayerRBMovement extends ScriptableBehavior
 {
@@ -14,9 +15,10 @@ export class PlayerRBMovement extends ScriptableBehavior
     groundHeight = 0.0;
     movementVelocity = vec3.create();
     speed = 0.0;
-    moveSpeed = 1.3;
-    walkSpeed = 0.3;
-    airSpeed = 0.3;
+    targetSpeed = 0.0;
+    moveSpeed = 20.0;
+    walkSpeed = 100.0;
+    airSpeed = 100.0;
     isMoving: boolean;
     rigidbody: any;
 
@@ -29,45 +31,47 @@ export class PlayerRBMovement extends ScriptableBehavior
     {
         this.playerTransform = this.parentEntity!.getComponentOrThrow(TransformComponent).transform;
         this.rigidbody = this.parentEntity!.getComponentOrThrow(RigidbodyComponent).body;
+        this.rigidbody.setActivationState(4);
+        this.rigidbody.setAngularFactor(new LavaEngine.physics.Ammo.btVector3(0, 1, 0));
+        this.rigidbody.setDamping(0.1, 0.1);
+        this.rigidbody.setFriction(1.0);
         this.isMoving = false;
     }
 
     override Update(): void
     {
-        
-    }
-
-    override FixedUpdate(): void {
         if (LavaEngine.isPointerLock)
         {
             this.SpeedCheck();
 
-            const acceleration = vec3.create();
+            this.speed = lerp(this.moveSpeed, this.targetSpeed, 10 * LavaEngine.deltaTime);
+
+            const moveDir = vec3.create();
             
             this.isMoving = false;
 
             if (Input.GetKeyHeld("w"))
             {
-                vec3.add(acceleration, acceleration, getQuatForward(this.playerTransform.rotation));
+                vec3.add(moveDir, moveDir, getQuatForward(this.playerTransform.rotation));
                 this.isMoving = true;
             }
             if (Input.GetKeyHeld("s"))
             {
                 const backward = vec3.create();
                 vec3.scale(backward, getQuatForward(this.playerTransform.rotation), -1);
-                vec3.add(acceleration, acceleration, backward);
+                vec3.add(moveDir, moveDir, backward);
                 this.isMoving = true;
             }
             if (Input.GetKeyHeld("d"))
             {
-                vec3.add(acceleration, acceleration, getQuatRight(this.playerTransform.rotation));
+                vec3.add(moveDir, moveDir, getQuatRight(this.playerTransform.rotation));
                 this.isMoving = true;
             }
             if (Input.GetKeyHeld("a"))
             {
                 const left = vec3.create();
                 vec3.scale(left, getQuatRight(this.playerTransform.rotation), -1);
-                vec3.add(acceleration, acceleration, left);
+                vec3.add(moveDir, moveDir, left);
                 this.isMoving = true;
             }
 
@@ -81,21 +85,55 @@ export class PlayerRBMovement extends ScriptableBehavior
             {
                 const onGround = this.GroundCheck();
                 if (onGround) {
-                    const jumpImpulse = new LavaEngine.physics.Ammo.btVector3(0, 5.0, 0);
+                    const jumpImpulse = new LavaEngine.physics.Ammo.btVector3(0, 50.0, 0);
                     this.rigidbody.applyCentralImpulse(jumpImpulse);
                     LavaEngine.physics.Ammo.destroy(jumpImpulse);
                 }
             }
 
+            /*
+            const rbBody = this.rigidbody; // Ammo.js rigidbody
+            const velocity = rbBody.getLinearVelocity();
+
+            // only consider horizontal movement
+            const horizontalVel = vec3.fromValues(velocity.x(), 0, velocity.z());
+            const horizontalSpeed = vec3.length(horizontalVel);
+
+            const currentMoveSpeed = this.speed;
+            const airMultiplier = 1.0; // or change depending on grounded
+
+            if (horizontalSpeed < currentMoveSpeed) {
+                vec3.normalize(moveDir, moveDir);
+                vec3.scale(moveDir, moveDir, currentMoveSpeed * 10 * airMultiplier);
+
+                const impulse = new LavaEngine.physics.Ammo.btVector3(moveDir[0], 0, moveDir[2]);
+                rbBody.applyCentralForce(impulse);
+                LavaEngine.physics.Ammo.destroy(impulse);
+            }*/
+
+            const rbBody = this.rigidbody; // Ammo.js rigidbody
+            const velocity = rbBody.getLinearVelocity();
+            
+            
             // --- Movement force ---
-            if (vec3.length(acceleration) > 0.1) {
-                vec3.normalize(acceleration, acceleration);
-                vec3.scale(acceleration, acceleration, this.speed);
-                const impulse = new LavaEngine.physics.Ammo.btVector3(acceleration[0], 0, acceleration[2]);
+            if (vec3.length(moveDir) > 0.1 && velocity.length() < this.speed) {
+                vec3.normalize(moveDir, moveDir);
+                vec3.scale(moveDir, moveDir, this.speed);
+                const impulse = new LavaEngine.physics.Ammo.btVector3(moveDir[0], 0, moveDir[2]);
                 this.parentEntity!.getComponentOrThrow(RigidbodyComponent).body.applyCentralForce(impulse);
+                //console.log(this.parentEntity!.getComponentOrThrow(RigidbodyComponent).body);
                 LavaEngine.physics.Ammo.destroy(impulse);
             }
+
+            // Get current velocity
+
+            // Clamp horizontal speed
+            const horizontalVel = vec3.fromValues(velocity.x(), 0, velocity.z());
+            const speed = vec3.length(horizontalVel);
         }
+    }
+
+    override FixedUpdate(): void {
     }
 
     SpeedCheck()
@@ -103,13 +141,13 @@ export class PlayerRBMovement extends ScriptableBehavior
         const onGround = this.GroundCheck();
         if (!onGround && this.speed !== this.airSpeed)
         {
-            this.speed = this.airSpeed;
+            this.targetSpeed = this.airSpeed;
         }
         else if (onGround) {
             if (Input.GetKeyHeld("shiftleft")) {
-                this.speed = this.walkSpeed;
+                this.targetSpeed = this.walkSpeed;
             } else {
-                this.speed = this.moveSpeed;
+                this.targetSpeed = this.moveSpeed;
             }
         }
     }

@@ -27,6 +27,8 @@ export class TransformComponent extends Component
 {
     static typeId: symbol = Symbol.for("TransformComponent");
     transform: Transform = new Transform();
+    positionOR?: vec3; // OVERRIDE
+    rotationOR?: quat;
 
     constructor(
         pos: vec3,

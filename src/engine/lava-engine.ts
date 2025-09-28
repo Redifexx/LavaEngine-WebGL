@@ -227,37 +227,41 @@ export class LavaEngine
         this.SHADERS.push(LavaEngine.screenShader);
 
         // ----- RENDER LOOP -------
-        const frameDuration = 1000 / this.fpsTarget;
+        const frameDuration = (1000 / this.fpsTarget);
         LavaEngine.deltaTime = 0.0;
-        let accumulator = 0;
+        let accumulator = 0.0;
         let maxStepsPerFrame = 3;
         let lastFrameTime = performance.now();
 
 
         const frame = function ()
         {
-            if (!LavaEngine.isPageHidden)
+            if (true)
             {
-                const thisFrameTime = performance.now()
-                const delta = thisFrameTime - lastFrameTime;
+                const thisFrameTime = performance.now();
+                const delta = (thisFrameTime - lastFrameTime) / 1000;
+                lastFrameTime = thisFrameTime;
 
+
+                //accumulator = Math.min(accumulator + delta, 0.5);
                 accumulator += delta;
+                
 
+                let steps = 0;
                 while (accumulator >= LavaEngine.physicsStep)
-                {
-                    LavaEngine.physics.World.stepSimulation(LavaEngine.physicsStep / 1000, 10);
+                {   
+                    //LavaEngine.physics.World.stepSimulation(LavaEngine.physicsStep / 1000, 10);
                     LavaEngine.FixedUpdateEngine();
+                    LavaEngine.physics.World.stepSimulation(LavaEngine.physicsStep, 10);
                     accumulator -= LavaEngine.physicsStep;
-                    maxStepsPerFrame--;
                 }
-                if (accumulator > 0.5) accumulator = 0.5;
 
-                LavaEngine.alpha = accumulator / LavaEngine.physicsStep;
+                LavaEngine.alpha = accumulator  / LavaEngine.physicsStep;
 
-                if (delta >= frameDuration)
+
+                if (delta < frameDuration)
                 {
-                    LavaEngine.deltaTime = delta / 1000;
-                    lastFrameTime = thisFrameTime;
+                    LavaEngine.deltaTime = delta;
                     const currentFps = 1.0 / LavaEngine.deltaTime;
                     LavaEngine.fpsHistory.push(currentFps);
                     if (LavaEngine.fpsHistory.length > 60) {
@@ -292,9 +296,11 @@ export class LavaEngine
                     LavaEngine.RenderScreenTexture(LavaEngine.screenShader!.shaderProgram); // To Screen Quad
                 }
             }
-            setTimeout(frame, 0);
+            //setTimeout(frame, 0);
+            requestAnimationFrame(frame);
         }
-        frame();
+        //frame();
+        requestAnimationFrame(frame);
     }
 
     static UpdateEngine()

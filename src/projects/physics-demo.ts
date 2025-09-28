@@ -23,6 +23,7 @@ import { CameraFlightController } from "../scripts/cameraFlightController";
 import { ColliderComponent, ColliderType } from "../components/collider-component";
 import { RigidbodyComponent } from "../components/rigidbody-component";
 import { PlayerRBMovement } from "../scripts/playerRBMovement";
+import { LavaEngine } from "../engine/lava-engine";
 
 export class PhysicsDemo extends Project
 {
@@ -95,7 +96,7 @@ export class PhysicsDemo extends Project
 
         const e_player = this.MAIN_SCENE.addEntity(
             "Player",
-            vec3.fromValues(0.0, 5.0, 20.0),
+            vec3.fromValues(0.0, 20.0, 20.0),
             vec3.fromValues(0.0, 0.0, 0.0)
         );
         e_player.addChildEntity(e_camera);
@@ -116,22 +117,22 @@ export class PhysicsDemo extends Project
 
 
         const e_cubes: Entity[] = [];
-        for (let i = 0; i < 10; i++)
+        for (let i = 0; i < 200; i++)
         {
             for (let j = 0; j < 1; j++)
             {
                 const cube = this.MAIN_SCENE.importModel(
                     `Cube`,
-                    vec3.fromValues(0.0, i * 5.0, 0),
+                    vec3.fromValues(0.0, i * 1.0, 0),
                     vec3.fromValues(0.0, 0.0, 0.0),
-                    vec3.fromValues(1.0, 1.0, 1.0),
+                    vec3.fromValues(0.5, 0.5, 0.5),
                     mat_diamond, "./models/cube.json"
                 );
 
-                const col_cube = new ColliderComponent(ColliderType.BOX, vec3.fromValues(1.0, 1.0, 1.0));
+                const col_cube = new ColliderComponent(ColliderType.BOX, vec3.fromValues(0.5, 0.5, 0.5));
                 cube.addComponent(ColliderComponent, col_cube);
 
-                const rb_cube = new RigidbodyComponent(cube);
+                const rb_cube = new RigidbodyComponent(cube, 0.1);
                 cube.addComponent(RigidbodyComponent, rb_cube);
 
                 e_cubes.push(cube);
@@ -147,6 +148,8 @@ export class PhysicsDemo extends Project
 
         e_camera.addScript(new CameraController());
         e_player.addScript(new PlayerRBMovement());
+
+        LavaEngine.physics.World.setGravity(new LavaEngine.physics.Ammo.btVector3(0, -20, 0));
 
     
         e_sun.addComponent(LightComponent, new LightComponent(0, vec3.fromValues(1.0, 1.0, 1.0), 0.2, true)); // default light

@@ -192,6 +192,10 @@ function isPowerOf2(value: number)
     return (value & (value - 1)) === 0;
 }
 
+export function lerp(a: number, b: number, t: number): number {
+    return a + (b - a) * t;
+}
+
 export function createTexture(
     gl: WebGL2RenderingContext,
     texWidth: number = 512,

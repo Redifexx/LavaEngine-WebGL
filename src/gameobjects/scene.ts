@@ -12,6 +12,7 @@ import { Model } from "../datatypes/model";
 import { RigidbodyComponent } from "../components/rigidbody-component";
 import { ColliderComponent } from "../components/collider-component";
 import type * as Ammo from "ammojs-typed";
+import { Lava } from "../engine/physics-world";
 
 
 export class Scene 
@@ -600,23 +601,27 @@ export class Scene
                 const y = p0.y() + (p1.y() - p0.y()) * alpha;
                 const z = p0.z() + (p1.z() - p0.z()) * alpha;
 
-                /*
+                
                 const newPos = vec3.fromValues(x, y, z);
                 const newRot: quat = quat.fromValues(
-                    tq[0] * rb.rotMask[0],
-                    tq[1] * rb.rotMask[1],
-                    tq[2] * rb.rotMask[2],
+                    tq[0],
+                    tq[1],
+                    tq[2],
                     tq[3]);
-                    */
 
-                const newPos = vec3.fromValues(p1.x(), p1.y(), p1.z());
-                const newRot: quat = quat.fromValues(
-                    nq1[0] * rb.rotMask[0],
-                    nq1[1] * rb.rotMask[1],
-                    nq1[2] * rb.rotMask[2],
-                    nq1[3]);
                 e.transformComponent.transform.position = newPos;
                 e.transformComponent.transform.rotation = newRot;
+            }
+
+            //FIX LATER
+            if (e.getComponentOrThrow(TransformComponent).positionOR)
+            {
+                e.transformComponent.transform.position = e.getComponentOrThrow(TransformComponent).positionOR!;
+            }
+
+            if (e.getComponentOrThrow(TransformComponent).rotationOR)
+            {
+                e.transformComponent.transform.rotation = e.getComponentOrThrow(TransformComponent).rotationOR!;
             }
         }
     }
@@ -636,76 +641,97 @@ export class Scene
             const rb = e.getComponentOrThrow(RigidbodyComponent);
             const curBody = rb.body;
 
-            const curPos = e.transformComponent.transform.position;
-            const curRot = e.transformComponent.transform.rotation;
+            const motionState = curBody.getMotionState();
+            motionState.getWorldTransform(e.ammoTransform);
+
+
+            if (!rb.isKinematic)
+            {
+                //rb.body.setLinearVelocity(rb.velocity);
                 
 
-            if (rb.isKinematic)
-            {              
-                quat.invert(e.diffRot, e.lastRot);
-                quat.multiply(e.diffRot, e.diffRot, curRot);
-                const angle = 2 * Math.acos(Math.min(1, Math.max(-1, e.diffRot[3])));
-                let hasMoved = false;
-
-
-                if (vec3.distance(curPos, e.lastPos) > 0.01)
+                if (e.getComponentOrThrow(TransformComponent).positionOR)
                 {
-                    //console.log(vec3.distance(curPos, e.lastPos));
-                    hasMoved = true;
-                }
-
-                if (hasMoved)
-                {
+                    e.transformComponent.transform.position = e.getComponentOrThrow(TransformComponent).positionOR!;
+                    const curPos = vec3.clone(e.transformComponent.transform.position);
+                    const motionState = curBody.getMotionState();
+                    motionState.getWorldTransform(e.ammoTransform);
                     e.ammoPosition.setX(curPos[0]);
                     e.ammoPosition.setY(curPos[1]);
                     e.ammoPosition.setZ(curPos[2]);
-
-                    e.ammoQuat.setX(curRot[0] * rb.rotMask[0]);
-                    e.ammoQuat.setY(curRot[1] * rb.rotMask[1]);
-                    e.ammoQuat.setZ(curRot[2] * rb.rotMask[2]);
-                    e.ammoQuat.setW(curRot[3]);
-
                     e.ammoTransform.setOrigin(e.ammoPosition);
+                    e.ammoMotionState.setWorldTransform(e.ammoTransform);
+                    rb.body.setMotionState(e.ammoMotionState);
+                }
+
+                if (e.getComponentOrThrow(TransformComponent).rotationOR)
+                {
+                    e.transformComponent.transform.rotation = e.getComponentOrThrow(TransformComponent).rotationOR!;
+                    const curRot = quat.clone(e.transformComponent.transform.rotation);
+                    const motionState = curBody.getMotionState();
+                    motionState.getWorldTransform(e.ammoTransform);
+                    e.ammoQuat.setX(curRot[0]);
+                    e.ammoQuat.setY(curRot[1]);
+                    e.ammoQuat.setZ(curRot[2]);
+                    e.ammoQuat.setW(curRot[3]);
                     e.ammoTransform.setRotation(e.ammoQuat);
                     e.ammoMotionState.setWorldTransform(e.ammoTransform);
                     rb.body.setMotionState(e.ammoMotionState);
                 }
-                e.lastPos = vec3.clone(curPos);
-                e.lastRot = quat.clone(curRot);
             }
-
-            
-            if (!rb.isKinematic)
+            else
             {
+                const curPos = vec3.clone(e.transformComponent.transform.position);
+                const curRot = quat.clone(e.transformComponent.transform.rotation);
+
+                e.ammoPosition.setX(curPos[0]);
+                e.ammoPosition.setY(curPos[1]);
+                e.ammoPosition.setZ(curPos[2]);
+                e.ammoQuat.setX(curRot[0]);
+                e.ammoQuat.setY(curRot[1]);
+                e.ammoQuat.setZ(curRot[2]);
+                e.ammoQuat.setW(curRot[3]);
+                e.ammoTransform.setOrigin(e.ammoPosition);
+                e.ammoTransform.setRotation(e.ammoQuat);
+
                 const motionState = curBody.getMotionState();
                 motionState.getWorldTransform(e.ammoTransform);
 
-                e.physics.prevPos.setValue(
-                    e.physics.currPos.x(), e.physics.currPos.y(), e.physics.currPos.z()
-                );
-
-                e.physics.prevRot.setValue(
-                    e.physics.currRot.x() * rb.rotMask[0],
-                    e.physics.currRot.y() * rb.rotMask[1],
-                    e.physics.currRot.z() * rb.rotMask[2],
-                    e.physics.currRot.w()
-                );
-
-                const position = e.ammoTransform.getOrigin();
-                const rotation = e.ammoTransform.getRotation();
-
-                e.physics.currPos.setValue(
-                    position.x(), position.y(), position.z()
-                );
-
-                e.physics.currRot.setValue(
-                    rotation.x() * rb.rotMask[0],
-                    rotation.y() * rb.rotMask[1],
-                    rotation.z() * rb.rotMask[2],
-                    rotation.w()
-                );
+                e.ammoMotionState.setWorldTransform(e.ammoTransform);
+                rb.body.setMotionState(e.ammoMotionState);
             }
+            
+            // setting prev pos
+            e.physics.prevPos.setValue(
+                e.physics.currPos.x(),
+                e.physics.currPos.y(),
+                e.physics.currPos.z()
+            );
+
+            e.physics.prevRot.setValue(
+                e.physics.currRot.x(),
+                e.physics.currRot.y(),
+                e.physics.currRot.z(),
+                e.physics.currRot.w()
+            );
+
+            // getting cur physics world data
+            const position = e.ammoTransform.getOrigin();
+            const rotation = e.ammoTransform.getRotation();
+
+            // updaing curr pos
+            e.physics.currPos.setValue(
+                position.x(),
+                position.y(),
+                position.z()
+            );
+
+            e.physics.currRot.setValue(
+                rotation.x(),
+                rotation.y(),
+                rotation.z(),
+                rotation.w()
+            );
         }
     }
-
 }

@@ -16,6 +16,7 @@ export class RigidbodyComponent extends Component
     body: any;
     isKinematic: boolean;
     rotMask: number[];
+    velocity: any;
 
     constructor(e: Entity, mass: number = 1.0, isKinematic: boolean = false, rotMask: number[] = [1, 1, 1])
     {
@@ -30,6 +31,8 @@ export class RigidbodyComponent extends Component
         this.rotMask = rotMask;
 
         this.isKinematic = isKinematic;
+
+        this.velocity = new LavaEngine.physics.Ammo.btVector3(0.0, 0.0, 0.0);
 
         const shape = e.getComponentOrThrow(ColliderComponent)!.shape;
         
