@@ -17,17 +17,23 @@ export class ColliderComponent extends Component
     static typeId: symbol = Symbol.for("ColliderComponent");
 
     scale: vec3;
+    offset: vec3;
     height: number;
     radius: number;
     shape: any;
     
-    constructor(col: ColliderType, scale: vec3 | null = null, height: number | null = null, radius: number | null = null)
+    constructor(col: ColliderType, scale: vec3 | null = null, offset: vec3 | null = null, height: number | null = null, radius: number | null = null)
     {
         super();
 
         if (!scale)
         {
             scale = vec3.fromValues(1.0, 1.0, 1.0);
+        }
+
+        if (!offset)
+        {
+            offset = vec3.fromValues(0.0, 0.0, 0.0);
         }
 
         if (!height)
@@ -43,7 +49,7 @@ export class ColliderComponent extends Component
 
         const ammo = LavaEngine.physics.Ammo;
 
-        const halfExtents = new ammo.btVector3(scale[0], scale[1], scale[2]);
+        const halfExtents = new ammo.btVector3(scale[0] + offset[0], scale[1] + offset[1], scale[2] + offset[2]);
         let shape: any;
         switch (col)
         {

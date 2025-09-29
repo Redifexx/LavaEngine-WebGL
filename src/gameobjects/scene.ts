@@ -661,7 +661,7 @@ export class Scene
                     e.ammoPosition.setZ(curPos[2]);
                     e.ammoTransform.setOrigin(e.ammoPosition);
                     e.ammoMotionState.setWorldTransform(e.ammoTransform);
-                    rb.body.setMotionState(e.ammoMotionState);
+                    //rb.body.setMotionState(e.ammoMotionState);
                 }
 
                 if (e.getComponentOrThrow(TransformComponent).rotationOR)
@@ -670,13 +670,15 @@ export class Scene
                     const curRot = quat.clone(e.transformComponent.transform.rotation);
                     const motionState = curBody.getMotionState();
                     motionState.getWorldTransform(e.ammoTransform);
+                    e.ammoPosition = e.ammoTransform.getOrigin();
                     e.ammoQuat.setX(curRot[0]);
                     e.ammoQuat.setY(curRot[1]);
                     e.ammoQuat.setZ(curRot[2]);
                     e.ammoQuat.setW(curRot[3]);
+                    e.ammoTransform.setOrigin(e.ammoPosition);
                     e.ammoTransform.setRotation(e.ammoQuat);
-                    e.ammoMotionState.setWorldTransform(e.ammoTransform);
-                    rb.body.setMotionState(e.ammoMotionState);
+                    motionState.setWorldTransform(e.ammoTransform);
+                    //rb.body.setMotionState(e.ammoMotionState);
                 }
             }
             else

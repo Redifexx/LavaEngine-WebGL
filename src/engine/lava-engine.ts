@@ -53,7 +53,13 @@ export class LavaEngine
     static fps: number = 0;
     static frameTime: number = 0;
 
-    static debugMode: boolean = false;
+    //timings
+    static physicsTime: number = 0.0;
+    static shadowTime: number = 0.0;
+    static renderTime: number = 0.0;
+    static skyMaskTime: number = 0.0;
+    static bloomTime: number = 0.0;
+    static debugMode: boolean = true;
 
     // Render Quad + MSAA
     static screenFramebuffer: WebGLFramebuffer | null; // msaa
@@ -107,7 +113,7 @@ export class LavaEngine
 
     // Physics
     static physics: PhysicsWorld;
-    static physicsStep: number = 1 / 30;
+    static physicsStep: number = 1 / 60;
     static alpha: number;
 
     //Helper Defaults
@@ -241,6 +247,7 @@ export class LavaEngine
                 const thisFrameTime = performance.now();
                 const delta = (thisFrameTime - lastFrameTime) / 1000;
                 lastFrameTime = thisFrameTime;
+                let aTime = performance.now();
 
 
                 //accumulator = Math.min(accumulator + delta, 0.5);
@@ -250,9 +257,10 @@ export class LavaEngine
                 let steps = 0;
                 while (accumulator >= LavaEngine.physicsStep)
                 {   
-                    //LavaEngine.physics.World.stepSimulation(LavaEngine.physicsStep / 1000, 10);
+                    aTime = performance.now(); //
+                    LavaEngine.physics.World.stepSimulation(LavaEngine.physicsStep, 2);
                     LavaEngine.FixedUpdateEngine();
-                    LavaEngine.physics.World.stepSimulation(LavaEngine.physicsStep, 10);
+                    LavaEngine.physicsTime = performance.now() - thisFrameTime; //
                     accumulator -= LavaEngine.physicsStep;
                 }
 
@@ -281,26 +289,34 @@ export class LavaEngine
 
                     Input.ValidateInputs();
 
+                    aTime = performance.now(); //
                     LavaEngine.ShadowPass();
+                    LavaEngine.shadowTime = performance.now() - aTime; //
 
+                    aTime = performance.now(); //
                     LavaEngine.BindFramebuffer(LavaEngine.screenFramebuffer!); // custom frame buffer
                     LavaEngine.project.MAIN_SCENE.render(LavaEngine.internalWidth, LavaEngine.internalHeight);
                     LavaEngine.project.MAIN_SCENE.renderSkybox(LavaEngine.internalWidth, LavaEngine.internalHeight);
                     LavaEngine.ResolveMSAA();
+                    LavaEngine.renderTime = performance.now() - aTime; //
 
+                    aTime = performance.now(); //
                     LavaEngine.RenderSkymask();
                     LavaEngine.project.MAIN_SCENE.renderSkybox(LavaEngine.internalWidth, LavaEngine.internalHeight);
+                    LavaEngine.skyMaskTime = performance.now() - aTime; //
 
+                    aTime = performance.now();
                     LavaEngine.RenderBloom();
+                    LavaEngine.bloomTime = performance.now() - aTime;
                 
                     LavaEngine.RenderScreenTexture(LavaEngine.screenShader!.shaderProgram); // To Screen Quad
                 }
             }
-            //setTimeout(frame, 0);
-            requestAnimationFrame(frame);
+            setTimeout(frame, 0);
+            //requestAnimationFrame(frame);
         }
-        //frame();
-        requestAnimationFrame(frame);
+        frame();
+        //requestAnimationFrame(frame);
     }
 
     static UpdateEngine()
@@ -318,11 +334,11 @@ export class LavaEngine
     static DrawDebugui()
     {
         this.ui!.clearRect(0, 0, this.ui_canvas!.width, this.ui_canvas!.height);
-        let playerTransform = this.project.MAIN_SCENE.getEntityByName("Camera")!.getGlobalTransform();
+        let playerTransform = this.project.MAIN_SCENE.getEntityByName("Player")!.getGlobalTransform();
         let cameraTransform = this.project.MAIN_SCENE.getEntityByName("Camera")!.getGlobalTransform();
 
         const cameraRot = quatToEuler(cameraTransform.rotation);
-        this.ui!.font = "20px Quantico"; 
+        this.ui!.font = "15px Quantico"; 
         this.ui!.fillStyle = "white";
         this.ui!.shadowColor = "rgba(0, 0, 0, 0.7)";
         this.ui!.shadowBlur = 6;
@@ -331,8 +347,19 @@ export class LavaEngine
         this.ui!.fillText(`FPS: ${this.fps.toFixed(1)} (${this.frameTime.toFixed(1)} ms)`, 50, 50);
         this.ui!.fillText(`X: ${playerTransform.position[0].toFixed(2)} Y: ${playerTransform.position[1].toFixed(2)} Z: ${playerTransform.position[2].toFixed(2)}`, 50, 75);
         this.ui!.fillText(`RX: ${cameraRot[0].toFixed(2)} RY: ${cameraRot[1].toFixed(2)} RZ: ${cameraRot[2].toFixed(2)}`, 50, 100);
+        this.ui!.font = "13px Quantico"; 
         const forward = getQuatForward(playerTransform.rotation);
         this.ui!.fillText(`VDX: ${forward[0].toFixed(2)} VDY: ${forward[1].toFixed(2)} VDZ: ${forward[2].toFixed(2)}`, 50, 125);
+        this.ui!.font = "13px Quantico"; 
+        if (this.isPointerLock)
+        {
+            this.ui!.fillText(`Pointer Locked`, 50, 150);
+        }
+        //this.ui!.fillText(`Physics: ${this.physicsTime.toFixed(1)} ms`, 50, 150);
+        //this.ui!.fillText(`Shadow: ${this.shadowTime.toFixed(1)} ms`, 50, 165);
+        //this.ui!.fillText(`Render (MSAA): ${this.renderTime.toFixed(1)} ms`, 50, 180);
+        //this.ui!.fillText(`Sky: ${this.skyMaskTime.toFixed(1)} ms`, 50, 195);
+        //this.ui!.fillText(`Bloom: ${this.bloomTime.toFixed(1)} ms`, 50, 210);
     }
 
     static ResizeCanvases()

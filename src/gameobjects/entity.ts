@@ -6,6 +6,7 @@ import { ScriptableBehavior } from "./scriptable-behavior";
 import { Input } from "../engine/input";
 import { eulerToQuatWorld, quatToEuler } from "../gl-utils";
 import { LavaEngine } from "../engine/lava-engine";
+import { RigidbodyComponent } from "../components/rigidbody-component";
 
 export class PhysicsState
 {
@@ -187,10 +188,29 @@ export class Entity
         return (this.isActive && globalActive);
     }
 
+    setPhysicsPosition(pos: vec3)
+    {
+        const curPos = pos;
+        const motionState = this.getComponentOrThrow(RigidbodyComponent).body.getMotionState();
+        motionState.getWorldTransform(this.ammoTransform);
+
+        this.ammoPosition.setX(curPos[0]);
+        this.ammoPosition.setY(curPos[1]);
+        this.ammoPosition.setZ(curPos[2]);
+        this.ammoTransform.setOrigin(this.ammoPosition);
+
+        this.ammoMotionState.setWorldTransform(this.ammoTransform);
+        this.getComponentOrThrow(RigidbodyComponent).body.setMotionState(this.ammoMotionState);
+    }
+
     setActive(b: boolean)
     {
         this.isActive = b;
         this.scene.updateEntity(this);
+        for (const [s, e] of this.childEntities)
+        {
+            if (e) e.setActive(b);
+        }
     }
 
     hasComponent<T extends Component>(type: ComponentConstructor<T>): boolean

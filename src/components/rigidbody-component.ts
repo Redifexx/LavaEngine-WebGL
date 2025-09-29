@@ -17,8 +17,9 @@ export class RigidbodyComponent extends Component
     isKinematic: boolean;
     rotMask: number[];
     velocity: any;
+    friction: number;
 
-    constructor(e: Entity, mass: number = 1.0, isKinematic: boolean = false, rotMask: number[] = [1, 1, 1])
+    constructor(e: Entity, mass: number = 1.0, isKinematic: boolean = false, friction: number = 1.0)
     {
         super();
         let localInertia = vec3.fromValues(0.0, 0.0, 0.0);
@@ -28,9 +29,9 @@ export class RigidbodyComponent extends Component
             return;
         }
 
-        this.rotMask = rotMask;
-
         this.isKinematic = isKinematic;
+
+        this.friction = friction;
 
         this.velocity = new LavaEngine.physics.Ammo.btVector3(0.0, 0.0, 0.0);
 
@@ -61,6 +62,7 @@ export class RigidbodyComponent extends Component
         );
 
         this.body = new ammo.btRigidBody(rbInfo);
+        this.body.setFriction(this.friction);
 
         e.ammoPosition = new ammo.btVector3();
         e.ammoQuat = new ammo.btQuaternion();
